@@ -2,7 +2,7 @@ library(DBI)
 library(RSQLite)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "./data/db/mariano.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_mareano.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # 2. Insert 'cruise' (The top-level parent)
@@ -22,10 +22,14 @@ dbWriteTable(con, "sample", df_sample, append = TRUE)
 dbWriteTable(con, "parameter", df_parameter, append = TRUE)
 
 # 6. Insert 'sediment'
-# This is the final data table. It relies on keys from 'sample' and 'element'
+# This is a data table. It relies on keys from 'sample' and 'element'
 dbWriteTable(con, "sediment", df_sediment, append = TRUE)
 
-# 7. Check if data arrived (optional count)
+# 7. Insert 'lld'
+# This is another data table. It relies on keys from 'sample' and 'element'
+dbWriteTable(con, "lld", df_lld, append = TRUE)
+
+# 8. Check if data arrived (optional count)
 print(paste("Cruises:", dbGetQuery(con, "SELECT count(*) FROM cruise")))
 print(paste("Sediment Data Points:", dbGetQuery(con, "SELECT count(*) FROM sediment")))
 

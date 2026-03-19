@@ -89,5 +89,5 @@ p <- ggplot() +
   )
 
 library(cowplot)
-ggsave2("./data/dist_to_coast.svg",
-        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
+#ggsave2("./data/dist_to_coast.svg",
+#        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
