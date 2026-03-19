@@ -1,7 +1,7 @@
 library(DBI)
 library(RSQLite)
 
-con <- dbConnect(RSQLite::SQLite(), "/scratch/workspace/MarineSedDB/mariano.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mariano.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # --- 0. Drop all tables ---

@@ -2,7 +2,7 @@ library(sf)
 library(tidyverse)
 
 # Define path
-data_path <- "/scratch2/aiqc/GSHHG/gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"
+data_path <- "./data/gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"
 
 # --- Step 1: Define Bounding Box ---
 # Note: When calculating distance, it is safer to make the box slightly larger

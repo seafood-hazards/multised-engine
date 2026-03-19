@@ -15,4 +15,3 @@ df_sediment <- df_inorganic_sediment |>
   inner_join(df_cruise |> distinct(cruise_id), by="cruise_id") |>
   inner_join(df_core |> distinct(core_id), by="core_id") |>
   inner_join(df_sample |> distinct(sample_id), by="sample_id")
-

@@ -2,7 +2,7 @@ library(DBI)
 library(RSQLite)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "/scratch/workspace/MarineSedDB/mariano.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mariano.sqlite")
 
 df_cruise <- dbReadTable(con, "cruise") |> as_tibble()
 df_core <- dbReadTable(con, "core") |> as_tibble()
@@ -44,4 +44,4 @@ df_mariano_sediment <- df_sediment |>
                 dde, ddn, mbsl, dist_to_coast, clay, silt, sand, gravel,
                 depth_from, depth_to, element, parameter, value, is_lld)
 
-write_tsv(df_mariano_sediment, "/scratch/workspace/sedimenter/pilot_mareano.tsv.gz")
+write_tsv(df_mariano_sediment, "./data/pilot_mareano.tsv.gz")

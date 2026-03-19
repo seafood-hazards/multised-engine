@@ -22,7 +22,7 @@ df_loc <- df_mariano_sediment |> distinct(cruise_id, core_id, dde, ddn, dist_to_
                               "≥100km")))
 
 points_web <- st_as_sf(df_loc, coords = c("dde", "ddn"), remove = FALSE, crs = 4326)
-saveRDS(points_web, "/scratch/workspace/pilot-db-with-mareano/.data/points_web.Rds")
+saveRDS(points_web, "./data/points_web.Rds")
 
 # 2. Create a Color Palette
 # matches the 'Distance' factor levels

@@ -2,7 +2,7 @@ library(tidyverse)
 library(readxl)
 
 # Files
-data_path <- "/scratch/workspace/sedimenter"
+data_path <- "./data"
 excel_file <- file.path(data_path, "Mareano.xlsx")
 
 # Excel info
@@ -95,4 +95,3 @@ df_info_element <- bind_rows(df_info_ngu_element, df_info_extern_element) |>
                    method1 = NA_character_,
                    method2 = NA_character_,
                    institute = "NGU-Laboratory"))
-

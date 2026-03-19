@@ -2,7 +2,7 @@ library(tidyverse)
 library(readxl)
 
 # Files
-data_path <- "/scratch/workspace/sedimenter"
+data_path <- "./data"
 excel_file <- file.path(data_path, "Mareano.xlsx")
 
 # Excel info
@@ -247,6 +247,3 @@ df_inorganic_unit <- read_excel(excel_file,
   t() |>
   as_tibble(.name_repair = ~c("parameter", "unit")) |>
   inner_join(df_inorganic_sediment |> distinct(parameter))
-
-
-
