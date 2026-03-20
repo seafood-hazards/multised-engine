@@ -27,10 +27,12 @@ df <- df %>%
          client = ifelse((is.na(client) | (client == "0")), "Unknown", client),
          sample_method = ifelse((is.na(sample_method) | (sample_method == "UKJENT")), "Unknown", sample_method),
          analysis_method = ifelse((is.na(analysis_method) | (analysis_method == "UKJENT")), "Unknown", analysis_method),
-         upper_depth = ifelse(is.na(upper_depth), 0, upper_depth),
-         lower_depth = ifelse(is.na(lower_depth), 0, lower_depth),
+         upper_depth = ifelse(is.na(upper_depth), 0.0, as.numeric(upper_depth)),
+         lower_depth = ifelse(is.na(lower_depth), 0.0, as.numeric(lower_depth)),
          filtered = ifelse(is_filtered == "Filtrert", TRUE, FALSE),
          archive = ifelse(archive == "j", TRUE, FALSE),
+         n_values = as.integer(n_values),
+         value = as.numeric(value),
          param_name = case_when(
            param_name == "Kobber" ~ "Copper",
            param_name == "Sink" ~ "Zinc",
@@ -102,7 +104,9 @@ df_sample <- df %>%
   group_by(activity_id, site_code, sample_date, upper_depth, lower_depth, filtered) %>%
   mutate(
     seq_number = row_number(),
-    sample_id = paste(activity_id, site_code, sample_date, paste(upper_depth, lower_depth, sep="-"), seq_number, sep = "_")
+    sample_id = paste(activity_id, site_code, sample_date, paste(upper_depth, lower_depth, sep="-"), seq_number, sep = "_"),
+    upper_depth = as.numeric(upper_depth),
+    lower_depth = as.numeric(lower_depth)
   ) %>%
   ungroup() %>%
   inner_join(df_client, by = "client") %>%
@@ -139,12 +143,14 @@ df_sediment <- df %>%
 # ------------------------------
 df_lod <- df_sediment %>%
   filter(!is.na(lod)) %>%
-  mutate(type = "LOD") %>%
+  mutate(type = "LOD",
+         lod = as.numeric(lod)) %>%
   select(sample_id, param_id, sediment_no, type, value=lod)
 
 df_loq <- df_sediment %>%
   filter(!is.na(loq)) %>%
-  mutate(type = "LOQ") %>%
+  mutate(type = "LOQ",
+         loq = as.numeric(loq)) %>%
   select(sample_id, param_id, sediment_no, type, value=loq)
 
 df_lld <- bind_rows(df_lod, df_loq)
