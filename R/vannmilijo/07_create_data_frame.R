@@ -19,5 +19,13 @@ df_lld <- dbReadTable(con, "lld") |> as_tibble()
 # Disconnect
 dbDisconnect(con)
 
+df_sample %>%
+  inner_join(df_activity, by = "activity_id") %>%
+  inner_join(df_site, by = "site_code") %>%
+  inner_join(df_client, by = "client_id") %>%
+  inner_join(df_contractor, by = "contractor_id") %>%
+  inner_join(df_sample_method, by = "method_id")
+
+
 
 #write_tsv(df_vannmilio_sediment, "./data/pilot_vannmilio.tsv.gz")
