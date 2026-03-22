@@ -10,7 +10,7 @@ library(sf)
 # Config
 # ------------------------------
 data_path <- "./data"
-excel_file <- file.path(data_path, "Vannmilio_all.xlsx")
+excel_file <- file.path(data_path, "Vannmiljo_all.xlsx")
 data_sheet <- "VannmiljoEksport"
 data_range <- "A1:AK61184"
 col_names <- c("site_code", "site_name", "label", "site_type", "activity_id", "activity_name", "client", "contractor", "param_id", "param_name", "cas_no", "medium_id", "medium_name", "taxon_id", "scientific_name", "sample_method", "analysis_method", "sample_time", "upper_depth", "lower_depth", "depth_unit", "is_filtered", "exclude_class", "operator", "value", "list_name", "unit", "sample_no", "lod", "loq", "origin", "n_values", "comment", "archive", "product_desc", "utm33_x", "utm33_y")

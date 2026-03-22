@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmilijo.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmiljo.sqlite")
 
 df_activity <- dbReadTable(con, "activity") |> as_tibble()
 df_client <- dbReadTable(con, "client") |> as_tibble()
@@ -50,7 +50,3 @@ activity_table <- df_vannmilio_sediment %>% count(activity_id, activity_name, pa
                 Cobalt, Copper, Manganese, Molybdenum, Zinc, Selenium)
 
 write_tsv(activity_table, "./data/vannmiljo_activities.tsv.gz")
-
-
-
-

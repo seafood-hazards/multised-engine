@@ -1,7 +1,7 @@
 library(DBI)
 library(RSQLite)
 
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmilijo.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmiljo.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # --- 0. Drop all tables ---
