@@ -19,7 +19,7 @@ df_lld <- dbReadTable(con, "lld") |> as_tibble()
 # Disconnect
 dbDisconnect(con)
 
-df_vannmilio_sediment <- df_sediment %>%
+df_vannmiljo_sediment <- df_sediment %>%
   inner_join(df_sample %>%
                inner_join(df_activity, by = "activity_id") %>%
                inner_join(df_site, by = "site_code") %>%
@@ -41,4 +41,16 @@ df_vannmilio_sediment <- df_sediment %>%
                 param_id, param_name, method, analysis, value, unit, operator, lod, loq)
 
 
-write_tsv(df_vannmilio_sediment, "./data/pilot_vannmilio.tsv.gz")
+write_tsv(df_vannmilio_sediment, "./data/pilot_vannmiljo.tsv.gz")
+
+
+activity_table <- df_vannmilio_sediment %>% count(activity_id, activity_name, param_name) %>%
+  pivot_wider(names_from = param_name, values_from = n) %>%
+  dplyr::select(Activity = activity_id, Name = activity_name,
+                Cobalt, Copper, Manganese, Molybdenum, Zinc, Selenium)
+
+write_tsv(activity_table, "./data/vannmiljo_activities.tsv.gz")
+
+
+
+
