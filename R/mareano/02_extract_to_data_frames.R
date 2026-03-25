@@ -1,252 +1,251 @@
+# 02_extract_to_data_frames.R
 library(tidyverse)
 library(readxl)
+library(tidyr)
+library(dplyr)
+library(stringr)
 
-# Files
-data_path <- "/scratch/workspace/sedimenter"
+# ------------------------------------------------------------------------------
+# CONFIG
+# ------------------------------------------------------------------------------
+data_path <- "./data"
 excel_file <- file.path(data_path, "Mareano.xlsx")
 
-# Excel info
-inorganic_sheet <- "INORGANIC"
-inorganic_col_range <- "A1:BY2"
-inorganic_cruise_range <- "A3:E3541"
-inorganic_core_range <- "D3:N3541"
-inorganic_sample_range <- "A3:P3541"
+inorganic_sheet          <- "INORGANIC"
+inorganic_cruise_range   <- "A3:E3541"
+inorganic_core_range     <- "D3:N3541"
+inorganic_sample_range   <- "A3:P3541"
 inorganic_sediment_range <- "A3:BY3541"
 inorganic_unit_range <- "R1:BY2"
 
-repalce_na <- function(x) ifelse(is.na(x), "",  x)
+# Column names we prefer to treat as numeric (hinting) for the catalog
+numeric_full_names <- c(
+  "Cruise year",
+  "Sample interval (top-bottom) from cm",
+  "Sample interval (top-bottom) to cm",
+  "DDE degrees",
+  "DDN degrees",
+  "mbsl m"
+)
 
-# INORGANIC sheet - Column names
-df_inorganic_cols <- read_excel(excel_file,
-                                inorganic_sheet,
-                                inorganic_col_range,
-                                col_names = FALSE) |>
-  t() |>
-  as_tibble(.name_repair = ~c("Row1", "Row2")) |>
-  fill(Row1) |>
-  mutate(Full = paste(Row1, ifelse(is.na(Row2), "", Row2)) |>
-           str_trim()) |>
-  mutate(ColType = ifelse(Full %in% c("Cruise year",
-                                     "Sample interval (top-bottom) from cm",
-                                     "Sample interval (top-bottom) to cm",
-                                     "DDE degrees",
-                                     "DDN degrees",
-                                     "mbsl m"),
-                         "numeric", "text"))
+# Sample/Sediment corrections: table-driven (drop or fix specific Full-ID rows)
+sample_sediment_corrections <- tibble::tribble(
+  ~full_id,                        ~drop, ~new_from, ~new_to,
+  "2021P2009010_0-2",               TRUE,      NA,      NA,
+  "2021P2009012_0-2",               TRUE,      NA,      NA,
+  "2021P2009015_0-2",               TRUE,      NA,      NA,
+  "2021104R2669MC15c1_9-10",       FALSE,       9,      10,
+  "2021115R2770MC17c1_9-10",       FALSE,       9,      10,
+  "2021115R2869MC19c1_9-10",       FALSE,       9,      10
+)
 
-# INORGANIC sheet - Cruise
-v_inorganic_cruise_cols <- df_inorganic_cols |>
-  slice(1:5) |>
-  pull(Full)
-v_inorganic_cruise_col_types <- df_inorganic_cols |>
-  slice(1:5) |>
-  pull(ColType)
-df_inorganic_cruise <- read_excel(excel_file,
-                                  inorganic_sheet,
-                                  inorganic_cruise_range,
-                                  col_names = v_inorganic_cruise_cols,
-                                  col_types = v_inorganic_cruise_col_types) |>
-  filter(!is.na(`Cruise year`)) |>
-  mutate(cruise_id = paste("MA", `Cruise year`, `Cruise number`, sep="-"),
-         source = "Mareano",
-         type = ifelse(!is.na(`MAREANO cruise`), "Mareano Cruise",
-                       ifelse(!is.na(`Marine Grunnkart cruise`),
-                              "Marine Basecamp Cruise", NA_character_)),
-         year = as.integer(`Cruise year`),
-         month = NA_integer_,
-         day = NA_integer_,
-         cruise_no = as.character(`Cruise number`)) |>
-  distinct(cruise_id, source, type, year, month, day, cruise_no)
+# ------------------------------------------------------------------------------
+# Source common helpers
+# ------------------------------------------------------------------------------
+source(file.path("R", "mareano", "sedimeter_helpers.R"))
 
-# INORGANIC sheet - Core
-v_inorganic_core_cols <- df_inorganic_cols |>
-  slice(4:14) |>
-  pull(Full)
-v_inorganic_core_col_types <- df_inorganic_cols |>
-  slice(4:14) |>
-  pull(ColType)
-df_inorganic_core <- read_excel(excel_file,
-                                inorganic_sheet,
-                                inorganic_core_range,
-                                col_names = v_inorganic_core_cols,
-                                col_types = v_inorganic_core_col_types) |>
-  filter(!is.na(`Cruise year`)) |>
-  dplyr::select(-c(`Sample interval (top-bottom) from cm`,
-                   `Sample interval (top-bottom) to cm`)) |>
-  distinct() |>
-  mutate(cruise_id = paste("MA", `Cruise year`, `Cruise number`, sep="-"),
-         core_id = paste(`Station number`,
-                         `Sampling tool`,
-                          ifelse(is.na(`SamplingTool serial ID`), "",  `SamplingTool serial ID`) |>
-                            str_pad(width = 3, pad = "0"),
-                          ifelse(is.na(`Sample core ID`), "00", `Sample core ID`),
-                         sep="-")) |>
-  dplyr::select(
-    cruise_id,
-    core_id,
-    station_no = `Station number`,
-    sampling_tool =`Sampling tool`,
-    tool_id = `SamplingTool serial ID`,
-    core_name = `Sample core ID`,
-    dde = `DDE degrees`,
-    ddn = `DDN degrees`,
-    mbsl = `mbsl m`
+# ------------------------------------------------------------------------------
+# READ the sheet once + build catalog from top two rows
+# ------------------------------------------------------------------------------
+inorg_full_raw    <- read_sheet_raw(excel_file, inorganic_sheet)
+df_inorganic_cols <- build_two_row_header_catalog(
+  inorg_full_raw,
+  header_rows = 1:2,
+  numeric_full_names = numeric_full_names
+)
+
+# ------------------------------------------------------------------------------
+# READ-DATA FUNCTIONS (RAW; NO FIXES, NO IDS)
+# ------------------------------------------------------------------------------
+read_data_inorganic_cruise <- function(sheet_df, catalog, cruise_range) {
+  slice_block_with_catalog(sheet_df, catalog, cruise_range)
+}
+
+read_data_inorganic_core <- function(sheet_df, catalog, core_range) {
+  slice_block_with_catalog(sheet_df, catalog, core_range)
+}
+
+read_data_inorganic_sample <- function(sheet_df, catalog, sample_range) {
+  slice_block_with_catalog(sheet_df, catalog, sample_range)
+}
+
+read_data_inorganic_sediment <- function(sheet_df, catalog, sediment_range) {
+  slice_block_with_catalog(sheet_df, catalog, sediment_range)
+}
+
+read_data_inorganic_unit <- function(catalog, unit_range) {
+  dims <- parse_excel_range(unit_range)
+  cols <- seq.int(dims$col1, dims$col2)
+
+  cols <- intersect(cols, catalog$col_index)
+
+  if (length(cols) == 0) {
+    stop("read_data_inorganic_unit(): No overlapping columns found for range: ", unit_range)
+  }
+
+  subcat <- catalog[catalog$col_index %in% cols, , drop = FALSE]
+
+  tibble::tibble(
+    parameter = subcat$Row1,
+    unit      = subcat$Row2,
+    Full      = subcat$Full
+  )
+}
+
+# ------------------------------------------------------------------------------
+# CORRECT-DATA FUNCTIONS (FILTER, FIX, IDS, TYPES, SHAPE)
+# ------------------------------------------------------------------------------
+correct_data_inorganic_cruise <- function(df) {
+  df <- dplyr::mutate(df, dplyr::across(where(is.character), function(x) stringr::str_trim(x)))
+  if ("Cruise year" %in% names(df)) {
+    df <- dplyr::filter(df, !is.na(.data$`Cruise year`) & .data$`Cruise year` != "")
+  }
+  has_mareano <- "MAREANO cruise" %in% names(df)
+  has_mg      <- "Marine Grunnkart cruise" %in% names(df)
+
+  df <- dplyr::mutate(
+    df,
+    year      = suppressWarnings(as.integer(.data$`Cruise year`)),
+    cruise_no = as.character(.data$`Cruise number`),
+    source    = "Mareano",
+    cruise_type = ifelse(
+      has_mareano & !is.na(.data$`MAREANO cruise`), "Mareano Cruise",
+      ifelse(has_mg & !is.na(.data$`Marine Grunnkart cruise`), "Marine Basecamp Cruise", NA_character_)
+    ),
+    cruise_id = build_cruise_id(.data$`Cruise year`, .data$`Cruise number`)
+  ) %>%
+  dplyr::distinct(cruise_id, source, cruise_type, year, cruise_no)
+
+  df
+}
+
+correct_data_inorganic_core <- function(df) {
+  if ("Cruise year" %in% names(df)) {
+    df <- dplyr::filter(df, !is.na(.data$`Cruise year`) & .data$`Cruise year` != "")
+  }
+
+  df <- dplyr::mutate(
+    df,
+    cruise_id = build_cruise_id(.data$`Cruise year`, .data$`Cruise number`),
+    core_id   = build_core_id(.data$`Station number`,
+                              .data$`Sampling tool`,
+                              .data$`SamplingTool serial ID`,
+                              .data$`Sample core ID`)
   )
 
-# INORGANIC sheet - Sample
-v_inorganic_sample_cols <- df_inorganic_cols |>
-  slice(1:16) |>
-  pull(Full)
-v_inorganic_sample_col_types <- df_inorganic_cols |>
-  slice(1:16) |>
-  pull(ColType)
+  if ("DDE degrees" %in% names(df)) df[["DDE degrees"]] <- to_numeric_safe(df[["DDE degrees"]])
+  if ("DDN degrees" %in% names(df)) df[["DDN degrees"]] <- to_numeric_safe(df[["DDN degrees"]])
+  if ("mbsl m" %in% names(df))      df[["mbsl m"]]      <- to_numeric_safe(df[["mbsl m"]])
 
-df_inorganic_sample <- read_excel(excel_file,
-                                  inorganic_sheet,
-                                  inorganic_sample_range,
-                                  col_names = v_inorganic_sample_cols,
-                                  col_types = v_inorganic_sample_col_types) |>
-  filter(!is.na(`Cruise year`)) |>
-  dplyr::select(-c(`DDE degrees`, `DDN degrees`, `mbsl m`)) |>
-  mutate(full_sample_id = paste0(`Cruise year`, `Cruise number`,
-                                 `Station number`, `Sampling tool`,
-                                 str_pad(`SamplingTool serial ID`, width = 3, pad = "0") |>
-                                   repalce_na(),
-                                 ifelse(is.na(`Sample core ID`), "", `Sample core ID`),
-                                 "_", str_pad(`Sample interval (top-bottom) from cm`, width = 2, pad = "0"),
-                                 "-", str_pad(`Sample interval (top-bottom) to cm`, width = 2, pad = "0")))
+  df <- dplyr::select(
+    df,
+    cruise_id,
+    core_id,
+    station_no    = `Station number`,
+    sampling_tool = `Sampling tool`,
+    tool_id       = `SamplingTool serial ID`,
+    core_name     = `Sample core ID`,
+    dde           = `DDE degrees`,
+    ddn           = `DDN degrees`,
+    mbsl          = `mbsl m`
+  ) %>%
+  dplyr::distinct()
 
-incorrect_sample_ids <- df_inorganic_sample |>
-  filter(!is.na(`MAREANO cruise`)) |>
-  dplyr::select(wrong_id = `1096MC002 Full-ID`,
-                correct_id = full_sample_id,
-                `Cruise year`, `Cruise number`, `Station number`, `Sampling tool`, `SamplingTool serial ID`) |>
-  dplyr::filter(wrong_id != correct_id)
+  df
+}
 
-duplicate_sample_ids <- df_inorganic_sample |>
-  filter(`1096MC002 Full-ID` %in% c("2021104R2669MC15c1_8-9",
-                                    "2021104R2669MC15c1_9-10",
-                                    "2021115R2770MC17c1_8-9",
-                                    "2021115R2770MC17c1_9-10",
-                                    "2021115R2869MC19c1_8-9",
-                                    "2021115R2869MC19c1_9-10",
-                                    "2021P2009010_00-02",
-                                    "2021P2009010_0-2",
-                                    "2021P2009012_00-02",
-                                    "2021P2009012_0-2",
-                                    "2021P2009015_00-02",
-                                    "2021P2009015_0-2"))
+correct_data_inorganic_sample <- function(df) {
+  if ("Cruise year" %in% names(df)) {
+    df <- dplyr::filter(df, !is.na(.data$`Cruise year`) & .data$`Cruise year` != "")
+  }
 
-dim(df_inorganic_sample)
+  full_id_col <- "1096MC002 Full-ID"
+  from_col    <- "Sample interval (top-bottom) from cm"
+  to_col      <- "Sample interval (top-bottom) to cm"
+  if (full_id_col %in% names(df)) {
+    df <- apply_fullid_corrections(df, full_id_col, from_col, to_col, sample_sediment_corrections)
+  }
 
-df_inorganic_sample <- df_inorganic_sample |>
-  filter(!(`1096MC002 Full-ID` %in% c("2021P2009010_0-2",
-                                      "2021P2009012_0-2",
-                                      "2021P2009015_0-2"))) |>
-  mutate(`Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021104R2669MC15c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021115R2770MC17c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021115R2869MC19c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021104R2669MC15c1_9-10",
-                                                         10,
-                                                         `Sample interval (top-bottom) to cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021115R2770MC17c1_9-10",
-                                                         10,
-                                                         `Sample interval (top-bottom) to cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021115R2869MC19c1_9-10",
-                                                         10,
-                                                         `Sample interval (top-bottom) to cm`))
+  df <- dplyr::mutate(
+    df,
+    `SamplingTool serial ID` = repalce_na(.data$`SamplingTool serial ID`),
+    `SamplingTool serial ID` = ifelse(.data$`SamplingTool serial ID` == "", "",
+                                      stringr::str_pad(.data$`SamplingTool serial ID`, width = 3, side = "left", pad = "0")),
+    cruise_id = build_cruise_id(.data$`Cruise year`, .data$`Cruise number`),
+    core_id   = build_core_id(.data$`Station number`, .data$`Sampling tool`, .data$`SamplingTool serial ID`, .data$`Sample core ID`),
+    sample_id = paste0(
+      ifelse(is.na(.data$`Sample core ID`) | .data$`Sample core ID` == "", "00", .data$`Sample core ID`), "_",
+      stringr::str_pad(as.character(.data$`Sample interval (top-bottom) from cm`), width = 2, side = "left", pad = "0"), "-",
+      stringr::str_pad(as.character(.data$`Sample interval (top-bottom) to cm`),   width = 2, side = "left", pad = "0")
+    )
+  )
 
-dim(df_inorganic_sample)
+  dplyr::select(
+    df,
+    cruise_id,
+    core_id,
+    sample_id,
+    depth_from      = `Sample interval (top-bottom) from cm`,
+    depth_to        = `Sample interval (top-bottom) to cm`,
+    batch_id = `Sample batch ID`,
+    sample_id2      = `Sample ID`
+  )
+}
 
-df_inorganic_sample <- df_inorganic_sample |>
-  mutate(cruise_id = paste("MA", `Cruise year`, `Cruise number`, sep="-"),
-         core_id = paste(`Station number`,
-                         `Sampling tool`,
-                         ifelse(is.na(`SamplingTool serial ID`), "",  `SamplingTool serial ID`) |>
-                           str_pad(width = 3, pad = "0"),
-                         ifelse(is.na(`Sample core ID`), "00", `Sample core ID`),
-                         sep="-"),
-         sample_id = paste0(ifelse(is.na(`Sample core ID`), "00", `Sample core ID`), "_",
-                            str_pad(`Sample interval (top-bottom) from cm`, width = 2, pad = "0"), "-",
-                            str_pad(`Sample interval (top-bottom) to cm`, width = 2, pad = "0"))) |>
-  dplyr::select(cruise_id,
-                core_id,
-                sample_id,
-                depth_from = `Sample interval (top-bottom) from cm`,
-                depth_to = `Sample interval (top-bottom) to cm`,
-                sample_batch_id = `Sample batch ID`,
-                sample_id2 = `Sample ID`)
+correct_data_inorganic_sediment <- function(df, catalog) {
+  if ("Cruise year" %in% names(df)) {
+    df <- dplyr::filter(df, !is.na(.data$`Cruise year`) & .data$`Cruise year` != "")
+  }
 
-df_inorganic_sample |> count(cruise_id, core_id, sample_id) |> filter(n > 1)
+  full_id_col <- "1096MC002 Full-ID"
+  from_col    <- "Sample interval (top-bottom) from cm"
+  to_col      <- "Sample interval (top-bottom) to cm"
+  if (full_id_col %in% names(df)) {
+    df <- apply_fullid_corrections(df, full_id_col, from_col, to_col, sample_sediment_corrections)
+  }
 
-# INORGANIC sheet - Sediment
-v_inorganic_sediment_cols <- df_inorganic_cols |>
-  pull(Full)
-v_inorganic_sediment_col_types <- df_inorganic_cols |>
-  pull(ColType)
+  df <- dplyr::mutate(
+    df,
+    `SamplingTool serial ID` = repalce_na(.data$`SamplingTool serial ID`),
+    `SamplingTool serial ID` = ifelse(.data$`SamplingTool serial ID` == "", "",
+                                      stringr::str_pad(.data$`SamplingTool serial ID`, width = 3, side = "left", pad = "0")),
+    cruise_id = build_cruise_id(.data$`Cruise year`, .data$`Cruise number`),
+    core_id   = build_core_id(.data$`Station number`, .data$`Sampling tool`, .data$`SamplingTool serial ID`, .data$`Sample core ID`),
+    sample_id = paste0(
+      ifelse(is.na(.data$`Sample core ID`) | .data$`Sample core ID` == "", "00", .data$`Sample core ID`), "_",
+      stringr::str_pad(as.character(.data$`Sample interval (top-bottom) from cm`), width = 2, side = "left", pad = "0"), "-",
+      stringr::str_pad(as.character(.data$`Sample interval (top-bottom) to cm`),   width = 2, side = "left", pad = "0")
+    )
+  )
 
-df_inorganic_sediment <- read_excel(excel_file,
-                                   inorganic_sheet,
-                                   inorganic_sediment_range,
-                                   col_names = v_inorganic_sediment_cols,
-                                   col_types = v_inorganic_sediment_col_types) |>
-  filter(!is.na(`Cruise year`)) |>
-  filter(!(`1096MC002 Full-ID` %in% c("2021P2009010_0-2",
-                                      "2021P2009012_0-2",
-                                      "2021P2009015_0-2"))) |>
-  mutate(`Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021104R2669MC15c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021115R2770MC17c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) from cm` = ifelse(`1096MC002 Full-ID` == "2021115R2869MC19c1_9-10",
-                                                         9,
-                                                         `Sample interval (top-bottom) from cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021104R2669MC15c1_9-10",
-                                                       10,
-                                                       `Sample interval (top-bottom) to cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021115R2770MC17c1_9-10",
-                                                       10,
-                                                       `Sample interval (top-bottom) to cm`),
-         `Sample interval (top-bottom) to cm` = ifelse(`1096MC002 Full-ID` == "2021115R2869MC19c1_9-10",
-                                                       10,
-                                                       `Sample interval (top-bottom) to cm`)) |>
-  mutate(cruise_id = paste("MA", `Cruise year`, `Cruise number`, sep="-"),
-         core_id = paste(`Station number`,
-                         `Sampling tool`,
-                         ifelse(is.na(`SamplingTool serial ID`), "",  `SamplingTool serial ID`) |>
-                           str_pad(width = 3, pad = "0"),
-                         ifelse(is.na(`Sample core ID`), "00", `Sample core ID`),
-                         sep="-"),
-         sample_id = paste0(ifelse(is.na(`Sample core ID`), "00", `Sample core ID`), "_",
-                            str_pad(`Sample interval (top-bottom) from cm`, width = 2, pad = "0"), "-",
-                            str_pad(`Sample interval (top-bottom) to cm`, width = 2, pad = "0"))) |>
-  dplyr::select(-c(1:17)) |>
-  pivot_longer(!c(cruise_id, core_id, sample_id),
-               names_to = "Full", values_to = "value") |>
-  filter(!is.na(value) & (value != "n.a.")) |>
-  inner_join(df_inorganic_cols %>% dplyr::select(Full, Row1)) |>
-  mutate(is_lld = stringr::str_detect(value, fixed("<")),
-         new_value = str_remove_all(value, "<|±.*") |>
-           as.numeric()) |>
-  dplyr::select(cruise_id, core_id, sample_id, parameter=Row1,
-                value=new_value, is_lld)
+  # Use common helper to pivot measurement columns using catalog Row2 (units)
+  long_df <- pivot_measurements_long(
+    df,
+    catalog = catalog,
+    id_cols = c("cruise_id", "core_id", "sample_id")
+  )
 
-# INORGANIC sheet - Unit
-df_inorganic_unit <- read_excel(excel_file,
-                                inorganic_sheet,
-                                inorganic_unit_range,
-                                col_names = FALSE) |>
-  t() |>
-  as_tibble(.name_repair = ~c("parameter", "unit")) |>
-  inner_join(df_inorganic_sediment |> distinct(parameter))
+  long_df
+}
 
+correct_data_inorganic_unit <- function(unit_df, sediment_df) {
+  unit_df %>%
+    dplyr::filter(!is.na(.data$unit) & .data$unit != "") %>%
+    dplyr::select(parameter = .data$parameter, unit = .data$unit) %>%
+    dplyr::inner_join(dplyr::distinct(sediment_df, .data$parameter), by = "parameter")
+}
 
+# ------------------------------------------------------------------------------
+# Orchestration — read once, then pipe through
+# ------------------------------------------------------------------------------
+df_inorganic_cruise_raw   <- read_data_inorganic_cruise(inorg_full_raw, df_inorganic_cols, inorganic_cruise_range)
+df_inorganic_core_raw     <- read_data_inorganic_core(inorg_full_raw,   df_inorganic_cols, inorganic_core_range)
+df_inorganic_sample_raw   <- read_data_inorganic_sample(inorg_full_raw, df_inorganic_cols, inorganic_sample_range)
+df_inorganic_sediment_raw <- read_data_inorganic_sediment(inorg_full_raw, df_inorganic_cols, inorganic_sediment_range)
+df_inorganic_unit_raw     <- read_data_inorganic_unit(df_inorganic_cols, inorganic_unit_range)
 
+df_inorganic_cruise   <- correct_data_inorganic_cruise(df_inorganic_cruise_raw)
+df_inorganic_core     <- correct_data_inorganic_core(df_inorganic_core_raw)
+df_inorganic_sample   <- correct_data_inorganic_sample(df_inorganic_sample_raw)
+df_inorganic_sediment <- correct_data_inorganic_sediment(df_inorganic_sediment_raw, df_inorganic_cols)
+df_inorganic_unit     <- correct_data_inorganic_unit(df_inorganic_unit_raw, df_inorganic_sediment)

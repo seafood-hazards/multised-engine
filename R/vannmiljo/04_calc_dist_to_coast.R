@@ -30,10 +30,10 @@ coastline <- st_union(coastline) %>% st_make_valid()
 sf_use_s2(TRUE)
 
 # --- Step 4: Prepare Ocean Points ---
-ocean_points <- df_core %>%
-  distinct(dde, ddn) %>%
-  st_as_sf(coords = c("dde", "ddn"), crs = 4326, remove = FALSE) %>%
-  rename(longitude = dde, latitude = ddn)
+ocean_points <- df_site %>%
+  distinct(lon, lat) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+  rename(longitude = lon, latitude = lat)
 
 # --- Step 5: Compute Distances (THE FIX) ---
 # TARGET CRS: EPSG:3035 (ETRS89-extended / LAEA Europe)
@@ -53,10 +53,10 @@ results <- ocean_points_proj %>%
   st_drop_geometry() %>%
   select(longitude, latitude, dist_to_coast)
 
-df_core <- df_core %>%
-  left_join(results, by = c("dde" = "longitude", "ddn" = "latitude"))
+df_site <- df_site %>%
+  left_join(results, by = c("lon" = "longitude", "lat" = "latitude"))
 
 # Optional: Convert meters to km
-df_core$dist_to_coast <- df_core$dist_to_coast / 1000
+df_site$dist_to_coast <- df_site$dist_to_coast / 1000
 
-print(head(df_core))
+print(head(df_site))
