@@ -106,9 +106,9 @@ df_sample_method <- df %>% distinct(sample_method) %>%
 # ------------------------------
 # Analysis method
 # ------------------------------
-df_analysis_method <- df %>% distinct(analysis_method) %>%
+df_analysis_method <- df %>% distinct(analysis_method, unit) %>%
   mutate(analysis_id = row_number()) %>%
-  dplyr::select(analysis_id, analysis = analysis_method)
+  dplyr::select(analysis_id, analysis = analysis_method, unit)
 
 # ------------------------------
 # Sample 29,230
@@ -143,15 +143,15 @@ df_sediment <- df %>%
   inner_join(df_client, by = "client") %>%
   inner_join(df_contractor, by = "contractor") %>%
   inner_join(df_sample_method, by = c(sample_method = "method")) %>%
-  inner_join(df_analysis_method, by = c(analysis_method = "analysis")) %>%
+  inner_join(df_analysis_method, by = c(analysis_method = "analysis", "unit")) %>%
   inner_join(df_sample, by = c("activity_id", "site_code", "client_id",
                                "contractor_id", "method_id", "sample_time",
                                "upper_depth", "lower_depth")) %>%
-  dplyr::select(sample_id, param_id, analysis_id, value, unit, operator, sample_no, n_values, lod, loq) %>%
+  dplyr::select(sample_id, param_id, analysis_id, value, operator, sample_no, n_values, lod, loq) %>%
   group_by(sample_id, param_id) %>%
   mutate(sediment_no = row_number()) %>%
   ungroup() %>%
-  dplyr::select(sample_id, param_id, sediment_no, analysis_id, value, unit, operator, sample_no, n_values, lod, loq)
+  dplyr::select(sample_id, param_id, sediment_no, analysis_id, value, operator, sample_no, n_values, lod, loq)
 
 # ------------------------------
 # lld
