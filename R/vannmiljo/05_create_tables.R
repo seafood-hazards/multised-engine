@@ -93,8 +93,7 @@ dbExecute(con, create_table_sql)
 create_table_sql <- "
 CREATE TABLE analysis_method (
     analysis_id INTEGER NOT NULL PRIMARY KEY,
-    analysis TEXT NOT NULL,
-    unit TEXT NOT NULL
+    analysis TEXT NOT NULL
 );
 "
 dbExecute(con, create_table_sql)
@@ -140,6 +139,7 @@ CREATE TABLE sediment (
     sediment_no INTEGER NOT NULL,
     analysis_id INTEGER NOT NULL,
     value REAL NOT NULL,
+    unit TEXT NOT NULL,
     operator TEXT,
     sample_no TEXT,
     n_values INTEGER,
