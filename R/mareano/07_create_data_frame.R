@@ -33,8 +33,13 @@ df_mariano_sample <- df_sample |>
   dplyr::select(cruise_id, core_id, sample_id, depth_from, depth_to, batch_id)
 
 df_mariano_element_params <- df_parameter |>
-  filter(unit %in% c("mg/kg") | parameter %in% c("TS", "TC", "TOC")) |>
-  dplyr::select(parameter, element)
+  filter((unit %in% c("mg/kg") | parameter %in% c("TS", "TC", "TOC")) & parameter != "TBT" ) |>
+  dplyr::select(parameter, element) %>%
+  mutate(category = case_when(
+    parameter %in% c("TS", "TC", "TOC")  ~ "tcs",
+    element %in% c("Cobalt", "Copper", "Iodine", "Manganese", "Molybdenum", "Selenium", "Zinc")  ~ "efsa",
+    TRUE ~ "other"
+  ))
 
 df_mariano_sediment <- df_sediment |>
   inner_join(df_mariano_element_params, by = "parameter") |>
@@ -45,6 +50,6 @@ df_mariano_sediment <- df_sediment |>
   left_join(df_lld %>% rename(lld = "value"), by = c("batch_id", "parameter")) |>
   dplyr::select(cruise_id, core_id, sample_id, cruise_type, year, core_name, sampling_tool,
                 dde, ddn, mbsl, dist_to_coast, clay, silt, sand, gravel,
-                depth_from, depth_to, element, parameter, value, is_lld, lld)
+                depth_from, depth_to, element, parameter, value, is_lld, lld, category)
 
 write_tsv(df_mariano_sediment, "./data/pilot_mareano.tsv.gz")
