@@ -1,17 +1,16 @@
 library(tidyverse)
 
-# ── Constants ──────────────────────────────────────────────────────────────────
-
+# ── Constants ─────────────────────────────────────────────────────────────────
 SAND_SUBCOLS  <- c("GSMF63_125", "GSMF125_250", "GSMF250_500",
                    "GSMF500_1000", "GSMF1000_2000")
-ALL_MEAS_COLS <- c("GSMF2", "GSMF2_63", "FINS", "GSMF_63", SAND_SUBCOLS, "GSMF_2000")
+ALL_MEAS_COLS <- c("GSMF2", "GSMF2_63", "FINS", "GSMF_63",
+                   SAND_SUBCOLS, "GSMF_2000")
 
-# ── STEP 0: Adjust values for operators ────────────────────────────────────────
-#   ND  → 0           (not detected = effectively zero)
-#   "<" → value / 2   (below detection/quantification limit; half as point estimate)
-#   ">" → value        (lower bound; treated as measured, flagged in output)
-#   "=" → value        (exact)
-
+# ── STEP 0: Operator-adjusted values ─────────────────────────────────────────
+#   ND  → 0          (not detected)
+#   "<" → value / 2  (below limit; mid-point as point estimate)
+#   ">" → value      (lower bound; kept as measured)
+#   "=" → value      (exact)
 df_p_adj <- df_p %>%
   mutate(
     value_adj = case_when(
@@ -21,167 +20,400 @@ df_p_adj <- df_p %>%
     )
   )
 
-# ── STEP 1: Wide format (operator-adjusted values + operator strings) ──────────
+# ── STEP 0b: Decimal-point correction for values > 100 % ─────────────────────
+#
+# Root cause: tabular tools (Excel) sometimes strip or misplace decimal points.
+# Strategy:
+#   1. Compute per-parameter background median from *valid* values (≤ 100).
+#   2. For each invalid value (> 100), generate candidates value / 10^k, k = 1..6.
+#   3. Keep only candidates ≤ 100; choose the one nearest the background median.
+#   4. If no valid candidate can be found, set to NA and flag.
 
-df_val <- df_p_adj %>%
+# --- Background medians from valid values per parameter ----------------------
+param_bg_medians <- df_p_adj %>%
+  filter(value_adj <= 100, value_adj >= 0) %>%
+  group_by(param_id) %>%
+  summarise(bg_median = median(value_adj, na.rm = TRUE), .groups = "drop")
+
+message("── Per-parameter background medians (from valid values ≤ 100) ──")
+print(param_bg_medians)
+
+# --- Correction function -----------------------------------------------------
+fix_decimal <- function(value, bg_median) {
+  # Already valid or missing: leave unchanged
+  if (is.na(value) || value <= 100) return(value)
+
+  # Generate candidate corrections: divide by 10, 100, ..., 10^6
+  candidates <- value / 10^(1:6)
+  valid_cand <- candidates[candidates <= 100 & candidates >= 0]
+
+  if (length(valid_cand) == 0) return(NA_real_)   # unrecoverable
+
+  # Pick candidate closest to the per-parameter background median
+  valid_cand[which.min(abs(valid_cand - bg_median))]
+}
+
+# --- Apply correction --------------------------------------------------------
+df_p_adj <- df_p_adj %>%
+  left_join(param_bg_medians, by = "param_id") %>%
+  mutate(
+    decimal_corrected = value_adj > 100,              # flag BEFORE correction
+    value_adj = map2_dbl(value_adj, bg_median, fix_decimal),
+    decimal_unrecoverable = decimal_corrected & is.na(value_adj)
+  ) %>%
+  select(-bg_median)
+
+# --- Audit summary -----------------------------------------------------------
+message("\n── Decimal correction summary ──")
+df_p_adj %>%
+  group_by(param_id) %>%
+  summarise(
+    n_total         = n(),
+    n_corrected     = sum(decimal_corrected,    na.rm = TRUE),
+    n_unrecoverable = sum(decimal_unrecoverable, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n_corrected > 0) %>%
+  print()
+
+message("\n── Sample of corrected rows ──")
+df_p_adj %>%
+  filter(decimal_corrected) %>%
+  select(sample_id, sediment_no, param_id, value_original = value,
+         value_adj, operator, decimal_unrecoverable) %>%
+  print(n = 30)
+
+# ── STEP 0c: Resolve overlapping parameters and rounding excess ───────────────
+#
+# Overlap hierarchy (aggregates that double-count when their components exist):
+#   FINS    (<63 µm)  = GSMF2 + GSMF2_63          → redundant if either component present
+#   GSMF_63 (>63 µm)  = sand sub-fractions + GSMF_2000 → redundant if any component present
+#
+# After removing redundant aggregates:
+#   total 100–101 % → proportional rescale (rounding error)
+#   total  > 101 % → flag as unresolvable; retain but exclude from main analysis
+
+SAND_SUBCOLS      <- c("GSMF63_125", "GSMF125_250", "GSMF250_500",
+                        "GSMF500_1000", "GSMF1000_2000")
+ROUNDING_THRESHOLD <- 50   # % above 100 treated as rounding
+
+# ── Pass 1: Remove redundant aggregate parameters ─────────────────────────────
+
+df_p_dedup <- df_p_adj %>%
+  group_by(sample_id, sediment_no) %>%
+  mutate(
+    .has_GSMF2     = any(param_id == "GSMF2"),
+    .has_GSMF2_63  = any(param_id == "GSMF2_63"),
+    .has_sand_sub  = any(param_id %in% SAND_SUBCOLS),
+    .has_GSMF_2000 = any(param_id == "GSMF_2000"),
+
+    # FINS is redundant if at least one fines component exists
+    .fins_redundant   = any(param_id == "FINS") &
+                         (.has_GSMF2 | .has_GSMF2_63),
+
+    # GSMF_63 is redundant if at least one coarse component exists
+    .coarse_redundant = any(param_id == "GSMF_63") &
+                         (.has_sand_sub | .has_GSMF_2000)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    overlap_removed = (param_id == "FINS"    & .fins_redundant) |
+                      (param_id == "GSMF_63" & .coarse_redundant)
+  ) %>%
+  filter(!overlap_removed) %>%
+  select(-starts_with("."))
+
+# ── Pass 2: Recompute totals after deduplication ──────────────────────────────
+
+df_totals <- df_p_dedup %>%
+  filter(value_adj >= 0, value_adj <= 100) %>%           # ignore already-bad values
+  group_by(sample_id, sediment_no) %>%
+  summarise(total_pct = sum(value_adj, na.rm = TRUE),
+            .groups   = "drop")
+
+# ── Pass 3: Categorise and correct ───────────────────────────────────────────
+
+df_p_clean <- df_p_dedup %>%
+  left_join(df_totals, by = c("sample_id", "sediment_no")) %>%
+  mutate(
+    qc_status = case_when(
+      is.na(total_pct)                              ~ "ok_no_total",
+      total_pct <= 100                              ~ "ok",
+      total_pct <= 100 + ROUNDING_THRESHOLD         ~ "rounding_rescaled",
+      TRUE                                           ~ "unresolvable"
+    ),
+    # Rescale valid rows where excess is only rounding; leave unresolvable unchanged
+    value_adj = if_else(
+      qc_status == "rounding_rescaled",
+      value_adj * 100 / total_pct,
+      value_adj
+    )
+  )
+
+# ── Diagnostics ───────────────────────────────────────────────────────────────
+
+message("\n── Overlap removal summary ──")
+df_p_adj %>%
+  anti_join(df_p_dedup,
+            by = c("sample_id", "sediment_no", "param_id")) %>%
+  count(param_id, name = "n_removed") %>%
+  print()
+
+message("\n── QC status per sample ──")
+df_p_clean %>%
+  distinct(sample_id, sediment_no, qc_status) %>%
+  count(qc_status, sort = TRUE) %>%
+  print()
+
+message("\n── Sample of unresolvable rows (inspect manually) ──")
+df_p_clean %>%
+  filter(qc_status == "unresolvable") %>%
+  select(sample_id, sediment_no, param_id, param_name,
+         value, value_adj, operator, total_pct, qc_status) %>%
+  arrange(sample_id, sediment_no, param_id) %>%
+  print(n = 40)
+
+# ── STEP 1: Wide formats ──────────────────────────────────────────────────────
+df_val <- df_p_clean %>%
   distinct(sample_id, sediment_no, param_id, value_adj) %>%
   pivot_wider(names_from = param_id, values_from = value_adj)
 
-df_ops <- df_p_adj %>%
+df_ops <- df_p_clean %>%
   distinct(sample_id, sediment_no, param_id, operator) %>%
   pivot_wider(names_from  = param_id,
               values_from = operator,
               names_glue  = "{param_id}_op")
 
-# Guarantee all measurement columns exist (fill absent ones with NA)
 for (col in ALL_MEAS_COLS) {
   if (!col %in% names(df_val)) df_val[[col]] <- NA_real_
 }
 
-df_wide <- df_val %>%
-  left_join(df_ops, by = c("sample_id", "sediment_no")) %>%
+df_wide <- left_join(df_val, df_ops, by = c("sample_id", "sediment_no")) %>%
   arrange(sample_id, sediment_no)
 
-# ── STEP 2: Derive group-level totals ─────────────────────────────────────────
+# ── STEP 2: Multi-pass arithmetic derivation (no background ratios yet) ───────
+#
+# Hierarchy:
+#   Group level : fines (<63 µm) + coarse (>63 µm) = 100 %
+#   Components  : clay + silt = fines;  sand + gravel = coarse
+#
+# Pass 1  – direct measurements
+# Pass 2a – group total = sum of both components
+# Pass 2b – one component = group total − the other component
+# Pass 3  – 100 % constraint: one group = 100 − the other
+# Pass 4  – repeat Pass 2b with group totals derived in Pass 3
+#            (e.g. GSMF2_63 + sand_sub + GSMF_2000 → clay via 100 % path)
 
-df_raw <- df_wide %>%
+df_derived <- df_wide %>%
   mutate(
-    # Sum available sand sub-fractions (NA if none measured)
     sand_sub = if_else(
       if_any(all_of(SAND_SUBCOLS), ~ !is.na(.)),
       rowSums(across(all_of(SAND_SUBCOLS)), na.rm = TRUE),
       NA_real_
-    ),
-
-    # Fines group total (<63 µm = Clay + Silt)
-    # Priority: direct FINS > sum of GSMF2 + GSMF2_63
-    fines_grp = case_when(
-      !is.na(FINS)                        ~ FINS,
-      !is.na(GSMF2) & !is.na(GSMF2_63)  ~ GSMF2 + GSMF2_63,
-      TRUE                                 ~ NA_real_
-    ),
-
-    # Coarse group total (>63 µm = Sand + Gravel)
-    # Priority: direct GSMF_63 > sum of components
-    coarse_grp = case_when(
-      !is.na(GSMF_63)                          ~ GSMF_63,
-      !is.na(sand_sub) & !is.na(GSMF_2000)    ~ sand_sub + GSMF_2000,
-      TRUE                                       ~ NA_real_
     )
+  ) %>%
+  # Pass 1: direct
+  mutate(
+    clay_v   = GSMF2,
+    silt_v   = GSMF2_63,
+    sand_v   = sand_sub,
+    gravel_v = GSMF_2000,
+    fines_v  = FINS,
+    coarse_v = GSMF_63
+  ) %>%
+  # Pass 2a: group total from both components
+  mutate(
+    fines_v  = coalesce(fines_v,
+                        if_else(!is.na(clay_v) & !is.na(silt_v),
+                                clay_v + silt_v, NA_real_)),
+    coarse_v = coalesce(coarse_v,
+                        if_else(!is.na(sand_v) & !is.na(gravel_v),
+                                sand_v + gravel_v, NA_real_))
+  ) %>%
+  # Pass 2b: one component = group total − the other
+  mutate(
+    clay_v   = coalesce(clay_v,
+                        if_else(!is.na(fines_v)  & !is.na(silt_v),
+                                pmax(0, fines_v  - silt_v),   NA_real_)),
+    silt_v   = coalesce(silt_v,
+                        if_else(!is.na(fines_v)  & !is.na(clay_v),
+                                pmax(0, fines_v  - clay_v),   NA_real_)),
+    sand_v   = coalesce(sand_v,
+                        if_else(!is.na(coarse_v) & !is.na(gravel_v),
+                                pmax(0, coarse_v - gravel_v), NA_real_)),
+    gravel_v = coalesce(gravel_v,
+                        if_else(!is.na(coarse_v) & !is.na(sand_v),
+                                pmax(0, coarse_v - sand_v),   NA_real_))
+  ) %>%
+  # Pass 3: 100 % constraint
+  mutate(
+    fines_v  = coalesce(fines_v,
+                        if_else(!is.na(coarse_v), 100 - coarse_v, NA_real_)),
+    coarse_v = coalesce(coarse_v,
+                        if_else(!is.na(fines_v),  100 - fines_v,  NA_real_))
+  ) %>%
+  # Pass 4: repeat component derivation now that cross-derived group totals exist
+  mutate(
+    clay_v   = coalesce(clay_v,
+                        if_else(!is.na(fines_v)  & !is.na(silt_v),
+                                pmax(0, fines_v  - silt_v),   NA_real_)),
+    silt_v   = coalesce(silt_v,
+                        if_else(!is.na(fines_v)  & !is.na(clay_v),
+                                pmax(0, fines_v  - clay_v),   NA_real_)),
+    sand_v   = coalesce(sand_v,
+                        if_else(!is.na(coarse_v) & !is.na(gravel_v),
+                                pmax(0, coarse_v - gravel_v), NA_real_)),
+    gravel_v = coalesce(gravel_v,
+                        if_else(!is.na(coarse_v) & !is.na(sand_v),
+                                pmax(0, coarse_v - sand_v),   NA_real_))
   )
 
-# ── STEP 3: Background ratios (computed from directly measured pairs) ──────────
-
-# Clay / FINS  (only rows where both GSMF2 and FINS are directly available)
-clay_fines_ratio <- df_raw %>%
-  filter(!is.na(GSMF2), !is.na(FINS), FINS > 0) %>%
-  summarise(r = median(GSMF2 / FINS, na.rm = TRUE)) %>%
-  pull(r)
-
-# GSMF_2000 / GSMF_63  (only rows where both are directly available)
-gravel_coarse_ratio <- df_raw %>%
-  filter(!is.na(GSMF_2000), !is.na(GSMF_63), GSMF_63 > 0) %>%
-  summarise(r = median(GSMF_2000 / GSMF_63, na.rm = TRUE)) %>%
-  pull(r)
-
-message(sprintf("Background clay/(clay+silt) ratio  [median]: %.4f", clay_fines_ratio))
-message(sprintf("Background gravel/(sand+gravel) ratio [median]: %.4f", gravel_coarse_ratio))
-
-# ── STEP 4: Resolve group totals via 100 % constraint ─────────────────────────
-
-df_grp <- df_raw %>%
-  mutate(
-    fines_use = case_when(
-      !is.na(fines_grp)   ~ fines_grp,
-      !is.na(coarse_grp)  ~ 100 - coarse_grp,
-      TRUE                 ~ NA_real_
-    ),
-    coarse_use = case_when(
-      !is.na(coarse_grp)  ~ coarse_grp,
-      !is.na(fines_grp)   ~ 100 - fines_grp,
-      TRUE                 ~ NA_real_
-    )
+# Snapshot: what was arithmetic-derivable WITHOUT any background ratio
+df_pre_bg <- df_derived %>%
+  transmute(
+    sample_id, sediment_no,
+    clay_no_bg   = !is.na(clay_v),
+    silt_no_bg   = !is.na(silt_v),
+    sand_no_bg   = !is.na(sand_v),
+    gravel_no_bg = !is.na(gravel_v)
   )
 
-# ── STEP 5: Derive the four fractions with derivation-method tracking ──────────
+# ── STEP 3: Background ratios (computed from arithmetic-derived data) ─────────
 
-df_frac <- df_grp %>%
+# clay / (clay + silt): rows where both fines components are known
+p_clay_fines <- df_derived %>%
+  filter(!is.na(clay_v), !is.na(silt_v), (clay_v + silt_v) > 0) %>%
+  summarise(r = median(clay_v / (clay_v + silt_v), na.rm = TRUE)) %>%
+  pull(r)
+
+# gravel / (sand + gravel): rows where both coarse components are known
+p_gravel_coarse <- df_derived %>%
+  filter(!is.na(sand_v), !is.na(gravel_v), (sand_v + gravel_v) > 0) %>%
+  summarise(r = median(gravel_v / (sand_v + gravel_v), na.rm = TRUE)) %>%
+  pull(r)
+
+# Overall proportions for the general imputation fallback
+# (rows where all 4 are known without background)
+bg_raw <- df_derived %>%
+  filter(!is.na(clay_v), !is.na(silt_v), !is.na(sand_v), !is.na(gravel_v)) %>%
+  mutate(tot = clay_v + silt_v + sand_v + gravel_v) %>%
+  filter(tot > 0) %>%
+  summarise(
+    p_clay   = median(clay_v   / tot, na.rm = TRUE),
+    p_silt   = median(silt_v   / tot, na.rm = TRUE),
+    p_sand   = median(sand_v   / tot, na.rm = TRUE),
+    p_gravel = median(gravel_v / tot, na.rm = TRUE)
+  )
+
+bg_norm     <- bg_raw$p_clay + bg_raw$p_silt + bg_raw$p_sand + bg_raw$p_gravel
+p_clay_bg   <- bg_raw$p_clay   / bg_norm
+p_silt_bg   <- bg_raw$p_silt   / bg_norm
+p_sand_bg   <- bg_raw$p_sand   / bg_norm
+p_gravel_bg <- bg_raw$p_gravel / bg_norm
+
+message(sprintf("Background clay/fines ratio    (median): %.4f", p_clay_fines))
+message(sprintf("Background gravel/coarse ratio (median): %.4f", p_gravel_coarse))
+message(sprintf("Overall background proportions: clay=%.4f  silt=%.4f  sand=%.4f  gravel=%.4f",
+                p_clay_bg, p_silt_bg, p_sand_bg, p_gravel_bg))
+
+# ── STEP 4: Within-group background splits ────────────────────────────────────
+# Applies when a group total is known but BOTH its components are still unknown.
+# The original-state flags (.cs_unk, .sg_unk) are captured before any mutation
+# so later assignments in the same mutate() do not corrupt the conditions.
+
+df_step4 <- df_derived %>%
   mutate(
+    .cs_unk = is.na(clay_v)   & is.na(silt_v),   # both fines components unknown
+    .sg_unk = is.na(sand_v)   & is.na(gravel_v),  # both coarse components unknown
 
-    # ── Clay (<2 µm) ─────────────────────────────────────────────────────────
-    clay = case_when(
-      !is.na(GSMF2)                             ~ GSMF2,
-      !is.na(fines_use) & !is.na(GSMF2_63)     ~ pmax(0, fines_use - GSMF2_63),
-      !is.na(fines_use)                          ~ fines_use * clay_fines_ratio,
-      TRUE                                        ~ NA_real_
-    ),
+    clay_v   = if_else(.cs_unk & !is.na(fines_v),
+                       fines_v * p_clay_fines,           clay_v),
+    silt_v   = if_else(.cs_unk & !is.na(fines_v),
+                       fines_v * (1 - p_clay_fines),     silt_v),
+
+    sand_v   = if_else(.sg_unk & !is.na(coarse_v),
+                       coarse_v * (1 - p_gravel_coarse), sand_v),
+    gravel_v = if_else(.sg_unk & !is.na(coarse_v),
+                       coarse_v * p_gravel_coarse,        gravel_v),
+
+    .cs_unk = NULL,
+    .sg_unk = NULL
+  )
+
+# ── STEP 5: General background imputation for any remaining NAs ───────────────
+# Known fractions are NEVER changed.
+# Unknown fractions receive the remaining budget (100 − sum_known),
+# distributed in proportion to their background weights.
+
+df_imputed <- df_step4 %>%
+  mutate(
+    # Background weight is non-zero only for still-unknown fractions
+    .bg_c = if_else(is.na(clay_v),   p_clay_bg,   0),
+    .bg_s = if_else(is.na(silt_v),   p_silt_bg,   0),
+    .bg_n = if_else(is.na(sand_v),   p_sand_bg,   0),
+    .bg_g = if_else(is.na(gravel_v), p_gravel_bg, 0),
+    .bg_denom = .bg_c + .bg_s + .bg_n + .bg_g,
+
+    .sum_known = coalesce(clay_v,   0) + coalesce(silt_v,   0) +
+                 coalesce(sand_v,   0) + coalesce(gravel_v, 0),
+    .remaining = pmax(0, 100 - .sum_known),
+
+    clay_v   = if_else(is.na(clay_v),
+                       .remaining * .bg_c / pmax(.bg_denom, 1e-10), clay_v),
+    silt_v   = if_else(is.na(silt_v),
+                       .remaining * .bg_s / pmax(.bg_denom, 1e-10), silt_v),
+    sand_v   = if_else(is.na(sand_v),
+                       .remaining * .bg_n / pmax(.bg_denom, 1e-10), sand_v),
+    gravel_v = if_else(is.na(gravel_v),
+                       .remaining * .bg_g / pmax(.bg_denom, 1e-10), gravel_v)
+  ) %>%
+  select(-starts_with("."))
+
+# ── STEP 6: Method labels and final output ────────────────────────────────────
+#   "direct"     – fraction came from a direct measurement
+#   "arithmetic" – derived from other measurements without any background ratio
+#   "background" – at least one background ratio was needed
+
+df_sediment_fractions <- df_imputed %>%
+  left_join(df_pre_bg, by = c("sample_id", "sediment_no")) %>%
+  mutate(
     clay_method = case_when(
-      !is.na(GSMF2)                             ~ "direct",
-      !is.na(fines_use) & !is.na(GSMF2_63)     ~ "fines - silt",
-      !is.na(fines_use)                          ~ "background_ratio",
-      TRUE                                        ~ NA_character_
-    ),
-
-    # ── Silt (2–63 µm) ──────────────────────────────────────────────────────
-    silt = case_when(
-      !is.na(GSMF2_63)                          ~ GSMF2_63,
-      !is.na(fines_use) & !is.na(GSMF2)        ~ pmax(0, fines_use - GSMF2),
-      !is.na(fines_use)                          ~ fines_use * (1 - clay_fines_ratio),
-      TRUE                                        ~ NA_real_
+      !is.na(GSMF2)    ~ "direct",
+      clay_no_bg       ~ "arithmetic",
+      TRUE             ~ "background"
     ),
     silt_method = case_when(
-      !is.na(GSMF2_63)                          ~ "direct",
-      !is.na(fines_use) & !is.na(GSMF2)        ~ "fines - clay",
-      !is.na(fines_use)                          ~ "background_ratio",
-      TRUE                                        ~ NA_character_
-    ),
-
-    # ── Gravel (>2000 µm) ───────────────────────────────────────────────────
-    gravel = case_when(
-      !is.na(GSMF_2000)                         ~ GSMF_2000,
-      !is.na(coarse_use) & !is.na(sand_sub)     ~ pmax(0, coarse_use - sand_sub),
-      !is.na(coarse_use)                         ~ coarse_use * gravel_coarse_ratio,
-      TRUE                                        ~ NA_real_
-    ),
-    gravel_method = case_when(
-      !is.na(GSMF_2000)                         ~ "direct",
-      !is.na(coarse_use) & !is.na(sand_sub)     ~ "coarse - sand",
-      !is.na(coarse_use)                         ~ "background_ratio",
-      TRUE                                        ~ NA_character_
-    ),
-
-    # ── Sand (63–2000 µm) ───────────────────────────────────────────────────
-    sand = case_when(
-      !is.na(sand_sub)                          ~ sand_sub,
-      !is.na(coarse_use) & !is.na(GSMF_2000)   ~ pmax(0, coarse_use - GSMF_2000),
-      !is.na(coarse_use)                         ~ coarse_use * (1 - gravel_coarse_ratio),
-      TRUE                                        ~ NA_real_
+      !is.na(GSMF2_63) ~ "direct",
+      silt_no_bg       ~ "arithmetic",
+      TRUE             ~ "background"
     ),
     sand_method = case_when(
-      !is.na(sand_sub)                          ~ "direct",
-      !is.na(coarse_use) & !is.na(GSMF_2000)   ~ "coarse - gravel",
-      !is.na(coarse_use)                         ~ "background_ratio",
-      TRUE                                        ~ NA_character_
+      !is.na(sand_sub) ~ "direct",
+      sand_no_bg       ~ "arithmetic",
+      TRUE             ~ "background"
     ),
-
-    # ── Operator-adjustment flag (any input was non-exact?) ─────────────────
-    any_op_adjusted = if_any(ends_with("_op"), ~ !is.na(.) & . != "=")
-  )
-
-# ── STEP 6: Normalise to 100 % ────────────────────────────────────────────────
-
-df_sediment_fractions <- df_frac %>%
-  mutate(
-    total      = clay + silt + sand + gravel,
-    clay_pct   = 100 * clay   / total,
-    silt_pct   = 100 * silt   / total,
-    sand_pct   = 100 * sand   / total,
-    gravel_pct = 100 * gravel / total
+    gravel_method = case_when(
+      !is.na(GSMF_2000) ~ "direct",
+      gravel_no_bg      ~ "arithmetic",
+      TRUE              ~ "background"
+    ),
+    any_op_adjusted = if_any(ends_with("_op"), ~ !is.na(.) & . != "="),
+    # total_pct ≈ 100 for imputed rows; may differ slightly for fully direct rows
+    total_pct = clay_v + silt_v + sand_v + gravel_v
   ) %>%
-  select(sample_id, sediment_no,
-         clay_pct, silt_pct, sand_pct, gravel_pct,
-         clay_method, silt_method, sand_method, gravel_method,
-         any_op_adjusted)
+  rename(
+    clay_pct   = clay_v,
+    silt_pct   = silt_v,
+    sand_pct   = sand_v,
+    gravel_pct = gravel_v
+  ) %>%
+  select(
+    sample_id, sediment_no,
+    clay_pct, silt_pct, sand_pct, gravel_pct,
+    total_pct,
+    clay_method, silt_method, sand_method, gravel_method,
+    any_op_adjusted
+  )
 
 print(df_sediment_fractions)
 
@@ -189,29 +421,36 @@ print(df_sediment_fractions)
 
 message("\n── Fraction summary (%) ──")
 df_sediment_fractions %>%
-  summarise(across(ends_with("_pct"),
-                   list(mean = \(x) mean(x, na.rm = TRUE),
-                        sd   = \(x) sd(x,   na.rm = TRUE),
-                        min  = \(x) min(x,  na.rm = TRUE),
-                        max  = \(x) max(x,  na.rm = TRUE)),
-                   .names = "{.col}_{.fn}")) %>%
+  summarise(across(
+    ends_with("_pct"),
+    list(mean = \(x) mean(x, na.rm = TRUE),
+         sd   = \(x) sd(x,   na.rm = TRUE),
+         min  = \(x) min(x,  na.rm = TRUE),
+         max  = \(x) max(x,  na.rm = TRUE)),
+    .names = "{.col}_{.fn}"
+  )) %>%
   pivot_longer(everything(),
                names_to  = c("fraction", ".value"),
                names_sep = "_pct_") %>%
   print()
 
-message("\n── Derivation method combinations (top 20) ──")
+message("\n── Total % deviation from 100 ──")
+df_sediment_fractions %>%
+  filter(!is.na(total_pct)) %>%
+  summarise(
+    n_rows    = n(),
+    exact_100 = sum(abs(total_pct - 100) < 0.01),
+    within_1  = sum(abs(total_pct - 100) <  1),
+    max_dev   = max(abs(total_pct - 100))
+  ) %>%
+  print()
+
+message("\n── Derivation method breakdown ──")
 df_sediment_fractions %>%
   count(clay_method, silt_method, sand_method, gravel_method, sort = TRUE) %>%
-  print(n = 20)
+  print(n = 30)
 
-message("\n── Rows with operator-adjusted inputs ──")
-cat(sum(df_sediment_fractions$any_op_adjusted, na.rm = TRUE),
-    "of", nrow(df_sediment_fractions), "rows\n")
-
-message("\n── Rows where total was not exactly 100 before normalisation ──")
-df_frac %>%
-  mutate(total = clay + silt + sand + gravel) %>%
-  filter(!is.na(total), abs(total - 100) > 0.5) %>%
-  count() %>%
-  paste("n =", ., "\n") %>% cat()
+message("\n── Operator-adjusted rows ──")
+cat(sprintf("%d of %d rows had at least one non-'=' operator input\n",
+            sum(df_sediment_fractions$any_op_adjusted, na.rm = TRUE),
+            nrow(df_sediment_fractions)))
