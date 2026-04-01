@@ -20,100 +20,87 @@ df_p_adj <- df_p %>%
     )
   )
 
-# ── STEP 0b: Decimal-point correction for values > 100 % ─────────────────────
+# ── Confidence penalty system ─────────────────────────────────────────────────
 #
-# Root cause: tabular tools (Excel) sometimes strip or misplace decimal points.
-# Strategy:
-#   1. Compute per-parameter background median from *valid* values (≤ 100).
-#   2. For each invalid value (> 100), generate candidates value / 10^k, k = 1..6.
-#   3. Keep only candidates ≤ 100; choose the one nearest the background median.
-#   4. If no valid candidate can be found, set to NA and flag.
+# Each QC issue adds penalty points; total → confidence level:
+#
+#   Source                              Penalty
+#   ─────────────────────────────────── ───────
+#   Total 100–101 % (rounding)            +1
+#   Total 101–110 % (moderate conflict)   +2
+#   Total 110–200 % (serious conflict)    +3
+#   Total  > 200 % (likely multi-error)   +4
+#   Decimal correction applied (0b)       +1
+#   Overlap/aggregate removed (0c)        +1
+#
+#   Total penalty → confidence
+#   0  → "high"
+#   1  → "medium"
+#   2  → "low"
+#   3  → "very_low"
+#   4+ → "unreliable"
 
-# --- Background medians from valid values per parameter ----------------------
+CONF_LEVELS <- c("high", "medium", "low", "very_low", "unreliable")
+
+penalty_to_confidence <- function(penalty) {
+  factor(
+    case_when(
+      penalty == 0 ~ "high",
+      penalty == 1 ~ "medium",
+      penalty == 2 ~ "low",
+      penalty == 3 ~ "very_low",
+      TRUE         ~ "unreliable"
+    ),
+    levels = CONF_LEVELS
+  )
+}
+
+SAND_SUBCOLS <- c("GSMF63_125", "GSMF125_250", "GSMF250_500",
+                   "GSMF500_1000", "GSMF1000_2000")
+
+# ── STEP 0b: Decimal-point correction ────────────────────────────────────────
+
 param_bg_medians <- df_p_adj %>%
   filter(value_adj <= 100, value_adj >= 0) %>%
   group_by(param_id) %>%
   summarise(bg_median = median(value_adj, na.rm = TRUE), .groups = "drop")
 
-message("── Per-parameter background medians (from valid values ≤ 100) ──")
-print(param_bg_medians)
-
-# --- Correction function -----------------------------------------------------
 fix_decimal <- function(value, bg_median) {
-  # Already valid or missing: leave unchanged
   if (is.na(value) || value <= 100) return(value)
-
-  # Generate candidate corrections: divide by 10, 100, ..., 10^6
   candidates <- value / 10^(1:6)
   valid_cand <- candidates[candidates <= 100 & candidates >= 0]
-
-  if (length(valid_cand) == 0) return(NA_real_)   # unrecoverable
-
-  # Pick candidate closest to the per-parameter background median
+  if (length(valid_cand) == 0) return(NA_real_)
   valid_cand[which.min(abs(valid_cand - bg_median))]
 }
 
-# --- Apply correction --------------------------------------------------------
 df_p_adj <- df_p_adj %>%
   left_join(param_bg_medians, by = "param_id") %>%
   mutate(
-    decimal_corrected = value_adj > 100,              # flag BEFORE correction
-    value_adj = map2_dbl(value_adj, bg_median, fix_decimal),
+    decimal_corrected     = value_adj > 100,
+    value_adj             = map2_dbl(value_adj, bg_median, fix_decimal),
     decimal_unrecoverable = decimal_corrected & is.na(value_adj)
   ) %>%
   select(-bg_median)
 
-# --- Audit summary -----------------------------------------------------------
-message("\n── Decimal correction summary ──")
-df_p_adj %>%
-  group_by(param_id) %>%
+# Per-sample 0b penalty: +1 if any decimal correction in this sample
+penalty_0b <- df_p_adj %>%
+  group_by(sample_id, sediment_no) %>%
   summarise(
-    n_total         = n(),
-    n_corrected     = sum(decimal_corrected,    na.rm = TRUE),
-    n_unrecoverable = sum(decimal_unrecoverable, na.rm = TRUE),
+    penalty_decimal      = as.integer(any(decimal_corrected,     na.rm = TRUE)),
+    any_unrecoverable_0b = any(decimal_unrecoverable, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  filter(n_corrected > 0) %>%
-  print()
+  )
 
-message("\n── Sample of corrected rows ──")
-df_p_adj %>%
-  filter(decimal_corrected) %>%
-  select(sample_id, sediment_no, param_id, value_original = value,
-         value_adj, operator, decimal_unrecoverable) %>%
-  print(n = 30)
+# ── STEP 0c: Overlap removal + rescaling ─────────────────────────────────────
 
-# ── STEP 0c: Resolve overlapping parameters and rounding excess ───────────────
-#
-# Overlap hierarchy (aggregates that double-count when their components exist):
-#   FINS    (<63 µm)  = GSMF2 + GSMF2_63          → redundant if either component present
-#   GSMF_63 (>63 µm)  = sand sub-fractions + GSMF_2000 → redundant if any component present
-#
-# After removing redundant aggregates:
-#   total 100–101 % → proportional rescale (rounding error)
-#   total  > 101 % → flag as unresolvable; retain but exclude from main analysis
-
-SAND_SUBCOLS      <- c("GSMF63_125", "GSMF125_250", "GSMF250_500",
-                        "GSMF500_1000", "GSMF1000_2000")
-ROUNDING_THRESHOLD <- 50   # % above 100 treated as rounding
-
-# ── Pass 1: Remove redundant aggregate parameters ─────────────────────────────
-
+# Pass 1: remove redundant aggregates, track whether removal happened
 df_p_dedup <- df_p_adj %>%
   group_by(sample_id, sediment_no) %>%
   mutate(
-    .has_GSMF2     = any(param_id == "GSMF2"),
-    .has_GSMF2_63  = any(param_id == "GSMF2_63"),
-    .has_sand_sub  = any(param_id %in% SAND_SUBCOLS),
-    .has_GSMF_2000 = any(param_id == "GSMF_2000"),
-
-    # FINS is redundant if at least one fines component exists
     .fins_redundant   = any(param_id == "FINS") &
-                         (.has_GSMF2 | .has_GSMF2_63),
-
-    # GSMF_63 is redundant if at least one coarse component exists
+                         (any(param_id == "GSMF2") | any(param_id == "GSMF2_63")),
     .coarse_redundant = any(param_id == "GSMF_63") &
-                         (.has_sand_sub | .has_GSMF_2000)
+                         (any(param_id %in% SAND_SUBCOLS) | any(param_id == "GSMF_2000"))
   ) %>%
   ungroup() %>%
   mutate(
@@ -123,55 +110,88 @@ df_p_dedup <- df_p_adj %>%
   filter(!overlap_removed) %>%
   select(-starts_with("."))
 
-# ── Pass 2: Recompute totals after deduplication ──────────────────────────────
-
-df_totals <- df_p_dedup %>%
-  filter(value_adj >= 0, value_adj <= 100) %>%           # ignore already-bad values
+# Per-sample 0c penalty: +1 if any row was removed by deduplication
+penalty_0c_dedup <- df_p_adj %>%
   group_by(sample_id, sediment_no) %>%
-  summarise(total_pct = sum(value_adj, na.rm = TRUE),
-            .groups   = "drop")
+  summarise(n_before = n(), .groups = "drop") %>%
+  left_join(
+    df_p_dedup %>%
+      group_by(sample_id, sediment_no) %>%
+      summarise(n_after = n(), .groups = "drop"),
+    by = c("sample_id", "sediment_no")
+  ) %>%
+  mutate(penalty_dedup = as.integer(n_before != n_after)) %>%
+  select(sample_id, sediment_no, penalty_dedup)
 
-# ── Pass 3: Categorise and correct ───────────────────────────────────────────
-
-df_p_clean <- df_p_dedup %>%
-  left_join(df_totals, by = c("sample_id", "sediment_no")) %>%
+# Pass 2: totals after dedup and associated penalty
+df_totals <- df_p_dedup %>%
+  filter(value_adj >= 0, value_adj <= 100) %>%
+  group_by(sample_id, sediment_no) %>%
+  summarise(
+    total_pct_before_rescale = sum(value_adj, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
   mutate(
-    qc_status = case_when(
-      is.na(total_pct)                              ~ "ok_no_total",
-      total_pct <= 100                              ~ "ok",
-      total_pct <= 100 + ROUNDING_THRESHOLD         ~ "rounding_rescaled",
-      TRUE                                           ~ "unresolvable"
-    ),
-    # Rescale valid rows where excess is only rounding; leave unresolvable unchanged
-    value_adj = if_else(
-      qc_status == "rounding_rescaled",
-      value_adj * 100 / total_pct,
-      value_adj
+    penalty_total = case_when(
+      total_pct_before_rescale <= 100 ~ 0L,
+      total_pct_before_rescale <= 101 ~ 1L,
+      total_pct_before_rescale <= 110 ~ 2L,
+      total_pct_before_rescale <= 200 ~ 3L,
+      TRUE                             ~ 4L
+    )
+  )
+
+# Pass 3: combine all penalties → single confidence flag
+df_qc_flags <- df_totals %>%
+  left_join(penalty_0b,      by = c("sample_id", "sediment_no")) %>%
+  left_join(penalty_0c_dedup, by = c("sample_id", "sediment_no")) %>%
+  mutate(
+    across(starts_with("penalty_"), ~ replace_na(.x, 0L)),
+    penalty_total_combined = penalty_decimal + penalty_dedup + penalty_total,
+    qc_confidence = penalty_to_confidence(penalty_total_combined)
+  )
+
+# Pass 4: rescale all to 100 %
+df_p_clean <- df_p_dedup %>%
+  left_join(
+    df_qc_flags %>% select(sample_id, sediment_no,
+                            total_pct_before_rescale, qc_confidence,
+                            penalty_decimal, penalty_dedup, penalty_total),
+    by = c("sample_id", "sediment_no")
+  ) %>%
+  mutate(
+    value_adj = case_when(
+      is.na(total_pct_before_rescale) | total_pct_before_rescale <= 0 ~ value_adj,
+      TRUE ~ value_adj * 100 / total_pct_before_rescale
     )
   )
 
 # ── Diagnostics ───────────────────────────────────────────────────────────────
 
-message("\n── Overlap removal summary ──")
-df_p_adj %>%
-  anti_join(df_p_dedup,
-            by = c("sample_id", "sediment_no", "param_id")) %>%
-  count(param_id, name = "n_removed") %>%
+message("\n── Penalty breakdown (unique samples) ──")
+df_qc_flags %>%
+  count(penalty_decimal, penalty_dedup, penalty_total,
+        penalty_total_combined, qc_confidence,
+        sort = TRUE) %>%
+  print(n = 30)
+
+message("\n── Final confidence distribution ──")
+df_qc_flags %>%
+  count(qc_confidence) %>%
+  mutate(pct = round(100 * n / sum(n), 1)) %>%
   print()
 
-message("\n── QC status per sample ──")
-df_p_clean %>%
-  distinct(sample_id, sediment_no, qc_status) %>%
-  count(qc_status, sort = TRUE) %>%
+message("\n── Total % before rescale, by confidence band ──")
+df_qc_flags %>%
+  group_by(qc_confidence) %>%
+  summarise(
+    n       = n(),
+    min_tot = min(total_pct_before_rescale),
+    med_tot = median(total_pct_before_rescale),
+    max_tot = max(total_pct_before_rescale),
+    .groups = "drop"
+  ) %>%
   print()
-
-message("\n── Sample of unresolvable rows (inspect manually) ──")
-df_p_clean %>%
-  filter(qc_status == "unresolvable") %>%
-  select(sample_id, sediment_no, param_id, param_name,
-         value, value_adj, operator, total_pct, qc_status) %>%
-  arrange(sample_id, sediment_no, param_id) %>%
-  print(n = 40)
 
 # ── STEP 1: Wide formats ──────────────────────────────────────────────────────
 df_val <- df_p_clean %>%
@@ -401,19 +421,34 @@ df_sediment_fractions <- df_imputed %>%
     # total_pct ≈ 100 for imputed rows; may differ slightly for fully direct rows
     total_pct = clay_v + silt_v + sand_v + gravel_v
   ) %>%
+  left_join(
+    df_qc_flags %>% select(sample_id, sediment_no, qc_confidence,
+                            total_pct_before_rescale,
+                            penalty_decimal, penalty_dedup, penalty_total),
+    by = c("sample_id", "sediment_no")
+  ) %>%
+  mutate(
+    # Samples that passed through with no total (single-param, always ≤ 100)
+    # get "high" by default, but degrade by 0b penalty if applicable
+    qc_confidence = case_when(
+      !is.na(qc_confidence) ~ qc_confidence,
+      TRUE ~ left_join(
+        tibble(sample_id, sediment_no),
+        penalty_0b %>% mutate(qc_confidence = penalty_to_confidence(penalty_decimal)),
+        by = c("sample_id", "sediment_no")
+      )$qc_confidence
+    )
+  ) %>%
   rename(
     clay_pct   = clay_v,
     silt_pct   = silt_v,
     sand_pct   = sand_v,
     gravel_pct = gravel_v
   ) %>%
-  select(
-    sample_id, sediment_no,
-    clay_pct, silt_pct, sand_pct, gravel_pct,
-    total_pct,
-    clay_method, silt_method, sand_method, gravel_method,
-    any_op_adjusted
-  )
+  dplyr::select(sample_id, sediment_no,
+                clay_pct, silt_pct, sand_pct, gravel_pct, total_pct,
+                clay_method, silt_method, sand_method, gravel_method,
+                any_op_adjusted, qc_confidence)
 
 print(df_sediment_fractions)
 
@@ -454,3 +489,8 @@ message("\n── Operator-adjusted rows ──")
 cat(sprintf("%d of %d rows had at least one non-'=' operator input\n",
             sum(df_sediment_fractions$any_op_adjusted, na.rm = TRUE),
             nrow(df_sediment_fractions)))
+
+#
+# Write data
+#
+write_tsv(df_sediment_fractions, "./data/vannmiljo_sediment_fraction.tsv.gz")
