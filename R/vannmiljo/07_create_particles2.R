@@ -493,4 +493,4 @@ cat(sprintf("%d of %d rows had at least one non-'=' operator input\n",
 #
 # Write data
 #
-write_tsv(df_sediment_fractions, "./data/vannmiljo_sediment_fraction.tsv.gz")
+write_tsv(df_sediment_fractions, "./data/pilot_vannmiljo_particles.tsv.gz")
