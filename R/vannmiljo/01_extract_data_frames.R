@@ -10,37 +10,50 @@ library(sf)
 # Config
 # ------------------------------
 data_path <- "./data"
-excel_file <- file.path(data_path, "Vannmiljo_all.xlsx")
 data_sheet <- "VannmiljoEksport"
-data_range <- "A1:AK61184"
-col_names <- c("site_code", "site_name", "label", "site_type", "activity_id", "activity_name", "client", "contractor", "param_id", "param_name", "cas_no", "medium_id", "medium_name", "taxon_id", "scientific_name", "sample_method", "analysis_method", "sample_time", "upper_depth", "lower_depth", "depth_unit", "is_filtered", "exclude_class", "operator", "value", "list_name", "unit", "sample_no", "lod", "loq", "origin", "n_values", "comment", "archive", "product_desc", "utm33_x", "utm33_y")
+
+excel_file_interest <- file.path(data_path, "Vannmilio_Elements_interest.xlsx")
+data_range_interest <- "A1:AK61184"
+
+excel_file_others <- file.path(data_path, "Vannmilio_Elements_others.xlsx")
+data_range_others <- "A1:AK95215"
+
+excel_file_toc <- file.path(data_path, "Vannmilio_pH_Carbon_Sulfur_all.xlsx")
+data_range_toc <- "A1:AK42150"
+
+excel_file_particle <- file.path(data_path, "Vannmilio_Partikler_all.xlsx")
+data_range_particle <- "A1:AK39709"
+
+# ------------------------------
+# Source common helpers
+# ------------------------------
+source(file.path("R", "vannmiljo", "vannmiljo_helpers.R"))
 
 # ------------------------------
 # Read the data
 # ------------------------------
-df <- readxl::read_excel(excel_file, sheet = data_sheet, range = data_range,
-                         col_types = "text")
-colnames(df) <- col_names
+df_interest <- read_vannmiljo_excel(excel_file_interest,
+                                    data_sheet,
+                                    data_range_interest) %>%
+  correct_vannmiljo_data("interest")
 
-df <- df %>%
-  mutate(contractor = ifelse(is.na(contractor), "Unknown", contractor),
-         client = ifelse((is.na(client) | (client == "0")), "Unknown", client),
-         sample_method = ifelse((is.na(sample_method) | (sample_method == "UKJENT")), "Unknown", sample_method),
-         analysis_method = ifelse((is.na(analysis_method) | (analysis_method == "UKJENT")), "Unknown", analysis_method),
-         upper_depth = ifelse(is.na(upper_depth), 0.0, as.numeric(upper_depth)),
-         lower_depth = ifelse(is.na(lower_depth), 0.0, as.numeric(lower_depth)),
-         filtered = ifelse(is_filtered == "Filtrert", TRUE, FALSE),
-         archive = ifelse(archive == "j", TRUE, FALSE),
-         n_values = as.integer(n_values),
-         value = as.numeric(value),
-         param_name = case_when(
-           param_name == "Kobber" ~ "Copper",
-           param_name == "Sink" ~ "Zinc",
-           param_name == "Mangan" ~ "Manganese",
-           param_name == "Kobolt" ~ "Cobalt",
-           param_name == "Molybden" ~ "Molybdenum",
-           param_name == "Selen" ~ "Selenium",
-         ))
+df_others <- read_vannmiljo_excel(excel_file_others,
+                                  data_sheet,
+                                  data_range_others) %>%
+  correct_vannmiljo_data("others")
+
+
+df_toc <- read_vannmiljo_excel(excel_file_toc,
+                               data_sheet,
+                               data_range_toc) %>%
+  correct_vannmiljo_data("toc")
+
+df_particle <- read_vannmiljo_excel(excel_file_particle,
+                                    data_sheet,
+                                    data_range_particle) %>%
+  correct_vannmiljo_data("particle")
+
+df <- bind_rows(df_interest, df_others, df_toc, df_particle)
 
 # ------------------------------
 # Activity
@@ -68,10 +81,12 @@ df_contractor <- df %>% distinct(contractor) %>%
 # Transform the projection to standard Longitude/Latitude (WGS84)
 # EPSG code 4326 is the universal code for GPS Long/Lat
 df_site <- df %>% distinct(site_code, site_name, label, utm33_x, utm33_y) %>%
-  mutate(
-    utm33_x = as.numeric(utm33_x),
-    utm33_y = as.numeric(utm33_y)
-    ) %>%
+  group_by(site_code, site_name, utm33_x, utm33_y) %>%
+  mutate(label = paste0(label, collapse = ",")) %>%
+  ungroup() %>%
+  group_by(site_code) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
   st_as_sf(coords = c("utm33_x", "utm33_y"), crs = 25833) %>%
   st_transform(crs = 4326) %>%
   mutate(

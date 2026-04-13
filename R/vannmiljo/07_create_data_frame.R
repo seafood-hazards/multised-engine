@@ -41,10 +41,10 @@ df_vannmiljo_sediment <- df_sediment %>%
                 param_id, param_name, method, analysis, value, unit, operator, lod, loq)
 
 
-write_tsv(df_vannmilio_sediment, "./data/pilot_vannmiljo.tsv.gz")
+write_tsv(df_vannmiljo_sediment, "./data/pilot_vannmiljo.tsv.gz")
 
 
-activity_table <- df_vannmilio_sediment %>% count(activity_id, activity_name, param_name) %>%
+activity_table <- df_vannmiljo_sediment %>% count(activity_id, activity_name, param_name) %>%
   pivot_wider(names_from = param_name, values_from = n) %>%
   dplyr::select(Activity = activity_id, Name = activity_name,
                 Cobalt, Copper, Manganese, Molybdenum, Zinc, Selenium)
