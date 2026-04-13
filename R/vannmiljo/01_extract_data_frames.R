@@ -102,7 +102,6 @@ df_sample_method <- df %>% distinct(sample_method) %>%
   mutate(method_id = row_number()) %>%
   dplyr::select(method_id, method = sample_method)
 
-
 # ------------------------------
 # Analysis method
 # ------------------------------
@@ -136,7 +135,7 @@ df_sample <- df %>%
 df_parameter <- df %>% distinct(param_id, param_name, cas_no)
 
 # ------------------------------
-# Sediment 61,183
+# Sediment 61,183 (efsa), 95,214 (others), 42,149 (toc), 39,708 (particle) = 238,254
 # ------------------------------
 df_sediment <- df %>%
   dplyr::select(activity_id, site_code,  sample_time, upper_depth, lower_depth, sample_method, analysis_method, param_id, value, operator, client, contractor, sample_method, unit, sample_no, n_values, lod, loq) %>%
