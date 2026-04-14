@@ -2,7 +2,7 @@ library(tidyverse)
 library(ggpubr)
 library(sf)
 
-df_loc <- df_vannmiljo_sediment |> dplyr::distinct(activity_id, site_code, lon, lat, dist_to_coast) |>
+df_loc <- df_ices_dome_sediment |> distinct(project_id, site_id, longitude, latitude, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -14,25 +14,25 @@ df_loc <- df_vannmiljo_sediment |> dplyr::distinct(activity_id, site_code, lon, 
                               "30 to 100km",
                               "≥100km")))
 
-ggplot(df_loc, aes(x = lon, y = lat, colour = Distance)) +
+ggplot(df_loc, aes(x = longitude, y = latitude, colour = Distance)) +
   annotation_borders("world", fill = "lightgray", color = "gray") +
   geom_point() +
   scale_color_viridis_d(option = "plasma") + # "turbo" or "plasma" are very distinct
   ggtitle("title") +
   xlab("Longitude") +
   ylab("Latitude") +
-  coord_cartesian(xlim = c(0, 40), ylim = c(57, 82)) +
+  coord_cartesian(xlim = c(-25, 30), ylim = c(35, 85)) +
   theme_pubr(base_size = 12)
 
 
-df_sf <- st_as_sf(df_loc, coords = c("lon", "lat"), crs = 4326)
+df_sf <- st_as_sf(df_loc, coords = c("longitude", "latitude"), crs = 4326)
 
 ggplot() +
   annotation_borders("world", fill = "lightgray", color = "gray") +
   geom_sf(data = df_sf, aes(color = Distance), size = 2) +
   # coord_sf handles the aspect ratio automatically
   # You can even use the projection from your distance calc (EPSG:3035) for a curved look
-  coord_sf(xlim = c(0, 40), ylim = c(59, 80), crs = 4326) +
+  coord_sf(xlim = c(-25, 30), ylim = c(35, 85), crs = 4326) +
   theme_pubr()
 
 
@@ -45,7 +45,7 @@ library(rnaturalearthdata)
 # 1. Convert your dataframe to a spatial (sf) object
 # We tell R the initial coordinates are WGS84 (crs = 4326)
 points_sf <- df_loc %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
 # 2. Get a base map of the world (Europe context)
 world_map <- ne_countries(scale = "medium", returnclass = "sf")
@@ -56,7 +56,7 @@ target_crs <- 3035
 # 4. Calculate the Zoom Limits (Bounding Box)
 # We define the box in Lat/Lon, then transform it to the 3035 projection (meters).
 # If we don't do this transformation, the zoom will be wrong.
-bbox_wgs84 <- st_bbox(c(xmin = 0, xmax = 27, ymin = 56, ymax = 82), crs = 4326)
+bbox_wgs84 <- st_bbox(c(xmin = -25, xmax = 30, ymin = 35, ymax = 85), crs = 4326)
 bbox_3035  <- st_as_sfc(bbox_wgs84) %>% st_transform(target_crs) %>% st_bbox()
 
 # 5. Plot
@@ -90,5 +90,5 @@ p <- ggplot() +
   )
 
 library(cowplot)
-ggsave2("./data/dist_to_coast_vannmiljo.svg",
+ggsave2("./data/dist_to_coast_ices_dome.svg",
         p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
