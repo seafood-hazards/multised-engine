@@ -6,12 +6,11 @@ library(tidyverse)
 # ------------------------------
 data_path <- "./data/ICES DOME/Metals and matalloids"
 data_file <- file.path(data_path, "ContaminantsSediment_2026032611051738.csv")
-code_path <- "./data/ICES DOME/code"
 
-# ------------------------------
-# Source common helpers
-# ------------------------------
-#source(file.path("R", "mareano", "sedimeter_helpers.R"))
+data_path <- "./data/ICES DOME"
+data_file <- file.path(data_path, "DomeSediment_Data_0326015962.csv")
+
+code_path <- "./data/ICES DOME/code"
 
 # ------------------------------
 # Read the whole data
@@ -21,7 +20,8 @@ all_data <- read_csv(data_file) |>
          MATRX = if_else(MATRX == "SEDTOT", "SEDtot", MATRX),
          RLABO = ifelse(RLABO == "LNUG", "LUNG", RLABO),
          ALABO = ifelse(ALABO == "LNUG", "LUNG", ALABO)) |>
-  filter(Longitude >= -30 & Longitude <= 30)
+  filter(Longitude >= -30 & Longitude <= 30) %>%
+  filter(PARGROUP %in% c("B-BIO", "I-MAJ", "I-MET", "P-PHY"))
 
 # ------------------------------
 # Read code data
@@ -180,7 +180,7 @@ code_lookup <- code_lookup |>
 multi_code_cols <- c("project", "purpose", "qflag", "vflag", "dcflag", "metpt", "metcx")
 
 # ------------------------------
-# Project 140
+# Project 140 (I-MET) -> 147 (I-MET & I-MAJ)
 # ------------------------------
 df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
   arrange(country, institute, project, purpose) %>%
@@ -188,7 +188,7 @@ df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
   dplyr::select(project_id, project, purpose, country, institute)
 
 # ------------------------------
-# Site 8,130
+# Site 8,130 (I-MET) -> 11,071 (I-MET & I-MAJ)
 # ------------------------------
 df_site <- df_all %>% distinct(station, latitude, longitude) %>%
   arrange(station, latitude, longitude) %>%
@@ -196,7 +196,7 @@ df_site <- df_all %>% distinct(station, latitude, longitude) %>%
   dplyr::select(site_id, station, longitude, latitude)
 
 # ------------------------------
-# Sample 13,977
+# Sample 13,977 (I-MET) -> 17,318 (I-MET & I-MAJ)
 # ------------------------------
 df_sample <- df_all %>% count(project, purpose, country, institute,
                                station, latitude, longitude,
@@ -211,7 +211,7 @@ df_sample <- df_all %>% count(project, purpose, country, institute,
   dplyr::select(sample_id, project_id, site_id, year, date, sample_type, sample_type_description, row_count = n)
 
 # ------------------------------
-# Parameter 119
+# Parameter 119 (I-MET) -> 138 (I-MET & I-MAJ)
 # ------------------------------
 df_parameter <- df_all %>% count(group_code, param) %>%
   inner_join(
@@ -225,14 +225,14 @@ df_parameter <- df_all %>% count(group_code, param) %>%
   dplyr::select(param, param_description, group_code, group_description, row_count=n)
 
 # ------------------------------
-# LLD 1,422
+# LLD 1,422 (I-MET) -> 1,480 (I-MET & I-MAJ)
 # ------------------------------
 df_lld <- df_all %>% count(param, lod, loq)  %>%
   mutate(lld_id = row_number()) %>%
   dplyr::select(lld_id, param, lod, loq, row_count = n)
 
 # ------------------------------
-# Analysis method 2,526
+# Analysis method 2,526 (I-MET) -> 2,453 (I-MET & I-MAJ)
 # ------------------------------
 df_analysis_method <- df_all %>% count(param, labo, metst, metpt, metps, metcx, metoa)  %>%
   mutate(analysis_id = row_number()) %>%
