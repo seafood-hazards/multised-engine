@@ -21,7 +21,7 @@ all_data <- read_csv(data_file) |>
          MATRX = if_else(MATRX == "SEDTOT", "SEDtot", MATRX),
          RLABO = ifelse(RLABO == "LNUG", "LUNG", RLABO),
          ALABO = ifelse(ALABO == "LNUG", "LUNG", ALABO)) |>
-  filter(longitude >= -30 & longitude <= 30)
+  filter(Longitude >= -30 & Longitude <= 30)
 
 # ------------------------------
 # Read code data
@@ -141,7 +141,7 @@ col_rename <- tribble(
   "DEPHU",      "depth_from",
   "DEPHL",      "depth_to",
   "MATRX",      "matrix",
-  "PARGROUP",   "group",
+  "PARGROUP",   "group_code",
   "PARAM",      "param",
   "BASIS",      "basis",
   "QFLAG",      "qflag",
@@ -173,14 +173,14 @@ df_all <- all_data |>
 code_lookup <- code_lookup |>
   left_join(col_rename, by = c("data_col" = "old")) |>
   mutate(data_col = coalesce(new, data_col)) |>
-  select(data_col, code_type = CodeType, raw_code, code = Code,
-         description = Description)
+  distinct(data_col, code_type = CodeType, raw_code, code = Code,
+           description = Description)
 
 # Also update the multi_code_cols vector used in lookups
 multi_code_cols <- c("project", "purpose", "qflag", "vflag", "dcflag", "metpt", "metcx")
 
 # ------------------------------
-# Project
+# Project 140
 # ------------------------------
 df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
   arrange(country, institute, project, purpose) %>%
@@ -188,15 +188,15 @@ df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
   dplyr::select(project_id, project, purpose, country, institute)
 
 # ------------------------------
-# Site
+# Site 8,130
 # ------------------------------
 df_site <- df_all %>% distinct(station, latitude, longitude) %>%
   arrange(station, latitude, longitude) %>%
   mutate(site_id = row_number()) %>%
-  dplyr::select(site_id, station, latitude, longitude)
+  dplyr::select(site_id, station, longitude, latitude)
 
 # ------------------------------
-# Sample
+# Sample 13,977
 # ------------------------------
 df_sample <- df_all %>% count(project, purpose, country, institute,
                                station, latitude, longitude,
@@ -204,38 +204,42 @@ df_sample <- df_all %>% count(project, purpose, country, institute,
   inner_join(df_project, by=c("project", "purpose", "country", "institute")) %>%
   inner_join(df_site, by=c("station", "latitude", "longitude")) %>%
   mutate(sample_id = row_number()) %>%
-  dplyr::select(sample_id, project_id, site_id, year, date, sample_type, row_count = n)
+  left_join(
+    code_lookup %>% filter(data_col == "sample_type") %>% select(raw_code, sample_type_description = description),
+    by = c("sample_type" = "raw_code")
+  )  %>%
+  dplyr::select(sample_id, project_id, site_id, year, date, sample_type, sample_type_description, row_count = n)
 
 # ------------------------------
-# Parameter
+# Parameter 119
 # ------------------------------
-df_parameter <- df_all %>% count(group, param) %>%
+df_parameter <- df_all %>% count(group_code, param) %>%
   inner_join(
-    code_lookup %>% filter(data_col == "group") %>% select(raw_code, group_description = description),
-    by = c("group" = "raw_code")
+    code_lookup %>% filter(data_col == "group_code") %>% select(raw_code, group_description = description),
+    by = c("group_code" = "raw_code")
   ) %>%
   inner_join(
     code_lookup %>% filter(data_col == "param") %>% select(raw_code, param_description = description),
     by = c("param" = "raw_code")
   ) %>%
-  dplyr::select(param, param_description, group, group_description, row_count=n)
+  dplyr::select(param, param_description, group_code, group_description, row_count=n)
 
 # ------------------------------
-# LLD
+# LLD 1,422
 # ------------------------------
 df_lld <- df_all %>% count(param, lod, loq)  %>%
   mutate(lld_id = row_number()) %>%
   dplyr::select(lld_id, param, lod, loq, row_count = n)
 
 # ------------------------------
-# Analysis method
+# Analysis method 2,526
 # ------------------------------
-df_analysis_method <- df_all %>% count(param, labo, metcu, metst, metpt, metps, metcx, metoa)  %>%
+df_analysis_method <- df_all %>% count(param, labo, metst, metpt, metps, metcx, metoa)  %>%
   mutate(analysis_id = row_number()) %>%
-  dplyr::select(analysis_id, param, labo, metcu, metst, metpt, metps, metcx, metoa, row_count = n)
+  dplyr::select(analysis_id, param, labo, metst, metpt, metps, metcx, metoa, row_count = n)
 
 # ------------------------------
-# Reference
+# Reference 25
 # ------------------------------
 df_referance <- df_all %>% count(ref) %>%
   left_join(
@@ -246,15 +250,15 @@ df_referance <- df_all %>% count(ref) %>%
   dplyr::select(ref_id, ref, ref_description, row_count = n)
 
 # ------------------------------
-# Sediment 302,159
+# Sediment 302,159 -> 296,027
 # ------------------------------
 df_sediment <- df_all %>%
   inner_join(df_project, by = c("project", "purpose", "country", "institute")) %>%
   inner_join(df_site, by = c("station", "latitude", "longitude")) %>%
   inner_join(df_sample, by = c("project_id", "site_id", "year", "date", "sample_type")) %>%
-  inner_join(df_parameter, by = c("param", "group")) %>%
+  inner_join(df_parameter, by = c("param", "group_code")) %>%
   inner_join(df_lld, by = c("param", "lod", "loq")) %>%
-  inner_join(df_analysis_method, by = c("param", "labo", "metcu", "metst", "metpt", "metps", "metcx", "metoa")) %>%
+  inner_join(df_analysis_method, by = c("param", "labo", "metst", "metpt", "metps", "metcx", "metoa")) %>%
   inner_join(df_referance, by = "ref") %>%
   dplyr::select(project_id, site_id, sample_id, depth_from, depth_to, param, value, unit,
                 basis, qflag, vflag, uncrt, metcu, lld_id, analysis_id, ref_id,
@@ -262,6 +266,6 @@ df_sediment <- df_all %>%
   group_by(project_id, site_id, sample_id, param) %>%
   mutate(sediment_no = row_number()) %>%
   ungroup() %>%
-  dplyr::select(project_id, site_id, sample_id, depth_from, depth_to, param, sediment_no, value, unit,
+  dplyr::select(project_id, site_id, sample_id, param, sediment_no, depth_from, depth_to, value, unit,
                 basis, qflag, vflag, uncrt, metcu, lld_id, analysis_id, ref_id,
                 sub_no, dcflag)
