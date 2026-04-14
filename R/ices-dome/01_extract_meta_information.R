@@ -21,7 +21,7 @@ all_data <- read_csv(data_file) |>
          MATRX = if_else(MATRX == "SEDTOT", "SEDtot", MATRX),
          RLABO = ifelse(RLABO == "LNUG", "LUNG", RLABO),
          ALABO = ifelse(ALABO == "LNUG", "LUNG", ALABO)) |>
-  filter(longitude => -30 & longitude <= 30)
+  filter(longitude >= -30 & longitude <= 30)
 
 # ------------------------------
 # Read code data
