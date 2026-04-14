@@ -39,7 +39,7 @@ map <- leaflet(points_web) %>%
   setView(lng = home_lng, lat = home_lat, zoom = home_zoom)
 
 # 5. Add Points (Group Loop)
-dist_groups <-rev(levels(points_web$Distance))
+dist_groups <- rev(levels(points_web$Distance))
 
 for(group in dist_groups) {
   data_subset <- points_web[points_web$Distance == group, ]
