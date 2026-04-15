@@ -250,7 +250,7 @@ df_referance <- df_all %>% count(ref) %>%
   dplyr::select(ref_id, ref, ref_description, row_count = n)
 
 # ------------------------------
-# Sediment 302,159 -> 296,027
+# Sediment 302,159 -> 296,027 (I-MET) -> 325,893 (I-MET & I-MAJ)
 # ------------------------------
 df_sediment <- df_all %>%
   inner_join(df_project, by = c("project", "purpose", "country", "institute")) %>%

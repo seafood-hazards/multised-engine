@@ -79,7 +79,7 @@ p <- ggplot() +
   ) +
 
   # E. Labels and Theme
-  ggtitle("Sediment Cores (EPSG:3035 Projection)") +
+  ggtitle("Sediment Sites (EPSG:3035 Projection)") +
   guides(color=guide_legend(title="Distance to Coastline")) +
   theme_bw(base_size = 10) +
   theme(
