@@ -47,7 +47,7 @@ df_vannmiljo_sediment <- df_sediment %>%
 # Disconnect
 dbDisconnect(con)
 
-write_tsv(df_vannmiljo_sediment, "./data/pilot_vannmiljo.tsv.gz")
+write_tsv(df_vannmiljo_sediment, "./data/pilot_vannmiljo_all.tsv.gz")
 
 
 activity_table <- df_vannmiljo_sediment %>% count(activity_id, activity_name, param_name) %>%

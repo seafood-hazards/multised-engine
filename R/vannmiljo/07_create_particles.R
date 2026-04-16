@@ -62,7 +62,3 @@ df_p_op_patterns <- df_p %>%
   count(param_id, operator)
 
 print(df_p_op_patterns)
-
-
-
-
