@@ -61,6 +61,7 @@ CREATE TABLE core (
   mbsl REAL,
   dist_to_coast INTEGER,
   country TEXT,
+  country_code TEXT,
   municipality TEXT,
   sea_name TEXT,
 
