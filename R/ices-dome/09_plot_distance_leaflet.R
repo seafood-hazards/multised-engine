@@ -9,7 +9,7 @@ library(viridis)
 # Ensure we are using the SF object with WGS84 (Lat/Lon) coordinates
 # Assuming 'points_sf' has columns: Distance, label, geometry
 
-df_loc <- df_core |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast, country, municipality, sea_name) |>
+df_loc <- df_ices_dome_sediment |> distinct(project_id, project, site_id, longitude, latitude, dist_to_coast, dist_to_coast, country, est_country, country_code, municipality, sea_name) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -21,13 +21,13 @@ df_loc <- df_core |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast, count
                               "30 to 100km",
                               "≥100km")))
 
-points_web <- st_as_sf(df_loc, coords = c("dde", "ddn"), remove = FALSE, crs = 4326)
-saveRDS(points_web, "./data/points_web.Rds")
+points_web <- st_as_sf(df_loc, coords = c("longitude", "latitude"), remove = FALSE, crs = 4326)
+saveRDS(points_web, "./data/points_web_ices_dome.Rds")
 
 # 2. Define Default View (So we can use it twice)
 # Adjust these to your liking
-home_lat <- 68
-home_lng <- 15
+home_lat <- 55
+home_lng <- 5
 home_zoom <- 4
 
 # 3. Create Palette
@@ -52,14 +52,17 @@ for(group in dist_groups) {
       fillColor = ~pal(group),
       fillOpacity = 0.7,
       weight = 1,
-      label = ~paste0("Cruise: ", cruise_id, ", Core: ", core_id),
+      label = ~paste0("Project ID: ", project_id, ", Site ID: ", site_id),
       popup = ~paste0(
-        "<strong>Cruise ID:</strong> ", cruise_id, "<br>",
-        "<strong>Core ID:</strong> ", core_id, "<br>",
-        "<strong>Longitude:</strong> ", round(dde, 2), "<br>",
-        "<strong>Latitude:</strong> ", round(ddn, 2), "<br>",
+        "<strong>Project ID:</strong> ", project_id, "<br>",
+        "<strong>Project:</strong> ", project, "<br>",
+        "<strong>Site ID:</strong> ", site_id, "<br>",
+        "<strong>Longitude:</strong> ", round(longitude, 2), "<br>",
+        "<strong>Latitude:</strong> ", round(latitude, 2), "<br>",
         "<strong>Distance:</strong> ", round(dist_to_coast, 1), " km", "<br>",
         "<strong>Country:</strong> ", country, "<br>",
+        "<strong>Country 2:</strong> ", est_country, "<br>",
+        "<strong>Country Code:</strong> ", country_code, "<br>",
         "<strong>Municipality:</strong> ", municipality, "<br>",
         "<strong>Sea/Ocean Name:</strong> ", sea_name, "<br>"
       )

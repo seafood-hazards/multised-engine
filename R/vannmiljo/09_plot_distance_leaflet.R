@@ -9,7 +9,7 @@ library(viridis)
 # Ensure we are using the SF object with WGS84 (Lat/Lon) coordinates
 # Assuming 'points_sf' has columns: Distance, label, geometry
 
-df_loc <- df_core |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast, country, municipality, sea_name) |>
+df_loc <- df_vannmiljo_sediment |> distinct(activity_id, activity_name, site_code, site_name, lon, lat, dist_to_coast, country, country_code, municipality, sea_name) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -21,8 +21,8 @@ df_loc <- df_core |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast, count
                               "30 to 100km",
                               "≥100km")))
 
-points_web <- st_as_sf(df_loc, coords = c("dde", "ddn"), remove = FALSE, crs = 4326)
-saveRDS(points_web, "./data/points_web.Rds")
+points_web <- st_as_sf(df_loc, coords = c("lon", "lat"), remove = FALSE, crs = 4326)
+saveRDS(points_web, "./data/points_web_vannmiljo.Rds")
 
 # 2. Define Default View (So we can use it twice)
 # Adjust these to your liking
@@ -39,7 +39,7 @@ map <- leaflet(points_web) %>%
   setView(lng = home_lng, lat = home_lat, zoom = home_zoom)
 
 # 5. Add Points (Group Loop)
-dist_groups <-rev(levels(points_web$Distance))
+dist_groups <- rev(levels(points_web$Distance))
 
 for(group in dist_groups) {
   data_subset <- points_web[points_web$Distance == group, ]
@@ -52,14 +52,17 @@ for(group in dist_groups) {
       fillColor = ~pal(group),
       fillOpacity = 0.7,
       weight = 1,
-      label = ~paste0("Cruise: ", cruise_id, ", Core: ", core_id),
+      label = ~paste0("Activity: ", activity_id, ", Site: ", site_code),
       popup = ~paste0(
-        "<strong>Cruise ID:</strong> ", cruise_id, "<br>",
-        "<strong>Core ID:</strong> ", core_id, "<br>",
-        "<strong>Longitude:</strong> ", round(dde, 2), "<br>",
-        "<strong>Latitude:</strong> ", round(ddn, 2), "<br>",
+        "<strong>Activity ID:</strong> ", activity_id, "<br>",
+        "<strong>Activity:</strong> ", activity_name, "<br>",
+        "<strong>Site Code:</strong> ", site_code, "<br>",
+        "<strong>Site:</strong> ", site_name, "<br>",
+        "<strong>Latitude:</strong> ", round(lon, 2), "<br>",
+        "<strong>Longitude:</strong> ", round(lat, 2), "<br>",
         "<strong>Distance:</strong> ", round(dist_to_coast, 1), " km", "<br>",
         "<strong>Country:</strong> ", country, "<br>",
+        "<strong>Country Code:</strong> ", country_code, "<br>",
         "<strong>Municipality:</strong> ", municipality, "<br>",
         "<strong>Sea/Ocean Name:</strong> ", sea_name, "<br>"
       )

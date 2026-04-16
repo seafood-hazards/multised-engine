@@ -1,7 +1,8 @@
 library(tidyverse)
 library(ggpubr)
+library(sf)
 
-df_loc <- df_mariano_sediment |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast) |>
+df_loc <- df_vannmiljo_sediment |> dplyr::distinct(activity_id, site_code, lon, lat, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -13,7 +14,7 @@ df_loc <- df_mariano_sediment |> distinct(cruise_id, core_id, dde, ddn, dist_to_
                               "30 to 100km",
                               "≥100km")))
 
-ggplot(df_loc, aes(x = dde, y = ddn, colour = Distance)) +
+ggplot(df_loc, aes(x = lon, y = lat, colour = Distance)) +
   annotation_borders("world", fill = "lightgray", color = "gray") +
   geom_point() +
   scale_color_viridis_d(option = "plasma") + # "turbo" or "plasma" are very distinct
@@ -24,7 +25,7 @@ ggplot(df_loc, aes(x = dde, y = ddn, colour = Distance)) +
   theme_pubr(base_size = 12)
 
 
-df_sf <- st_as_sf(df_loc, coords = c("dde", "ddn"), crs = 4326)
+df_sf <- st_as_sf(df_loc, coords = c("lon", "lat"), crs = 4326)
 
 ggplot() +
   annotation_borders("world", fill = "lightgray", color = "gray") +
@@ -44,7 +45,7 @@ library(rnaturalearthdata)
 # 1. Convert your dataframe to a spatial (sf) object
 # We tell R the initial coordinates are WGS84 (crs = 4326)
 points_sf <- df_loc %>%
-  st_as_sf(coords = c("dde", "ddn"), crs = 4326)
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 # 2. Get a base map of the world (Europe context)
 world_map <- ne_countries(scale = "medium", returnclass = "sf")
@@ -78,7 +79,7 @@ p <- ggplot() +
   ) +
 
   # E. Labels and Theme
-  ggtitle("Sediment Cores (EPSG:3035 Projection)") +
+  ggtitle("Sediment Sites (EPSG:3035 Projection)") +
   guides(color=guide_legend(title="Distance to Coastline")) +
   theme_bw(base_size = 10) +
   theme(
@@ -89,5 +90,5 @@ p <- ggplot() +
   )
 
 library(cowplot)
-#ggsave2("./data/dist_to_coast.svg",
-#        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
+ggsave2("./data/dist_to_coast_vannmiljo.svg",
+        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
