@@ -2,7 +2,7 @@ library(tidyverse)
 library(ggpubr)
 library(sf)
 
-df_loc <- df_ices_dome_sediment |> distinct(project_id, site_id, longitude, latitude, dist_to_coast) |>
+df_loc <- df_ices_dome_sediment |> distinct(project_id, site_id, latitude, longitude, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",

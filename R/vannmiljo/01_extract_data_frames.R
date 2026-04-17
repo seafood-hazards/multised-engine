@@ -90,8 +90,8 @@ df_site <- df %>% distinct(site_code, site_name, label, utm33_x, utm33_y) %>%
   st_as_sf(coords = c("utm33_x", "utm33_y"), crs = 25833) %>%
   st_transform(crs = 4326) %>%
   mutate(
-    lon = st_coordinates(.)[, "X"],
-    lat = st_coordinates(.)[, "Y"]
+    lat = st_coordinates(.)[, "Y"],
+    lon = st_coordinates(.)[, "X"]
   ) %>%
   st_drop_geometry()
 

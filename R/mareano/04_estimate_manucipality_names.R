@@ -40,10 +40,10 @@ results_muni <- ocean_points %>%
     est_country_code = municipalities$CNTR_CODE[nearest_lau_indices]
   ) %>%
   st_drop_geometry() %>%
-  select(dde, ddn, country = nearest_country, country_code = est_country_code, municipality = est_municipality)
+  select(ddn, dde, country = nearest_country, country_code = est_country_code, municipality = est_municipality)
 
 # 7. Merge back to your main dataframe
 df_core <- df_core %>%
-  left_join(results_muni, by = c("dde", "ddn"))
+  left_join(results_muni, by = c("ddn", "dde"))
 
 print(head(df_core))

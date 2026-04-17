@@ -1,6 +1,6 @@
 library(tidyverse)
 
-df_vannmiljo_sediment <- read_tsv("./data/pilot_vannmiljo.tsv.gz")
+df_vannmiljo_sediment <- read_tsv("./data/pilot_vannmiljo_all.tsv.gz")
 
 df_p <- df_vannmiljo_sediment %>%
   filter(category == "p") %>%

@@ -193,7 +193,7 @@ df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
 df_site <- df_all %>% distinct(station, latitude, longitude) %>%
   arrange(station, latitude, longitude) %>%
   mutate(site_id = row_number()) %>%
-  dplyr::select(site_id, station, longitude, latitude)
+  dplyr::select(site_id, station, latitude, longitude)
 
 # ------------------------------
 # Sample 13,977 (I-MET) -> 17,318 (I-MET & I-MAJ)

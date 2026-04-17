@@ -9,7 +9,7 @@ library(viridis)
 # Ensure we are using the SF object with WGS84 (Lat/Lon) coordinates
 # Assuming 'points_sf' has columns: Distance, label, geometry
 
-df_loc <- df_vannmiljo_sediment |> distinct(activity_id, activity_name, site_code, site_name, lon, lat, dist_to_coast, country, country_code, municipality, sea_name) |>
+df_loc <- df_vannmiljo_sediment |> distinct(activity_id, activity_name, site_code, site_name, lat, lon, dist_to_coast, country, country_code, municipality, sea_name) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -58,8 +58,8 @@ for(group in dist_groups) {
         "<strong>Activity:</strong> ", activity_name, "<br>",
         "<strong>Site Code:</strong> ", site_code, "<br>",
         "<strong>Site:</strong> ", site_name, "<br>",
-        "<strong>Latitude:</strong> ", round(lon, 2), "<br>",
-        "<strong>Longitude:</strong> ", round(lat, 2), "<br>",
+        "<strong>Latitude:</strong> ", round(lat, 2), "<br>",
+        "<strong>Longitude:</strong> ", round(lon, 2), "<br>",
         "<strong>Distance:</strong> ", round(dist_to_coast, 1), " km", "<br>",
         "<strong>Country:</strong> ", country, "<br>",
         "<strong>Country Code:</strong> ", country_code, "<br>",

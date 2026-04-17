@@ -23,7 +23,7 @@ df_ices_dome_sediment <- df_sediment %>%
   left_join(df_lld, by=c("lld_id", "param")) %>%
   left_join(df_analysis_method , by=c("analysis_id", "param")) %>%
   dplyr::select(project_id, project, country,
-                site_id, longitude, latitude, dist_to_coast, est_country, country_code, municipality, sea_name,
+                site_id, latitude, longitude, dist_to_coast, est_country, country_code, municipality, sea_name,
                 param, param_description,
                 year, date, sample_type, sample_type_description,
                 depth_from, depth_to, sediment_no,

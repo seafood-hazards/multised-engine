@@ -54,7 +54,7 @@ results <- ocean_points_proj %>%
   select(longitude, latitude, dist_to_coast)
 
 df_core <- df_core %>%
-  left_join(results, by = c("dde" = "longitude", "ddn" = "latitude"))
+  left_join(results, by = c("ddn" = "latitude", "dde" = "longitude"))
 
 # Optional: Convert meters to km
 df_core$dist_to_coast <- df_core$dist_to_coast / 1000

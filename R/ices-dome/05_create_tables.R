@@ -40,8 +40,8 @@ dbExecute(con, "
 CREATE TABLE site (
     site_id       INTEGER NOT NULL PRIMARY KEY,
     station       TEXT,
-    longitude     REAL    NOT NULL,
     latitude      REAL    NOT NULL,
+    longitude     REAL    NOT NULL,
     dist_to_coast REAL,
     est_country   TEXT,
     country_code  TEXT,
