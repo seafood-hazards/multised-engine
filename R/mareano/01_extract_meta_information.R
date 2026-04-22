@@ -144,7 +144,8 @@ correct_df_element_info <- function(df) {
                  )) %>%
     dplyr::select(parameter, element, method1, method2, institute) %>%
     separate(parameter, c("symbol"), remove = FALSE, extra = "drop") %>%
-    mutate(element = ifelse(parameter == "Cd_p", "Cadmium", element)) %>%
+    mutate(element = ifelse(parameter == "Cd_p", "Cadmium",
+                            str_replace(element, "\\?m", "µm"))) %>%
     dplyr::bind_rows(
       tibble::tibble(
         parameter = "S_p",
