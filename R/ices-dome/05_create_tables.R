@@ -123,6 +123,7 @@ CREATE TABLE sediment (
     sediment_no INTEGER NOT NULL,
     depth_from  REAL,
     depth_to    REAL,
+    matrix      TEXT,
     value       REAL,
     unit        TEXT,
     basis       TEXT,
