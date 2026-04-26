@@ -264,8 +264,8 @@ df_sediment <- df_all %>%
                 depth_from, depth_to, matrix, param, value, unit,
                 basis, qflag, vflag, uncrt, metcu, lld_id, analysis_id, ref_id,
                 sub_no, dcflag) %>%
-  arrange(project_id, site_id, year, date, param, depth_from, depth_to) %>%
-  group_by(project_id, site_id, year, date, param) %>%
+  arrange(project_id, site_id, sample_id, param, depth_from, depth_to) %>%
+  group_by(project_id, site_id, sample_id, param) %>%
   mutate(sediment_no = row_number()) %>%
   ungroup() %>%
   dplyr::select(project_id, site_id, sample_id, param,
