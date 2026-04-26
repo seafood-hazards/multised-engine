@@ -1,7 +1,7 @@
 library(tidyverse)
 library(ggpubr)
 
-df_loc <- df_mariano_sediment |> distinct(cruise_id, core_id, dde, ddn, dist_to_coast) |>
+df_loc <- df_mariano_sediment |> distinct(cruise_id, core_id, ddn, dde, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -89,5 +89,5 @@ p <- ggplot() +
   )
 
 library(cowplot)
-#ggsave2("./data/dist_to_coast.svg",
-#        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
+ggsave2("./data/dist_to_coast.svg",
+        p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)

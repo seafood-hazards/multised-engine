@@ -48,11 +48,11 @@ sf_use_s2(TRUE)
 # --- Step 6: Clean and Merge ---
 sea_names_lookup <- joined_data %>%
   st_drop_geometry() %>%
-  select(longitude = longitude.x, latitude = latitude.x, sea_name = name)
+  select(latitude = latitude.x, longitude = longitude.x, sea_name = name)
 
 # Merge back into your main dataframe
 df_site <- df_site %>%
-  left_join(sea_names_lookup, by = c("longitude", "latitude"))
+  left_join(sea_names_lookup, by = c("latitude", "longitude"))
 
 # Check the results
 print(head(df_site %>% select(latitude, longitude, sea_name)))

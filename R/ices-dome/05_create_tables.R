@@ -40,8 +40,8 @@ dbExecute(con, "
 CREATE TABLE site (
     site_id       INTEGER NOT NULL PRIMARY KEY,
     station       TEXT,
-    longitude     REAL    NOT NULL,
     latitude      REAL    NOT NULL,
+    longitude     REAL    NOT NULL,
     dist_to_coast REAL,
     est_country   TEXT,
     country_code  TEXT,
@@ -123,6 +123,7 @@ CREATE TABLE sediment (
     sediment_no INTEGER NOT NULL,
     depth_from  REAL,
     depth_to    REAL,
+    matrix      TEXT,
     value       REAL,
     unit        TEXT,
     basis       TEXT,

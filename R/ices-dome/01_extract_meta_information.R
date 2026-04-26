@@ -193,7 +193,7 @@ df_project <- df_all %>% distinct(project, purpose, country, institute) %>%
 df_site <- df_all %>% distinct(station, latitude, longitude) %>%
   arrange(station, latitude, longitude) %>%
   mutate(site_id = row_number()) %>%
-  dplyr::select(site_id, station, longitude, latitude)
+  dplyr::select(site_id, station, latitude, longitude)
 
 # ------------------------------
 # Sample 13,977 (I-MET) -> 17,318 (I-MET & I-MAJ)
@@ -260,12 +260,16 @@ df_sediment <- df_all %>%
   inner_join(df_lld, by = c("param", "lod", "loq")) %>%
   inner_join(df_analysis_method, by = c("param", "labo", "metst", "metpt", "metps", "metcx", "metoa")) %>%
   inner_join(df_referance, by = "ref") %>%
-  dplyr::select(project_id, site_id, sample_id, depth_from, depth_to, param, value, unit,
+  dplyr::select(project_id, site_id, sample_id, year, date, sample_type,
+                depth_from, depth_to, matrix, param, value, unit,
                 basis, qflag, vflag, uncrt, metcu, lld_id, analysis_id, ref_id,
                 sub_no, dcflag) %>%
-  group_by(project_id, site_id, sample_id, param) %>%
+  arrange(project_id, site_id, year, date, param, depth_from, depth_to) %>%
+  group_by(project_id, site_id, year, date, param) %>%
   mutate(sediment_no = row_number()) %>%
   ungroup() %>%
-  dplyr::select(project_id, site_id, sample_id, param, sediment_no, depth_from, depth_to, value, unit,
+  dplyr::select(project_id, site_id, sample_id, param,
+                sediment_no, depth_from, depth_to, matrix,
+                value, unit,
                 basis, qflag, vflag, uncrt, metcu, lld_id, analysis_id, ref_id,
                 sub_no, dcflag)

@@ -50,10 +50,10 @@ ocean_points_proj <- ocean_points_proj %>%
 # --- Step 6 & 7: Clean up and Join ---
 results <- ocean_points_proj %>%
   st_drop_geometry() %>%
-  select(longitude, latitude, dist_to_coast)
+  select(latitude, longitude, dist_to_coast)
 
 df_site <- df_site %>%
-  left_join(results, by = c("longitude", "latitude"))
+  left_join(results, by = c("latitude", "longitude"))
 
 # Optional: Convert meters to km
 df_site$dist_to_coast <- df_site$dist_to_coast / 1000

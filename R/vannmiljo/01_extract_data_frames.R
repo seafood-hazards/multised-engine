@@ -9,7 +9,7 @@ library(sf)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data"
+data_path <- "./data/Vannmiljo"
 data_sheet <- "VannmiljoEksport"
 
 excel_file_interest <- file.path(data_path, "Vannmilio_Elements_interest.xlsx")
@@ -53,7 +53,8 @@ df_particle <- read_vannmiljo_excel(excel_file_particle,
                                     data_range_particle) %>%
   correct_vannmiljo_data("particle")
 
-df <- bind_rows(df_interest, df_others, df_toc, df_particle)
+df <- bind_rows(df_interest, df_others, df_toc, df_particle) %>%
+  mutate(unit = str_replace(unit, "t.v.", "dw"))
 
 # ------------------------------
 # Activity
@@ -90,8 +91,8 @@ df_site <- df %>% distinct(site_code, site_name, label, utm33_x, utm33_y) %>%
   st_as_sf(coords = c("utm33_x", "utm33_y"), crs = 25833) %>%
   st_transform(crs = 4326) %>%
   mutate(
-    lon = st_coordinates(.)[, "X"],
-    lat = st_coordinates(.)[, "Y"]
+    lat = st_coordinates(.)[, "Y"],
+    lon = st_coordinates(.)[, "X"]
   ) %>%
   st_drop_geometry()
 
