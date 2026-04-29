@@ -4,8 +4,9 @@ library(tidyverse)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/Mutab"
+data_path <- "./data/Mudab"
 data_file <- file.path(data_path, "export_mudab_V_MESSWERTE_SEDIMENT.csv")
+code_file <- file.path(data_path, "MUDAB_CODELISTEN.tsv")
 
 # ------------------------------
 # Read the whole data
@@ -84,6 +85,88 @@ col_translation <- c(
 df_all <- read_csv(data_file, show_col_types = FALSE) |>
   rename(all_of(col_translation)) |>
   select(where(~ !all(is.na(.))))
+
+# ------------------------------
+# Create look-up table
+# ------------------------------
+
+df_code_list <- read_tsv(code_file) %>%
+  fill(Catogory) %>%
+  filter(!is.na(Value))
+
+desc_translation <- c(
+  "Messwerte Meeressäuger. Spalte: Methode der Altersbestimmung"                                                                        = "Marine mammal measurements. Column: Age determination method",
+  "Messwerte Meeressäuger. Spalte: Zustand bei der Probenahme"                                                                          = "Marine mammal measurements. Column: Condition at sampling",
+  "Messwerte alle Kompartimente. Spalte: Basis der Messung"                                                                             = "All compartment measurements. Column: Basis of measurement",
+  "Messwerte Biologie. Spalte: Datentyp"                                                                                                = "Biology measurements. Column: Data type",
+  "Messwerte alle Kompartimente. Spalte: Matrix (für Wasser, Sediment, Biota) und Unterprobe (für Biologie)"                            = "All compartment measurements. Column: Matrix (water, sediment, biota) and sub-sample (biology)",
+  "Messwerte alle Kompartimente. Spalte: Ermittlungsmethode der Messunsicherheit"                                                       = "All compartment measurements. Column: Uncertainty determination method",
+  "Messwerte alle Kompartimente. Spalte: Chemische Behandlung der Probe"                                                                = "All compartment measurements. Column: Chemical treatment of sample",
+  "Messwerte alle Kompartimente. Spalte: Code der Messmethode"                                                                         = "All compartment measurements. Column: Measurement method code",
+  "Messwerte alle Kompartimente. Spalte: Physikalische Behandlung der Probe"                                                            = "All compartment measurements. Column: Physical treatment of sample",
+  "Projektstation. Spalte MSTAT"                                                                                                        = "Project station. Column: MSTAT",
+  "Messwerte alle Kompartimente. Spalte: Einheit"                                                                                       = "All compartment measurements. Column: Unit",
+  "Messwerte Meeressäuger. Spalte: Specimen-Herkunft"                                                                                  = "Marine mammal measurements. Column: Specimen origin",
+  "Messwerte/Parameter alle Kompartimente. Spalte: Parameter"                                                                           = "All compartment measurements/parameters. Column: Parameter",
+  "Messwerte/Parameter alle Kompartimente. Spalte: Parametergruppe"                                                                     = "All compartment measurements/parameters. Column: Parameter group",
+  "Messwerte alle Kompartimente. Spalte: Basis der Messung"                                                                             = "All compartment measurements. Column: Quality flag",
+  "Messwerte alle Kompartimente. Spalte: Institute"                                                                                     = "All compartment measurements. Column: Institute",
+  "Messwerte Biota. Spalte: Referenzliste"                                                                                              = "Biota measurements. Column: Reference list",
+  "Messwerte Meeressäuger. Spalte: Sex-Code"                                                                                           = "Marine mammal measurements. Column: Sex code",
+  "Messwerte alle Kompartimente. Spalte: Schiffscode"                                                                                   = "All compartment measurements. Column: Vessel code",
+  "Messwerte Biologie. Spalte: Größenreferenz"                                                                                         = "Biology measurements. Column: Size reference",
+  "Messwerte Biologie. Spalte: Stadium"                                                                                                 = "Biology measurements. Column: Life stage",
+  "Messwerte alle Kompartimente. Spalte: Flag"                                                                                          = "All compartment measurements. Column: Flag",
+  "Projektstation. Spalte: WLTYP"                                                                                                       = "Project station. Column: WLTYP",
+  "Messwerte Meeressäuger. Spalte: Bulking"                                                                                            = "Marine mammal measurements. Column: Bulking",
+  "Physikalische Stationsparameter. Spalte: Kompartiment"                                                                               = "Physical station parameters. Column: Compartment",
+  "Messwerte Meeressäuger. Spalten: Weiterführende Ergebnisse Patho, Weiterführen…"                                                    = "Marine mammal measurements. Columns: Further pathology results",
+  "Projektstation & Messwerte alle Kompartimente. Spalte: Institute & Verantwortliches Institut"                                        = "Project station & all compartment measurements. Column: Institute & responsible institute",
+  "Messwerte Biota. Spalte: Längenmessung"                                                                                             = "Biota measurements. Column: Length measurement method",
+  "Messwerte alle Kompartimente. Spalte: Medium"                                                                                        = "All compartment measurements. Column: Medium",
+  "Messwerte Meeressäuger. Spalte: Altersklasse"                                                                                      = "Marine mammal measurements. Column: Age class",
+  "Alle Kompartimente. Spalte: Organisation"                                                                                            = "All compartments. Column: Organisation",
+  "Messwerte/Parameter alle Kompartimente. Spalte: Parameter"                                                                           = "All compartment measurements/parameters. Column: Parameter (CAS)",
+  "Messwerte alle Kompartimente. Spalte: Typ der Plattform"                                                                            = "All compartment measurements. Column: Platform type",
+  "Projektstation. Spalte: Stationstyp"                                                                                                = "Project station. Column: Station type",
+  "Messwerte Biologie & Biota. Spalte: Spezie, APHIAID"                                                                                = "Biology & biota measurements. Column: Species, APHIAID"
+)
+
+category_lookup <- df_code_list |>
+  distinct(Catogory) |>
+  mutate(
+    # Remove "Code-Liste:     " prefix
+    stripped = str_remove(Catogory, "^Code-Liste:\\s+"),
+
+    # Extract category code: first word before whitespace
+    category_code = str_extract(stripped, "^\\S+"),
+
+    # Extract description: text after " -   {optional duplicate code} - "
+    # If the code appears again after " -   ", skip it; otherwise take directly
+    description_raw = str_remove(stripped, "^\\S+\\s+-\\s+") |>
+      str_remove(paste0("^", str_extract(stripped, "^\\S+"), "\\s+-\\s+")) |>
+      str_trim()
+  ) |>
+  mutate(
+    category_name = desc_translation[description_raw]
+  ) |>
+  select(category_code, category_name)
+
+code_lookup <- df_code_list |>
+  mutate(category_code = str_extract(
+    str_remove(Catogory, "^Code-Liste:\\s+"), "^\\S+"
+  )) |>
+  left_join(category_lookup, by = "category_code") |>
+  select(Catogory = category_code, `Category name` = category_name,
+         Code = Value, `Code name` = Name)
+
+write_tsv(code_lookup, file.path(data_path, "code_lookup.tsv"))
+
+responsible_institute: MUDABCL_INSTITUTE
+institute: MUDABCL_INSTITUTE
+organisation: MUDABCL_ORGANISATION
+parameter: ICESCL_PARAM
+station_type: MUDABCL_STATIONTYPE
 
 # ------------------------------
 # Project 140 (I-MET) -> 147 (I-MET & I-MAJ)
