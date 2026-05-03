@@ -197,7 +197,11 @@ used_codes <- col_to_codetype |>
   unnest(Code)
 
 df_code_lookup <- code_lookup |>
-  semi_join(used_codes, by = c("Catogory", "Code"))
+  semi_join(used_codes, by = c("Catogory", "Code")) |>
+  select(category_code = Catogory,
+         category_name = `Category name`,
+         code = Code,
+         code_name = `Code name`)
 
 # ------------------------------
 # Station: 482
@@ -279,7 +283,7 @@ df_sample <- df_all %>% distinct(sample_id,
 
 
 # ------------------------------
-# LOD:
+# LOD: 380
 # ------------------------------
 df_lod <- df_all %>% distinct(parameter,
                               internal_qa_detection_limit,
@@ -327,8 +331,12 @@ df_sediment <- df_all %>%
   select(-c(sample_id, layer_upper_boundary, layer_lower_boundary, sampling_method, flag,
             matrix, sediment_composition, sediment_content, sampled_area)) %>%
   select(-c(internal_qa_detection_limit, internal_qa_quantification_limit, expanded_uncertainty_pct, uncertainty_method)) %>%
+  group_by(station_no, measurement_time_id, analysis_method_id, reference_material_id,
+           survey_id, sample_no, lod_id, parameter) %>%
+  mutate(sediment_no = row_number()) %>%
+  ungroup() %>%
   select(station_no, measurement_time_id, analysis_method_id, reference_material_id, survey_id, sample_no,
-         lod_id, measurement_start, measurement_end, parameter, measured_value, unit, data_qualifier, internal_qa_count, recovery_rate)
+         lod_id, sediment_no, parameter, measurement_start, measurement_end, measured_value, unit, data_qualifier, internal_qa_count, recovery_rate)
 
 # ------------------------------
 # Translation
