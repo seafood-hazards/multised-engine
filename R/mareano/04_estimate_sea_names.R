@@ -52,7 +52,7 @@ sea_names_lookup <- joined_data %>%
 
 # Merge back into your main dataframe
 df_core <- df_core %>%
-  left_join(sea_names_lookup, by = c("dde", "ddn"))
+  left_join(sea_names_lookup, by = c("ddn", "dde"))
 
 # Check the results
 print(head(df_core %>% select(cruise_id, core_id, sea_name)))

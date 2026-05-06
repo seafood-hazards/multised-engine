@@ -54,7 +54,7 @@ results <- ocean_points_proj %>%
   select(longitude, latitude, dist_to_coast)
 
 df_site <- df_site %>%
-  left_join(results, by = c("lon" = "longitude", "lat" = "latitude"))
+  left_join(results, by = c("lat" = "latitude","lon" = "longitude"))
 
 # Optional: Convert meters to km
 df_site$dist_to_coast <- df_site$dist_to_coast / 1000

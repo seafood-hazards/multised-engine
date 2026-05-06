@@ -8,7 +8,7 @@ library(stringr)
 # ------------------------------------------------------------------------------
 # CONFIG
 # ------------------------------------------------------------------------------
-data_path <- "./data"
+data_path <- "./data/Mareano"
 excel_file <- file.path(data_path, "Mareano.xlsx")
 
 inorganic_sheet          <- "INORGANIC"
@@ -133,8 +133,8 @@ correct_data_inorganic_core <- function(df) {
                               .data$`Sample core ID`)
   )
 
-  if ("DDE degrees" %in% names(df)) df[["DDE degrees"]] <- to_numeric_safe(df[["DDE degrees"]])
   if ("DDN degrees" %in% names(df)) df[["DDN degrees"]] <- to_numeric_safe(df[["DDN degrees"]])
+  if ("DDE degrees" %in% names(df)) df[["DDE degrees"]] <- to_numeric_safe(df[["DDE degrees"]])
   if ("mbsl m" %in% names(df))      df[["mbsl m"]]      <- to_numeric_safe(df[["mbsl m"]])
 
   df <- dplyr::select(
@@ -145,8 +145,8 @@ correct_data_inorganic_core <- function(df) {
     sampling_tool = `Sampling tool`,
     tool_id       = `SamplingTool serial ID`,
     core_name     = `Sample core ID`,
-    dde           = `DDE degrees`,
     ddn           = `DDN degrees`,
+    dde           = `DDE degrees`,
     mbsl          = `mbsl m`
   ) %>%
   dplyr::distinct()

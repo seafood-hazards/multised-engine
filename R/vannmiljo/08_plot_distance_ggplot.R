@@ -2,7 +2,7 @@ library(tidyverse)
 library(ggpubr)
 library(sf)
 
-df_loc <- df_vannmiljo_sediment |> dplyr::distinct(activity_id, site_code, lon, lat, dist_to_coast) |>
+df_loc <- df_vannmiljo_sediment |> dplyr::distinct(activity_id, site_code, lat, lon, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",

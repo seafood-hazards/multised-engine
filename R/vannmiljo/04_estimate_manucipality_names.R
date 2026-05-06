@@ -44,6 +44,6 @@ results_muni <- ocean_points %>%
 
 # 7. Merge back to your main dataframe
 df_site <- df_site %>%
-  left_join(results_muni, by = c("lon", "lat"))
+  left_join(results_muni, by = c("lat", "lon"))
 
 print(head(df_site))

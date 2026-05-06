@@ -5,7 +5,9 @@ library(tidyverse)
 # 1. Use ISO3 codes (3 letters) to avoid the "Ambiguous GB" error
 # NOR=Norway, PRT=Portugal, ESP=Spain, FRA=France, GBR=UK, IRL=Ireland,
 # DNK=Denmark, DEU=Germany, NLD=Netherlands, BEL=Belgium
-target_countries <- c("NOR", "PRT", "ESP", "FRA", "GBR", "IRL", "DNK", "DEU", "NLD", "BEL")
+target_countries <- c("NOR", "PRT", "ESP", "FRA", "GBR", "IRL", "DNK", "DEU", "NLD", "BEL",
+                      "ISL", "BIH", "HRV", "EST", "FIN", "GRC", "ITA", "LVA", "LTU",
+                      "RUS", "SWE")
 
 message("Downloading Municipality Data...")
 municipalities <- gisco_get_lau(
@@ -40,10 +42,10 @@ results_muni <- ocean_points %>%
     est_country_code = municipalities$CNTR_CODE[nearest_lau_indices]
   ) %>%
   st_drop_geometry() %>%
-  select(ddn, dde, country = nearest_country, country_code = est_country_code, municipality = est_municipality)
+  select(station_latitude, station_longitude, est_country = nearest_country, country_code = est_country_code,  municipality = est_municipality)
 
 # 7. Merge back to your main dataframe
-df_core <- df_core %>%
-  left_join(results_muni, by = c("ddn", "dde"))
+df_survey <- df_survey %>%
+  left_join(results_muni, by = c("station_latitude", "station_longitude"))
 
-print(head(df_core))
+print(head(df_survey))

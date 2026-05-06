@@ -56,8 +56,8 @@ for(group in dist_groups) {
       popup = ~paste0(
         "<strong>Cruise ID:</strong> ", cruise_id, "<br>",
         "<strong>Core ID:</strong> ", core_id, "<br>",
-        "<strong>Longitude:</strong> ", round(dde, 2), "<br>",
         "<strong>Latitude:</strong> ", round(ddn, 2), "<br>",
+        "<strong>Longitude:</strong> ", round(dde, 2), "<br>",
         "<strong>Distance:</strong> ", round(dist_to_coast, 1), " km", "<br>",
         "<strong>Country:</strong> ", country, "<br>",
         "<strong>Municipality:</strong> ", municipality, "<br>",

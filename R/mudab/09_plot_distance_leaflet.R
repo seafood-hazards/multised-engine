@@ -9,7 +9,7 @@ library(viridis)
 # Ensure we are using the SF object with WGS84 (Lat/Lon) coordinates
 # Assuming 'points_sf' has columns: Distance, label, geometry
 
-df_loc <- df_vannmiljo_sediment |> distinct(activity_id, activity_name, site_code, site_name, lat, lon, dist_to_coast, country, country_code, municipality, sea_name) |>
+df_loc <- df_mudab_sediment |> dplyr::distinct(organisation, project_affiliation, responsible_institute, region, station_latitude, survey_id, station_longitude, dist_to_coast, est_country, country_code, municipality, sea_name) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
@@ -21,14 +21,14 @@ df_loc <- df_vannmiljo_sediment |> distinct(activity_id, activity_name, site_cod
                               "30 to 100km",
                               "≥100km")))
 
-points_web <- st_as_sf(df_loc, coords = c("lon", "lat"), remove = FALSE, crs = 4326)
-saveRDS(points_web, "./data/points_web_vannmiljo.Rds")
+points_web <- st_as_sf(df_loc, coords = c("station_longitude", "station_latitude"), remove = FALSE, crs = 4326)
+#saveRDS(points_web, "./data/points_web_mudab.Rds")
 
 # 2. Define Default View (So we can use it twice)
 # Adjust these to your liking
-home_lat <- 68
-home_lng <- 15
-home_zoom <- 4
+home_lat <- 55
+home_lng <- 5
+home_zoom <- 5
 
 # 3. Create Palette
 pal <- colorFactor(palette = "turbo", domain = points_web$Distance)
@@ -52,16 +52,17 @@ for(group in dist_groups) {
       fillColor = ~pal(group),
       fillOpacity = 0.7,
       weight = 1,
-      label = ~paste0("Activity: ", activity_id, ", Site: ", site_code),
+      label = ~paste0("Survey ID: ", survey_id),
       popup = ~paste0(
-        "<strong>Activity ID:</strong> ", activity_id, "<br>",
-        "<strong>Activity:</strong> ", activity_name, "<br>",
-        "<strong>Site Code:</strong> ", site_code, "<br>",
-        "<strong>Site:</strong> ", site_name, "<br>",
-        "<strong>Latitude:</strong> ", round(lat, 2), "<br>",
-        "<strong>Longitude:</strong> ", round(lon, 2), "<br>",
+        "<strong>Survey ID:</strong> ", survey_id, "<br>",
+        "<strong>Organisation:</strong> ", organisation, "<br>",
+        "<strong>Project affiliation:</strong> ", project_affiliation, "<br>",
+        "<strong>Responsible institute:</strong> ", responsible_institute, "<br>",
+        "<strong>Latitude:</strong> ", round(station_latitude, 2), "<br>",
+        "<strong>Longitude:</strong> ", round(station_longitude, 2), "<br>",
+        "<strong>Region:</strong> ", region, "<br>",
         "<strong>Distance:</strong> ", round(dist_to_coast, 1), " km", "<br>",
-        "<strong>Country:</strong> ", country, "<br>",
+        "<strong>Country:</strong> ", est_country, "<br>",
         "<strong>Country Code:</strong> ", country_code, "<br>",
         "<strong>Municipality:</strong> ", municipality, "<br>",
         "<strong>Sea/Ocean Name:</strong> ", sea_name, "<br>"

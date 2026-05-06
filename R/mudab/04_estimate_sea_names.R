@@ -2,9 +2,9 @@ library(sf)
 library(tidyverse)
 
 # --- Step 1: Prepare your data ---
-ocean_points <- df_site %>%
-  distinct(longitude, latitude) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = 4326, remove = FALSE)
+ocean_points <- df_survey %>%
+  distinct(station_longitude, station_latitude) %>%
+  st_as_sf(coords = c("station_longitude", "station_latitude"), crs = 4326, remove = FALSE)
 
 # --- Step 2: Download IHO Sea Areas ---
 # The IHO dataset often has topology errors, so we download it and immediately fix it
@@ -48,11 +48,11 @@ sf_use_s2(TRUE)
 # --- Step 6: Clean and Merge ---
 sea_names_lookup <- joined_data %>%
   st_drop_geometry() %>%
-  select(latitude = latitude.x, longitude = longitude.x, sea_name = name)
+  select(station_latitude = station_latitude, station_longitude = station_longitude, sea_name = name)
 
 # Merge back into your main dataframe
-df_site <- df_site %>%
-  left_join(sea_names_lookup, by = c("latitude", "longitude"))
+df_survey <- df_survey %>%
+  left_join(sea_names_lookup, by = c("station_latitude", "station_longitude"))
 
 # Check the results
-print(head(df_site %>% select(latitude, longitude, sea_name)))
+print(head(df_survey %>% select(station_latitude, station_longitude, sea_name)))

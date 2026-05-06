@@ -39,7 +39,7 @@ df_vannmiljo_sediment <- df_sediment %>%
               dplyr::select(sample_id, param_id, sediment_no, loq),
             by = c("sample_id", "param_id", "sediment_no")) %>%
   dplyr::select(activity_id, activity_name, site_code, site_name,
-                lon, lat, dist_to_coast, country, country_code, municipality, sea_name,
+                lat, lon, dist_to_coast, country, country_code, municipality, sea_name,
                 sample_id, sample_time, sediment_no, upper_depth, lower_depth, sample_no, n_values,
                 param_id, param_name, method, analysis, value, unit, operator, lod, loq,
                 category)

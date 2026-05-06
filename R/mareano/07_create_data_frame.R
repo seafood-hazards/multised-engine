@@ -27,7 +27,7 @@ df_mariano_cruise <- df_cruise |>
   dplyr::select(cruise_id, cruise_type, year)
 
 df_mariano_core <- df_core |>
-  dplyr::select(cruise_id, core_id, sampling_tool, core_name, dde, ddn, mbsl, dist_to_coast)
+  dplyr::select(cruise_id, core_id, sampling_tool, core_name, ddn, dde, mbsl, dist_to_coast)
 
 df_mariano_sample <- df_sample |>
   dplyr::select(cruise_id, core_id, sample_id, depth_from, depth_to, batch_id)
@@ -49,7 +49,7 @@ df_mariano_sediment <- df_sediment |>
   inner_join(df_mariano_sample, by = c("cruise_id", "core_id", "sample_id")) |>
   left_join(df_lld %>% rename(lld = "value"), by = c("batch_id", "parameter")) |>
   dplyr::select(cruise_id, core_id, sample_id, cruise_type, year, core_name, sampling_tool,
-                dde, ddn, mbsl, dist_to_coast, clay, silt, sand, gravel,
+                ddn, dde, mbsl, dist_to_coast, clay, silt, sand, gravel,
                 depth_from, depth_to, element, parameter, value, is_lld, lld, category)
 
 write_tsv(df_mariano_sediment, "./data/pilot_mareano.tsv.gz")

@@ -7,7 +7,7 @@ data_path <- "./data/gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"
 # --- Step 1: Define Bounding Box ---
 # Note: When calculating distance, it is safer to make the box slightly larger
 # than your data extent to ensure the nearest coast isn't cut off by the crop.
-europe_bbox <- st_bbox(c(xmin = -45, xmax = 45, ymin = 30, ymax = 85), crs = 4326) %>%
+europe_bbox <- st_bbox(c(xmin = -30, xmax = 45, ymin = 45, ymax = 80), crs = 4326) %>%
   st_as_sfc()
 
 # --- Step 2 & 3: Read and Clean Coastline ---
@@ -30,9 +30,9 @@ coastline <- st_union(coastline) %>% st_make_valid()
 sf_use_s2(TRUE)
 
 # --- Step 4: Prepare Ocean Points ---
-ocean_points <- df_site %>%
-  distinct(longitude, latitude) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = 4326, remove = FALSE)
+ocean_points <- df_survey %>%
+  distinct(station_longitude, station_latitude) %>%
+  st_as_sf(coords = c("station_longitude", "station_latitude"), crs = 4326, remove = FALSE)
 
 # --- Step 5: Compute Distances (THE FIX) ---
 # TARGET CRS: EPSG:3035 (ETRS89-extended / LAEA Europe)
@@ -50,12 +50,12 @@ ocean_points_proj <- ocean_points_proj %>%
 # --- Step 6 & 7: Clean up and Join ---
 results <- ocean_points_proj %>%
   st_drop_geometry() %>%
-  select(latitude, longitude, dist_to_coast)
+  select(station_latitude, station_longitude, dist_to_coast)
 
-df_site <- df_site %>%
-  left_join(results, by = c("latitude", "longitude"))
+df_survey <- df_survey %>%
+  left_join(results, by = c("station_latitude", "station_longitude"))
 
 # Optional: Convert meters to km
-df_site$dist_to_coast <- df_site$dist_to_coast / 1000
+df_survey$dist_to_coast <- df_survey$dist_to_coast / 1000
 
-print(head(df_site))
+print(head(df_survey))
