@@ -20,7 +20,7 @@ df_loc <- df_4demon_sediment |> dplyr::distinct(station_id, project, station_cod
                               "≥30km")))
 
 points_web <- st_as_sf(df_loc, coords = c("longitude", "latitude"), remove = FALSE, crs = 4326)
-#saveRDS(points_web, "./data/points_web_mudab.Rds")
+#saveRDS(points_web, "./data/points_web_4demon.Rds")
 
 # 2. Define Default View (So we can use it twice)
 # Adjust these to your liking
