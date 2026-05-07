@@ -2,37 +2,35 @@ library(tidyverse)
 library(ggpubr)
 library(sf)
 
-df_loc <- df_mudab_sediment |> dplyr::distinct(survey_id, station_latitude, station_longitude, dist_to_coast) |>
+df_loc <- df_4demon_sediment |> dplyr::distinct(station_id, latitude, longitude, dist_to_coast) |>
   mutate(Distance = case_when(
     dist_to_coast <= 10 ~ "0 to 10km",
     dist_to_coast <= 30 ~ "10 to 30km",
-    dist_to_coast <= 100 ~ "30 to 100km",
-    .default = "≥100km"
+    .default = "≥30km"
   ) |>
     factor(levels=c("0 to 10km",
                               "10 to 30km",
-                              "30 to 100km",
-                              "≥100km")))
+                              "≥30km")))
 
-ggplot(df_loc, aes(x = station_longitude, y = station_latitude, colour = Distance)) +
+ggplot(df_loc, aes(x = longitude, y = latitude, colour = Distance)) +
   annotation_borders("world", fill = "lightgray", color = "gray") +
   geom_point() +
   scale_color_viridis_d(option = "plasma") + # "turbo" or "plasma" are very distinct
   ggtitle("title") +
   xlab("Longitude") +
   ylab("Latitude") +
-  coord_cartesian(xlim = c(-21, 41), ylim = c(49, 78)) +
+  coord_cartesian(xlim = c(2, 3.5), ylim = c(51, 52)) +
   theme_pubr(base_size = 12)
 
 
-df_sf <- st_as_sf(df_loc, coords = c("station_longitude", "station_latitude"), crs = 4326)
+df_sf <- st_as_sf(df_loc, coords = c("longitude", "latitude"), crs = 4326)
 
 ggplot() +
   annotation_borders("world", fill = "lightgray", color = "gray") +
   geom_sf(data = df_sf, aes(color = Distance), size = 2) +
   # coord_sf handles the aspect ratio automatically
   # You can even use the projection from your distance calc (EPSG:3035) for a curved look
-  coord_sf(xlim = c(-21, 41), ylim = c(49, 78), crs = 4326) +
+  coord_sf(xlim = c(2, 3.5), ylim = c(51, 52), crs = 4326) +
   theme_pubr()
 
 
@@ -45,7 +43,7 @@ library(rnaturalearthdata)
 # 1. Convert your dataframe to a spatial (sf) object
 # We tell R the initial coordinates are WGS84 (crs = 4326)
 points_sf <- df_loc %>%
-  st_as_sf(coords = c("station_longitude", "station_latitude"), crs = 4326)
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
 # 2. Get a base map of the world (Europe context)
 world_map <- ne_countries(scale = "medium", returnclass = "sf")
@@ -56,7 +54,7 @@ target_crs <- 3035
 # 4. Calculate the Zoom Limits (Bounding Box)
 # We define the box in Lat/Lon, then transform it to the 3035 projection (meters).
 # If we don't do this transformation, the zoom will be wrong.
-bbox_wgs84 <- st_bbox(c(xmin = -21, xmax = 41, ymin = 45, ymax = 78), crs = 4326)
+bbox_wgs84 <- st_bbox(c(xmin = 2, xmax = 3.5, ymin = 51, ymax = 52), crs = 4326)
 bbox_3035  <- st_as_sfc(bbox_wgs84) %>% st_transform(target_crs) %>% st_bbox()
 
 # 5. Plot
@@ -92,5 +90,5 @@ p <- ggplot() +
 p
 
 library(cowplot)
-ggsave2("./data/dist_to_coast_mudab.svg",
+ggsave2("./data/dist_to_coast_4demon.svg",
         p,  width = 100, height = 70, unit="mm", fix_text_size=FALSE)
