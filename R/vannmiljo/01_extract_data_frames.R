@@ -53,8 +53,7 @@ df_particle <- read_vannmiljo_excel(excel_file_particle,
                                     data_range_particle) %>%
   correct_vannmiljo_data("particle")
 
-df <- bind_rows(df_interest, df_others, df_toc, df_particle) %>%
-  mutate(unit = str_replace(unit, "t.v.", "dw"))
+df <- bind_rows(df_interest, df_others, df_toc, df_particle)
 
 # ------------------------------
 # Activity

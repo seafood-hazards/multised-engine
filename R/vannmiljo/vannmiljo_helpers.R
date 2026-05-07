@@ -72,6 +72,16 @@ df_translated[["particle"]] <- tribble(
   "T-GR",          "Total Residue on Ignition (Ash)"
 )
 
+df_unit <- tribble(
+  ~unit,       ~new_unit,
+  "%", "%",
+  "g/kg", "g/kg",
+  "g/kg C t.v.", "g/kg C dw",
+  "g/kg P t.v.", "g/kg P dw",
+  "mg/kg t.v.", "mg/kg dw",
+  "µg/kg t.v.", "µg/kg dw",
+)
+
 read_vannmiljo_excel <- function(excel_file, data_sheet, data_range) {
   df <- readxl::read_excel(excel_file,
                            sheet = data_sheet,
@@ -98,7 +108,9 @@ correct_vannmiljo_data <- function(df, param_type) {
            value = as.numeric(value)) %>%
     inner_join(df_translated[[param_type]] %>% select(param_id, x = param_name),
                by = "param_id") %>%
-    mutate(param_name = x) %>%
-    dplyr::select(-c(x))
+    inner_join(df_unit, by = "unit") %>%
+    mutate(param_name = x,
+           unit = new_unit) %>%
+    dplyr::select(-c(x, new_unit))
 
 }
