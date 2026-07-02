@@ -9,7 +9,7 @@ library(sf)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/Vannmiljo"
+data_path <- "./data/raw/Vannmiljo"
 data_sheet <- "VannmiljoEksport"
 
 excel_file_interest <- file.path(data_path, "Vannmilio_Elements_interest.xlsx")

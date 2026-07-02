@@ -4,13 +4,13 @@ library(tidyverse)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/ICES DOME/Metals and matalloids"
+data_path <- "./data/raw/ICES DOME/Metals and matalloids"
 data_file <- file.path(data_path, "ContaminantsSediment_2026032611051738.csv")
 
-data_path <- "./data/ICES DOME"
+data_path <- "./data/raw/ICES DOME"
 data_file <- file.path(data_path, "DomeSediment_Data_0326015962.csv")
 
-code_path <- "./data/ICES DOME/code"
+code_path <- "./data/raw/ICES DOME/code"
 
 # ------------------------------
 # Read the whole data

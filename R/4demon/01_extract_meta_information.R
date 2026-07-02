@@ -4,7 +4,7 @@ library(tidyverse)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/4Demon"
+data_path <- "./data/raw/4Demon"
 data_file <- file.path(data_path, "20200713_1007454DEMON_HeavyMetals_PCBs_in_sediment.csv")
 
 col_rename <- tribble(

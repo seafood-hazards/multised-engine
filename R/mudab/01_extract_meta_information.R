@@ -4,7 +4,7 @@ library(tidyverse)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/Mudab"
+data_path <- "./data/raw/Mudab"
 data_file <- file.path(data_path, "export_mudab_V_MESSWERTE_SEDIMENT.csv")
 code_file <- file.path(data_path, "MUDAB_CODELISTEN.tsv")
 

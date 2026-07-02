@@ -8,7 +8,7 @@ library(tidyr)
 # ------------------------------
 # Config
 # ------------------------------
-data_path <- "./data/Mareano"
+data_path <- "./data/raw/Mareano"
 excel_file <- file.path(data_path, "Mareano.xlsx")
 
 info_sheet <- "INFO"
