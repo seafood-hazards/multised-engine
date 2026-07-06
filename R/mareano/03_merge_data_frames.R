@@ -6,7 +6,9 @@ df_core <- df_inorganic_core |>
 
 df_sample <- df_inorganic_sample |>
   inner_join(df_cruise |> distinct(cruise_id), by="cruise_id") |>
-  inner_join(df_core |> distinct(core_id), by="core_id")
+  inner_join(df_core |> distinct(core_id), by="core_id") %>%
+  mutate(depth_from = as.integer(depth_from),
+         depth_to = as.integer(depth_to))
 
 df_parameter <- df_inorganic_unit |>
   left_join(df_element_info, by = "parameter")

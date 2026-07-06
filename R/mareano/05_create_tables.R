@@ -30,7 +30,7 @@ CREATE TABLE cruise (
   source TEXT NOT NULL,
   cruise_type TEXT NOT NULL,
   year INTEGER NOT NULL,
-  cruise_no INTEGER,
+  cruise_no TEXT,
   start TEXT,
   end TEXT,
   start_year INTEGER,
@@ -39,8 +39,8 @@ CREATE TABLE cruise (
   end_year INTEGER,
   end_month INTEGER,
   end_day INTEGER,
-  area INTEGER,
-  cruise_no2 INTEGER,
+  area TEXT,
+  cruise_no2 TEXT,
 
   PRIMARY KEY (cruise_id)
 );
