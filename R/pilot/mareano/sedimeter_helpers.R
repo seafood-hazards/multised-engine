@@ -272,3 +272,14 @@ pivot_measurements_long <- function(df, catalog, id_cols) {
   names(out)[which(names(out) == "new_value")] <- "value"
   out
 }
+
+# -------------------------------------------------------------------
+# Rightward-fill function for NA
+# -------------------------------------------------------------------
+fill_from_right <- function(df) {
+  n <- ncol(df)
+  for (i in (n - 1):1) {
+    df[[i]] <- coalesce(df[[i]], df[[i + 1]])
+  }
+  df
+}

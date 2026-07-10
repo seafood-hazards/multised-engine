@@ -42,7 +42,7 @@ sample_sediment_corrections <- tibble::tribble(
 # ------------------------------------------------------------------------------
 # Source common helpers
 # ------------------------------------------------------------------------------
-source(file.path("R", "mareano", "sedimeter_helpers.R"))
+source(file.path("R", "pilot", "mareano", "sedimeter_helpers.R"))
 
 # ------------------------------------------------------------------------------
 # READ the sheet once + build catalog from top two rows
@@ -180,7 +180,7 @@ correct_data_inorganic_sample <- function(df) {
     )
   )
 
-  dplyr::select(
+  df <- dplyr::select(
     df,
     cruise_id,
     core_id,
@@ -190,6 +190,34 @@ correct_data_inorganic_sample <- function(df) {
     batch_id = `Sample batch ID`,
     sample_id2      = `Sample ID`
   )
+
+  ##> df_missing_batch_ids
+  # A tibble: 9 × 2
+  ##cruise_id    batch_id
+  ##<chr>        <chr>
+  ##1 MA-2007-105  2008.0009
+  ##2 MA-2007-111  2008.0009
+  ##3 MA-2009-105  2010.021
+  ##4 MA-2009-111  2010.021
+  ##5 MA-2010-110  2011.003
+  ##6 MA-2010-112  2011.003
+  ##7 MA-2020-2002 2020.0118
+  ##8 MA-2021-2005 2020.0161
+  ##9 MA-2021-2102 2021.211
+
+  df |>
+    mutate(sample_id2 = ifelse(is.na(sample_id2), batch_id, sample_id2),
+           batch_id = ifelse(cruise_id %in% c("MA-2021-103", "MA-2021-104", "MA-2021-115"),
+                             "2021.0031", batch_id),
+           batch_id = case_when(
+             batch_id == "2008.0009" ~ "2008.0029",
+             batch_id == "2010.021" ~ "2009.0222",
+             batch_id == "2011.003" ~ "2011.0030",
+             batch_id == "2020.0118" ~ "2020.0021",
+             batch_id == "2020.0161" ~ "2020.0021",
+             batch_id == "2021.211" ~ "2021.0003",
+             .default = batch_id
+           ))
 }
 
 correct_data_inorganic_sediment <- function(df, catalog) {
