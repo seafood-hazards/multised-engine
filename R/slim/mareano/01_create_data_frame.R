@@ -46,12 +46,12 @@ df_ref_sediment <- df_sediment %>%
 # ── 3. Build dataset table ────────────────────────────────────────────
 df_dataset <- df_base_cruise %>%
   distinct(cruise_type) %>%
-  mutate(source_db    = "Mareano",
+  mutate(source       = "Mareano",
          country      = "Norway",
          institute    = "IMR",
          dataset_id   = row_number()) %>%
-  select(dataset_id, source_db, country, institute,
-         project_name = cruise_type)
+  select(dataset_id, source, country, institute,
+         dataset_name = cruise_type)
 
 # ── 4. Build site table (keyed on lat/lon rounded to 2 d.p. + depth) ──
 df_site <- df_base_core %>%
@@ -74,7 +74,7 @@ df_slim <- bind_rows(df_base_sediment, df_ref_sediment) %>%
   inner_join(df_base_sample, by = c("cruise_id", "core_id", "sample_id")) %>%
   left_join(df_lld %>% rename(lld = value), by = c("batch_id", "parameter")) %>%
   mutate(lat_r = round(ddn, 2), lon_r = round(dde, 2), depth = mbsl * -1) %>%
-  left_join(df_dataset %>% distinct(cruise_type = project_name, dataset_id),
+  left_join(df_dataset %>% distinct(cruise_type = dataset_name, dataset_id),
             by = "cruise_type") %>%
   left_join(df_site %>% distinct(site_id, latitude, longitude, depth),
             by = c("lat_r" = "latitude", "lon_r" = "longitude", "depth"))

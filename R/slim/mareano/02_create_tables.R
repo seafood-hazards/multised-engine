@@ -17,10 +17,10 @@ CREATE TABLE element (
 dbExecute(con, "
 CREATE TABLE dataset (
   dataset_id   INTEGER NOT NULL,
-  source_db    TEXT    NOT NULL,
+  source       TEXT    NOT NULL,
   country      TEXT    NOT NULL,
   institute    TEXT    NOT NULL,
-  project_name TEXT    NOT NULL,
+  dataset_name TEXT    NOT NULL,
   PRIMARY KEY (dataset_id)
 );")
 
