@@ -51,6 +51,67 @@ df_ref_sediment <- df_sediment %>%
   inner_join(df_base_station %>% distinct(station_no)) %>%
   inner_join(df_base_measurement_time %>% distinct(measurement_time_id))
 
+# ── SED ──────────────────────────────────────────
+df_sed_parameter <- df_parameter %>%
+  filter(parameter_group == "P-PHY" &
+           parameter != "LOIGN")
+
+df_sed_sediment <- df_sediment %>%
+  inner_join(df_sed_parameter %>% distinct(parameter), by = "parameter")
+
+df_base_sediment2 <- df_base_sediment %>%
+  inner_join(df_station, by="station_no") %>%
+  inner_join(df_measurement_time, by="measurement_time_id") %>%
+  inner_join(df_analysis_method, by="analysis_method_id") %>%
+  inner_join(df_survey, by="survey_id") %>%
+  inner_join(df_sample, by="sample_no") %>%
+  inner_join(df_parameter, by="parameter") %>%
+  inner_join(df_reference_material, by=c("reference_material_id", "parameter")) %>%
+  inner_join(df_lod, by=c("lod_id", "parameter")) %>%
+  mutate(lat_r = round(station_latitude, 3),
+         lon_r = round(station_longitude, 3))
+
+df_base_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
+                               sampling_method, station_id)
+
+df_sed_sediment2 <- df_sed_sediment %>%
+  inner_join(df_station, by="station_no") %>%
+  inner_join(df_measurement_time, by="measurement_time_id") %>%
+  inner_join(df_analysis_method, by="analysis_method_id") %>%
+  inner_join(df_survey, by="survey_id") %>%
+  inner_join(df_sample, by="sample_no") %>%
+  inner_join(df_parameter, by="parameter") %>%
+  inner_join(df_reference_material, by=c("reference_material_id", "parameter")) %>%
+  inner_join(df_lod, by=c("lod_id", "parameter")) %>%
+  mutate(lat_r = round(station_latitude, 3),
+         lon_r = round(station_longitude, 3)) %>%
+  inner_join(df_base_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
+                                            sampling_method, station_id),
+             by = c("measurement_date", "lat_r", "lon_r",
+                    "sampling_method", "station_id"))
+
+df_sed_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
+                              sampling_method)
+
+
+
+df_sed_sediment2 %>%
+
+df_sed_sample <- df_sample %>%
+  inner_join(df_sed_sediment %>% distinct(sample_no))
+
+df_sed_survey <- df_survey %>%
+  inner_join(df_sed_sediment %>% distinct(survey_id))
+
+df_sed_station <- df_station %>%
+  inner_join(df_sed_sediment %>% distinct(station_no))
+
+df_sed_measurement_time <- df_measurement_time %>%
+  inner_join(df_sed_sediment %>% distinct(measurement_time_id))
+
+df_sed_analysis_method <- df_analysis_method %>%
+  inner_join(df_sed_sediment %>% distinct(analysis_method_id))
+
 # ── 3. Build dataset table ────────────────────────────────────────────
 df_dataset <- df_base_station %>%
   group_by(organisation, responsible_institute) %>%
