@@ -48,6 +48,14 @@ the per-source column map and the plan for the QC/marking steps.
 |---|-----------------------------|--------------------------------|--------|
 | 1 | `01_transform_data.R`       | pilot DB → slim data frames    | done   |
 | 2 | `02_create_tables.R`        | create schema + write slim DB  | done   |
+
+> **Rebuilding:** `02` reuses the `df_*` frames built by `01`, so the two must be
+> `source()`d together in one R session per source. After a rebuild, sanity-check
+> that the slim DB matches its pilot source (row counts, measurement columns) —
+> `ices_dome_slim.sqlite` was once clobbered with 4Demon output and went unnoticed
+> because the numbers looked plausible.
+
+
 | 3 | `03_quality_control.R`      | add `qc_flag` columns          | done   |
 | 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | done   |
 | 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | stub   |
