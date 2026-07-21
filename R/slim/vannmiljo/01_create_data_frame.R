@@ -63,10 +63,10 @@ df_dataset <- df_base_activity %>%
   select(dataset_id, source,
          dataset_code, dataset_name, country)
 
-# ── 4. Build site table (keyed on lat/lon rounded to 2 d.p.) ──
+# ── 4. Build site table (keyed on lat/lon rounded to 3 d.p.) ──
 df_site <- df_base_site %>%
-  mutate(lat_r = round(lat, 2),
-         lon_r = round(lon, 2)) %>%
+  mutate(lat_r = round(lat, 3),
+         lon_r = round(lon, 3)) %>%
   distinct(lat_r, lon_r, dist_to_coast, country, country_code, municipality, sea_name) %>%
   group_by(lat_r, lon_r) %>%
   summarise(dist_to_coast = min(dist_to_coast),
@@ -94,7 +94,7 @@ df_slim <- bind_rows(df_base_sediment, df_ref_sediment) %>%
   left_join(df_lld %>% filter(type == "LOQ") %>% mutate(loq = value) %>%
               dplyr::select(sample_id, param_id, sediment_no, loq),
             by = c("sample_id", "param_id", "sediment_no")) %>%
-  mutate(lat_r = round(lat, 2), lon_r = round(lon, 2)) %>%
+  mutate(lat_r = round(lat, 3), lon_r = round(lon, 3)) %>%
   left_join(df_dataset %>% distinct(activity_id = dataset_code, dataset_id),
             by = "activity_id") %>%
   left_join(df_site %>% distinct(site_id, latitude, longitude),

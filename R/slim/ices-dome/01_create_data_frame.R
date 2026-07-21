@@ -73,10 +73,10 @@ df_project_to_dataset <- df_dataset %>%
 
 df_dataset <- df_dataset %>% dplyr::select(-project_id)
 
-# ── 4. Build site table (keyed on lat/lon rounded to 2 d.p.) ──
+# ── 4. Build site table (keyed on lat/lon rounded to 3 d.p.) ──
 df_site <- df_base_site %>%
-  mutate(lat_r = round(latitude, 2),
-         lon_r = round(longitude, 2)) %>%
+  mutate(lat_r = round(latitude, 3),
+         lon_r = round(longitude, 3)) %>%
   distinct(lat_r, lon_r, dist_to_coast, est_country, country_code, municipality, sea_name) %>%
   group_by(lat_r, lon_r) %>%
   summarise(dist_to_coast = min(dist_to_coast),
@@ -97,7 +97,7 @@ df_slim <- bind_rows(df_base_sediment, df_ref_sediment) %>%
   inner_join(df_parameter, by="param") %>%
   left_join(df_lld, by=c("lld_id", "param")) %>%
   left_join(df_analysis_method , by=c("analysis_id", "param"))  %>%
-  mutate(lat_r = round(latitude, 2), lon_r = round(longitude, 2)) %>%
+  mutate(lat_r = round(latitude, 3), lon_r = round(longitude, 3)) %>%
   rename(old_site_id = site_id) %>%
   left_join(df_site %>% distinct(site_id, latitude, longitude),
             by = c("lat_r" = "latitude", "lon_r" = "longitude"))
