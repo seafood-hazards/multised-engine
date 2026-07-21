@@ -51,6 +51,21 @@ df_ref_sediment <- df_sediment %>%
   inner_join(df_base_station %>% distinct(station_no)) %>%
   inner_join(df_base_measurement_time %>% distinct(measurement_time_id))
 
+df_ref_sample <- df_sample %>%
+  inner_join(df_ref_sediment %>% distinct(sample_no))
+
+df_ref_survey <- df_survey %>%
+  inner_join(df_ref_sediment %>% distinct(survey_id))
+
+df_ref_station <- df_station %>%
+  inner_join(df_ref_sediment %>% distinct(station_no))
+
+df_ref_measurement_time <- df_measurement_time %>%
+  inner_join(df_ref_sediment %>% distinct(measurement_time_id))
+
+df_ref_analysis_method <- df_analysis_method %>%
+  inner_join(df_ref_sediment %>% distinct(analysis_method_id))
+
 # ── SED ──────────────────────────────────────────
 df_sed_parameter <- df_parameter %>%
   filter(parameter_group == "P-PHY" &
@@ -59,7 +74,7 @@ df_sed_parameter <- df_parameter %>%
 df_sed_sediment <- df_sediment %>%
   inner_join(df_sed_parameter %>% distinct(parameter), by = "parameter")
 
-df_base_sediment2 <- df_base_sediment %>%
+df_base_sediment_all <- df_base_sediment %>%
   inner_join(df_station, by="station_no") %>%
   inner_join(df_measurement_time, by="measurement_time_id") %>%
   inner_join(df_analysis_method, by="analysis_method_id") %>%
@@ -71,10 +86,8 @@ df_base_sediment2 <- df_base_sediment %>%
   mutate(lat_r = round(station_latitude, 3),
          lon_r = round(station_longitude, 3))
 
-df_base_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
-                               sampling_method, station_id)
-
-df_sed_sediment2 <- df_sed_sediment %>%
+df_sed_sediment_all <- df_sediment %>%
+  inner_join(df_sed_parameter %>% distinct(parameter), by = "parameter") %>%
   inner_join(df_station, by="station_no") %>%
   inner_join(df_measurement_time, by="measurement_time_id") %>%
   inner_join(df_analysis_method, by="analysis_method_id") %>%
@@ -85,17 +98,30 @@ df_sed_sediment2 <- df_sed_sediment %>%
   inner_join(df_lod, by=c("lod_id", "parameter")) %>%
   mutate(lat_r = round(station_latitude, 3),
          lon_r = round(station_longitude, 3)) %>%
-  inner_join(df_base_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
-                                            sampling_method, station_id),
+  inner_join(df_base_sediment_all %>% distinct(measurement_date, lat_r, lon_r,
+                                               sampling_method, station_id,
+                                               measurement_time_id, survey_id,
+                                               layer_upper_boundary,
+                                               layer_lower_boundary,
+                                               sampling_method, flag,
+                                               sampled_area, sediment_content,
+                                               sediment_composition),
              by = c("measurement_date", "lat_r", "lon_r",
-                    "sampling_method", "station_id"))
+                    "sampling_method", "station_id",
+                    "measurement_time_id", "survey_id",
+                    "layer_upper_boundary", "layer_lower_boundary",
+                    "flag", "sampled_area", "sediment_content",
+                    "sediment_composition"))
 
-df_sed_sediment2 %>% distinct(measurement_date, lat_r, lon_r,
-                              sampling_method)
+df_sed_sediment_keys <- df_sed_sediment_all %>%
+  distinct(sample_no, survey_id, station_no, measurement_time_id)
 
-
-
-df_sed_sediment2 %>%
+df_sed_sediment <- df_sediment %>%
+  inner_join(df_sed_parameter %>% distinct(parameter)) %>%
+  inner_join(df_sed_sediment_all %>% distinct(sample_no)) %>%
+  inner_join(df_sed_sediment_all %>% distinct(survey_id)) %>%
+  inner_join(df_sed_sediment_all %>% distinct(station_no)) %>%
+  inner_join(df_sed_sediment_all %>% distinct(measurement_time_id))
 
 df_sed_sample <- df_sample %>%
   inner_join(df_sed_sediment %>% distinct(sample_no))
@@ -113,7 +139,8 @@ df_sed_analysis_method <- df_analysis_method %>%
   inner_join(df_sed_sediment %>% distinct(analysis_method_id))
 
 # ── 3. Build dataset table ────────────────────────────────────────────
-df_dataset <- df_base_station %>%
+df_dataset <- bind_rows(df_base_station, df_ref_station, df_sed_station) %>%
+  distinct(organisation, responsible_institute, station_no, region) %>%
   group_by(organisation, responsible_institute) %>%
   mutate(station_no = paste0(station_no, collapse = ", ")) %>%
   ungroup() %>%
@@ -121,7 +148,7 @@ df_dataset <- df_base_station %>%
            responsible_institute, station_no) %>%
   mutate(dataset_name = ifelse(is.na(dataset_name), "Unknown", dataset_name)) %>%
   group_by(dataset_name, responsible_institute, station_no) %>%
-  summarise(region = paste0(region, collapse = ", ")) %>%
+  summarise(region = paste0(unique(region), collapse = ", ")) %>%
   ungroup() %>%
   inner_join(df_code_lookup %>%
                filter(category_code == "MUDABCL_INSTITUTE")  %>%
@@ -144,10 +171,13 @@ df_station_to_dataset <- df_dataset %>%
 df_dataset <- df_dataset %>% dplyr::select(-station_no)
 
 # ── 4. Build site table (keyed on lat/lon rounded to 3 d.p.) ──
-df_site <- df_base_survey %>%
+df_site <- bind_rows(df_base_survey, df_ref_survey, df_sed_survey) %>%
   mutate(lat_r = round(station_latitude, 3),
          lon_r = round(station_longitude, 3)) %>%
-  group_by(lat_r, lon_r, depth = measurement_depth, dist_to_coast, est_country, country_code, municipality, sea_name) %>%
+  distinct(lat_r, lon_r, measurement_depth, dist_to_coast,
+           est_country, country_code, municipality, sea_name, survey_id) %>%
+  group_by(lat_r, lon_r, depth = measurement_depth, dist_to_coast,
+           est_country, country_code, municipality, sea_name) %>%
   summarise(survey_id = paste0(survey_id, collapse = ", ")) %>%
   ungroup() %>%
   group_by(lat_r, lon_r) %>%
@@ -173,7 +203,7 @@ df_survey_to_site <- df_site %>%
 df_site <- df_site %>% dplyr::select(-survey_id)
 
 # ── 5. Build intermediate slim dataset ───────────────────────────────────────
-df_slim <- bind_rows(df_base_sediment, df_ref_sediment) %>%
+df_slim <- bind_rows(df_base_sediment, df_ref_sediment, df_sed_sediment) %>%
   inner_join(df_station_to_dataset, by="station_no") %>%
   inner_join(df_survey_to_site, by="survey_id") %>%
   inner_join(df_measurement_time, by="measurement_time_id") %>%
@@ -226,27 +256,27 @@ df_method <- df_method %>%
 
 # ── 8. Build subsample table ──────────────────────────────────────────
 df_subsample <- df_slim %>%
-  distinct(event_id, layer_upper_boundary, layer_lower_boundary, matrix) %>%
+  distinct(event_id, layer_upper_boundary, layer_lower_boundary) %>%
   mutate(subsample_id = row_number()) %>%
-  select(subsample_id, event_id, layer_upper_boundary, layer_lower_boundary, matrix)
+  select(subsample_id, event_id, layer_upper_boundary, layer_lower_boundary)
 
 df_slim <- df_slim %>%
-  inner_join(df_subsample, by = c("event_id", "layer_upper_boundary", "layer_lower_boundary", "matrix"))
+  inner_join(df_subsample, by = c("event_id", "layer_upper_boundary", "layer_lower_boundary"))
 
 df_subsample <- df_subsample %>%
   select(subsample_id, event_id, depth_from = layer_upper_boundary,
-         depth_to = layer_lower_boundary, matrix)
+         depth_to = layer_lower_boundary)
 
 # ── 9. Build measurement table ───────────────────────────────────────────────
 ## NB: There are multiple entries in chemical treatments in analysis_method table
 ##     37,488 -> 37,483 after de-duplication
 df_measurement <- df_slim %>%
-  distinct(sample_no, sediment_no, subsample_id, parameter, measured_value, unit, measurement_basis, data_qualifier, method_id) %>%
+  distinct(sample_no, sediment_no, subsample_id, parameter, measured_value, unit, matrix, measurement_basis, data_qualifier, method_id) %>%
   mutate(measurement_id = row_number()) %>%
-  select(measurement_id, subsample_id, symbol = parameter, value = measured_value, unit,
+  select(measurement_id, subsample_id, symbol = parameter, matrix, value = measured_value, unit,
          basis = measurement_basis, qflag = data_qualifier, method_id)
 
 # ── 10. Build element table ──────────────────────────────────────────────────
-df_element <- bind_rows(df_base_parameter, df_ref_parameter) %>%
+df_element <- bind_rows(df_base_parameter, df_ref_parameter, df_sed_parameter) %>%
   distinct(symbol = parameter, element = parameter_name,
            cas_no = cas_number)

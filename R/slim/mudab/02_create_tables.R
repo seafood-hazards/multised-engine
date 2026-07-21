@@ -75,7 +75,6 @@ CREATE TABLE subsample (
   event_id     INTEGER NOT NULL,
   depth_from   INTEGER NOT NULL,
   depth_to     INTEGER NOT NULL,
-  matrix       TEXT,
   FOREIGN KEY (event_id) REFERENCES event(event_id),
   PRIMARY KEY (subsample_id)
 );")
@@ -85,6 +84,7 @@ CREATE TABLE measurement (
   measurement_id INTEGER NOT NULL,
   subsample_id   INTEGER NOT NULL,
   symbol         TEXT    NOT NULL,
+  matrix         TEXT,
   value          REAL    NOT NULL,
   unit           TEXT,
   basis          TEXT,
