@@ -2,15 +2,96 @@ library(DBI)
 library(RSQLite)
 library(tidyverse)
 
-# ── 0. Read slim db ──────────────────────────────────────────────────────
-con_src <- dbConnect(RSQLite::SQLite(), "./data/db/vannmiljo_slim.sqlite")
+# ── 0. Open slim db ──────────────────────────────────────────────────────────
+con <- dbConnect(RSQLite::SQLite(), "./data/db/vannmiljo_slim.sqlite")
+dbExecute(con, "PRAGMA foreign_keys = ON;")
 
-df_element     <- dbReadTable(con_src, "element")     |> as_tibble()
-df_dataset     <- dbReadTable(con_src, "dataset")     |> as_tibble()
-df_site        <- dbReadTable(con_src, "site")        |> as_tibble()
-df_event       <- dbReadTable(con_src, "event")       |> as_tibble()
-df_method      <- dbReadTable(con_src, "method")      |> as_tibble()
-df_subsample   <- dbReadTable(con_src, "subsample")   |> as_tibble()
-df_measurement <- dbReadTable(con_src, "measurement") |> as_tibble()
+# ── 1. QC parameters ─────────────────────────────────────────────────────────
+# Area QC: coarse bounding box around the European seas and oceans. Sites whose
+# rounded lat/lon fall outside are flagged (can be refined later with the IHO
+# `sea_name` whitelist that `site.sea_name` is derived from).
+europe_lon <- c(-32, 45)   # W  … E
+europe_lat <- c( 30, 84)   # S  … N (incl. Svalbard / Barents Sea)
 
-dbDisconnect(con_src)
+# Value QC: negatives within this tolerance of zero are floating-point noise
+# around a true 0 (e.g. Gravel wt.% at ~-1e-14) and are accepted as valid.
+neg_tol <- 1e-6
+
+# Physical upper bound per unit = "100 % of the sample mass" expressed in that
+# unit. A fraction cannot exceed the whole, so anything above is impossible.
+# Keyed on a canonical unit; the actual unit strings in the data are mapped onto
+# these below (stripping dry/wet-weight suffixes and normalising the micro sign).
+base_max <- tibble::tribble(
+  ~unit_canon, ~max_value,
+  "%",        1e2,
+  "vol.%",    1e2,
+  "wt.%",     1e2,
+  "g/kg",     1e3,
+  "mg/g",     1e3,
+  "mg/kg",    1e6,
+  "ug/g",     1e6,
+  "ppm",      1e6,
+  "ug/kg",    1e9,
+  "ng/g",     1e9,
+  "ppb",      1e9
+)
+
+canon_unit <- function(u) {
+  u |>
+    str_to_lower() |>
+    str_trim() |>
+    str_remove("\\s*(dw|ww|dry weight|wet weight)$") |>
+    str_trim() |>
+    str_replace_all("µ|μ", "u")   # micro sign / greek mu -> u
+}
+
+# ── 2. Add qc_flag columns (idempotent) ──────────────────────────────────────
+# NULL qc_flag = passed. A short code names the failed check.
+for (tbl in c("site", "measurement")) {
+  if (!"qc_flag" %in% dbListFields(con, tbl)) {
+    dbExecute(con, sprintf("ALTER TABLE %s ADD COLUMN qc_flag TEXT;", tbl))
+  }
+}
+
+# ── 3. Area QC: flag sites outside European seas ─────────────────────────────
+dbExecute(con, sprintf(
+  "UPDATE site SET qc_flag = CASE
+     WHEN latitude  BETWEEN %g AND %g
+      AND longitude BETWEEN %g AND %g THEN NULL
+     ELSE 'outside_europe' END;",
+  europe_lat[1], europe_lat[2], europe_lon[1], europe_lon[2]))
+
+# ── 4. Value QC: flag negative and physically-impossible values ──────────────
+# Map the unit strings actually present onto their physical ceiling.
+qc_unit_max <- dbGetQuery(con, "SELECT DISTINCT unit FROM measurement") |>
+  as_tibble() |>
+  mutate(unit_canon = canon_unit(unit)) |>
+  left_join(base_max, by = "unit_canon")
+
+unmapped <- qc_unit_max |> filter(is.na(max_value) & !is.na(unit))
+if (nrow(unmapped) > 0) {
+  warning("No value ceiling for unit(s): ",
+          paste(unmapped$unit, collapse = ", "),
+          " -- only the negative check applies to them.")
+}
+
+dbWriteTable(con, "qc_unit_max",
+             qc_unit_max |> filter(!is.na(max_value)) |> select(unit, max_value),
+             temporary = TRUE, overwrite = TRUE)
+
+dbExecute(con, sprintf("
+  UPDATE measurement SET qc_flag = CASE
+    WHEN value < %g THEN 'negative'
+    WHEN value > (SELECT max_value FROM qc_unit_max u
+                  WHERE u.unit = measurement.unit) THEN 'over_range'
+    ELSE NULL END;", -neg_tol))
+
+# ── 5. Verify ────────────────────────────────────────────────────────────────
+cat("site qc_flag:\n")
+print(dbGetQuery(con, "SELECT COALESCE(qc_flag,'(pass)') qc_flag, COUNT(*) n
+                       FROM site GROUP BY qc_flag ORDER BY n DESC"))
+cat("measurement qc_flag:\n")
+print(dbGetQuery(con, "SELECT COALESCE(qc_flag,'(pass)') qc_flag, COUNT(*) n
+                       FROM measurement GROUP BY qc_flag ORDER BY n DESC"))
+
+dbDisconnect(con)

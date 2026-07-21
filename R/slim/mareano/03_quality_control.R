@@ -17,26 +17,33 @@ europe_lat <- c( 30, 84)   # S  … N (incl. Svalbard / Barents Sea)
 # around a true 0 (e.g. Gravel wt.% at ~-1e-14) and are accepted as valid.
 neg_tol <- 1e-6
 
-# Value QC: physical upper bound per unit = "100 % of the sample mass" expressed
-# in that unit. A fraction cannot exceed the whole, so anything above is
-# impossible. Units not listed here get no upper-bound check (only the negative
-# check applies). Legitimately high values (e.g. Mn, Fe, Al in mg/kg) are far
-# below their ceiling and are accepted.
-unit_max <- tibble::tribble(
-  ~unit,      ~max_value,
-  "%",             1e2,
-  "vol.%",         1e2,
-  "wt.%",          1e2,
-  "g/kg",          1e3,
-  "mg/g",          1e3,
-  "mg/kg",         1e6,
-  "ug/g",          1e6,
-  "µg/g",     1e6,
-  "ppm",           1e6,
-  "ug/kg",         1e9,
-  "ng/g",          1e9,
-  "ppb",           1e9
+# Physical upper bound per unit = "100 % of the sample mass" expressed in that
+# unit. A fraction cannot exceed the whole, so anything above is impossible.
+# Keyed on a canonical unit; the actual unit strings in the data are mapped onto
+# these below (stripping dry/wet-weight suffixes and normalising the micro sign).
+base_max <- tibble::tribble(
+  ~unit_canon, ~max_value,
+  "%",        1e2,
+  "vol.%",    1e2,
+  "wt.%",     1e2,
+  "g/kg",     1e3,
+  "mg/g",     1e3,
+  "mg/kg",    1e6,
+  "ug/g",     1e6,
+  "ppm",      1e6,
+  "ug/kg",    1e9,
+  "ng/g",     1e9,
+  "ppb",      1e9
 )
+
+canon_unit <- function(u) {
+  u |>
+    str_to_lower() |>
+    str_trim() |>
+    str_remove("\\s*(dw|ww|dry weight|wet weight)$") |>
+    str_trim() |>
+    str_replace_all("µ|μ", "u")   # micro sign / greek mu -> u
+}
 
 # ── 2. Add qc_flag columns (idempotent) ──────────────────────────────────────
 # NULL qc_flag = passed. A short code names the failed check.
@@ -55,7 +62,23 @@ dbExecute(con, sprintf(
   europe_lat[1], europe_lat[2], europe_lon[1], europe_lon[2]))
 
 # ── 4. Value QC: flag negative and physically-impossible values ──────────────
-dbWriteTable(con, "qc_unit_max", unit_max, temporary = TRUE, overwrite = TRUE)
+# Map the unit strings actually present onto their physical ceiling.
+qc_unit_max <- dbGetQuery(con, "SELECT DISTINCT unit FROM measurement") |>
+  as_tibble() |>
+  mutate(unit_canon = canon_unit(unit)) |>
+  left_join(base_max, by = "unit_canon")
+
+unmapped <- qc_unit_max |> filter(is.na(max_value) & !is.na(unit))
+if (nrow(unmapped) > 0) {
+  warning("No value ceiling for unit(s): ",
+          paste(unmapped$unit, collapse = ", "),
+          " -- only the negative check applies to them.")
+}
+
+dbWriteTable(con, "qc_unit_max",
+             qc_unit_max |> filter(!is.na(max_value)) |> select(unit, max_value),
+             temporary = TRUE, overwrite = TRUE)
+
 dbExecute(con, sprintf("
   UPDATE measurement SET qc_flag = CASE
     WHEN value < %g THEN 'negative'

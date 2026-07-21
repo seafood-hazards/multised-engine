@@ -48,14 +48,16 @@ the per-source column map and the plan for the QC/marking steps.
 |---|-----------------------------|--------------------------------|--------|
 | 1 | `01_transform_data.R`       | pilot DB → slim data frames    | done   |
 | 2 | `02_create_tables.R`        | create schema + write slim DB  | done   |
-| 3 | `03_quality_control.R`      | add `qc_flag` columns          | stub   |
+| 3 | `03_quality_control.R`      | add `qc_flag` columns          | done   |
 | 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | stub   |
 | 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | stub   |
 | 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | stub   |
 
-Steps 3–6 currently contain only the boilerplate that reads the seven slim
-tables from `./data/db/<source>_slim.sqlite`. The intended behaviour of each is
-specified in [docs/slim-pipeline.md](docs/slim-pipeline.md).
+Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
+`measurement` (`negative` / `over_range`); the script body is identical across
+sources bar the DB path. Steps 4–6 still contain only the boilerplate that reads
+the seven slim tables from `./data/db/<source>_slim.sqlite`. The intended
+behaviour of each is specified in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
 
