@@ -131,26 +131,23 @@ df_method <- df_method %>%
 
 # ── 8. Build subsample table ──────────────────────────────────────────
 df_subsample <- df_slim %>%
-  distinct(event_id, depth_from, depth_to, matrix_code, fraction_range_um) %>%
+  distinct(event_id, depth_from, depth_to) %>%
   mutate(subsample_id = row_number()) %>%
-  select(subsample_id, event_id, depth_from, depth_to, matrix = matrix_code,
-         fraction_range = fraction_range_um)
+  select(subsample_id, event_id, depth_from, depth_to)
 
 df_slim <- df_slim %>%
-  inner_join(df_subsample %>% rename(matrix_code = matrix,
-                                     fraction_range_um = fraction_range),
-             by = c("event_id", "depth_from", "depth_to", "matrix_code",
-                    "fraction_range_um"))
+  inner_join(df_subsample, by = c("event_id", "depth_from", "depth_to"))
 
 # ── 9. Build measurement table ───────────────────────────────────────────────
 df_measurement <- df_slim %>%
   distinct(survey_seq_no, subsample_id, parameter, value, corrected_value,
-           unit = unit2, basis, vflag = value_flag,
+           unit = unit2, basis, matrix_code, fraction_range_um, vflag = value_flag,
            limit_flag = det_limit_flag, range_check_flag, outlier_extreme_flag, outlier_stdev_flag,
            method_id) %>%
   mutate(measurement_id = row_number()) %>%
   select(measurement_id, subsample_id, symbol = parameter, value, corrected_value,
-         unit, basis, vflag, limit_flag,
+         unit, basis, matrix = matrix_code, fraction_range = fraction_range_um,
+         vflag, limit_flag,
          range_check_flag, outlier_extreme_flag, outlier_stdev_flag, method_id)
 
 # ── 10. Build element table ──────────────────────────────────────────────────

@@ -273,8 +273,8 @@ df_subsample <- df_subsample %>%
 df_measurement <- df_slim %>%
   distinct(sample_no, sediment_no, subsample_id, parameter, measured_value, unit, matrix, measurement_basis, data_qualifier, method_id) %>%
   mutate(measurement_id = row_number()) %>%
-  select(measurement_id, subsample_id, symbol = parameter, matrix, value = measured_value, unit,
-         basis = measurement_basis, qflag = data_qualifier, method_id)
+  select(measurement_id, subsample_id, symbol = parameter, value = measured_value, unit,
+         basis = measurement_basis, matrix, qflag = data_qualifier, method_id)
 
 # ── 10. Build element table ──────────────────────────────────────────────────
 df_element <- bind_rows(df_base_parameter, df_ref_parameter, df_sed_parameter) %>%

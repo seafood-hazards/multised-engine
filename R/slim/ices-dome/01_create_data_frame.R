@@ -138,19 +138,19 @@ df_method <- df_method %>%
 
 # ── 8. Build subsample table ──────────────────────────────────────────
 df_subsample <- df_slim %>%
-  distinct(event_id, depth_from, depth_to, matrix) %>%
+  distinct(event_id, depth_from, depth_to) %>%
   mutate(subsample_id = row_number()) %>%
-  select(subsample_id, event_id, depth_from, depth_to, matrix) %>%
+  select(subsample_id, event_id, depth_from, depth_to) %>%
   mutate(depth_to = ifelse(is.na(depth_to), depth_from, depth_to))
 
 df_slim <- df_slim %>%
-  inner_join(df_subsample, by = c("event_id", "depth_from", "depth_to", "matrix"))
+  inner_join(df_subsample, by = c("event_id", "depth_from", "depth_to"))
 
 # ── 9. Build measurement table ───────────────────────────────────────────────
 df_measurement <- df_slim %>%
-  distinct(sample_id, sediment_no, subsample_id, param, value, unit, basis, qflag, vflag, uncrt, metcu, dcflag, method_id) %>%
+  distinct(sample_id, sediment_no, subsample_id, param, value, unit, basis, matrix, qflag, vflag, uncrt, metcu, dcflag, method_id) %>%
   mutate(measurement_id = row_number()) %>%
-  select(measurement_id, subsample_id, symbol = param, value, unit, basis, qflag, vflag, uncrt, metcu, dcflag, method_id)
+  select(measurement_id, subsample_id, symbol = param, value, unit, basis, matrix, qflag, vflag, uncrt, metcu, dcflag, method_id)
 
 # ── 10. Build element table ──────────────────────────────────────────────────
 df_element <- bind_rows(df_base_parameter, df_ref_parameter) %>%
