@@ -77,6 +77,15 @@ Full list of grain-size codes lives in [sediment-composition-codes.md](sediment-
 
 ## 5. Step 6 — Mark multi (`06_mark_multi.R`)
 
-Some sampling tools collect multiple layers or cores. Mark those samples so
-multi-layer / multi-core sampling can be distinguished (via `sampling_tool` and
-the `subsample` depth intervals per `event`).
+Adds two integer columns to the **`event`** table:
+
+- `n_layers` — number of `subsample` rows (depth layers / cores) under the event,
+- `multi_flag` — 1 when `n_layers > 1` (a multi-layer/-core sampling such as a
+  sliced core), 0 for a single grab.
+
+Derived from the data rather than the `sampling_tool` code: the same gear code
+yields both single- and multi-layer events (e.g. Mareano `MC` is ~60 % multi,
+~40 % single; ICES-DOME `BC` is almost all single), so tool type is not a
+reliable discriminator. Replicate-core events (several events at one
+station/date/tool) are rare and inconsistent across sources (ICES-DOME: 0), so
+they are not separately flagged; add that later if the clean stage needs it.

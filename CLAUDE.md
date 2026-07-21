@@ -23,8 +23,8 @@ The data moves through three generations. Each is one SQLite DB **per source**.
    source. **Done.**
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
-   **In progress** (see below).
-3. **clean** — the final, QC-passed DB. *Not started.*
+   **All six steps done** (see below).
+3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
 
 ## Slim schema (7 tables)
 
@@ -59,7 +59,7 @@ the per-source column map and the plan for the QC/marking steps.
 | 3 | `03_quality_control.R`      | add `qc_flag` columns          | done   |
 | 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | done   |
 | 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | done   |
-| 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | stub   |
+| 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | done   |
 
 Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
 `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
@@ -68,10 +68,11 @@ location + date + depth + element + unit. Both are suspicious markers for manual
 review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `comp_exist`
 (integer 0/1) to `subsample`, flagging whether the FE/AL normalisers and
 grain-size composition are available for that sample (composition = any element
-that is not a target and not FE/AL). Each script body is identical across sources
-bar the DB path. Step 6 still contains only the boilerplate that reads the seven
-slim tables from `./data/db/<source>_slim.sqlite`. The intended behaviour is
-specified in [docs/slim-pipeline.md](docs/slim-pipeline.md).
+that is not a target and not FE/AL). Step 6 adds `n_layers` + `multi_flag` (0/1)
+to `event`, marking multi-layer/-core samplings (events with >1 subsample) versus
+single grabs; it is derived from the data, not the tool code, since the same gear
+yields both. Each script body is identical across sources bar the DB path. Full
+step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
 
