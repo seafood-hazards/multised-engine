@@ -22,12 +22,13 @@ element_range_1 <- "A93:G140"
 element_range_2 <- "A143:G155"
 
 lld_range_1 <- "H91:AF141"
+lld_range_2 <- "H91:AH141"
 
 
 # ------------------------------
 # Source common helpers
 # ------------------------------
-source(file.path("R", "mareano", "sedimeter_helpers.R"))
+source(file.path("R", "pilot", "mareano", "sedimeter_helpers.R"))
 
 # ------------------------------
 # Read the whole INFO sheet once (no headers)
@@ -80,11 +81,24 @@ read_data_element_info <- function(info_df,
 read_data_lld_info <- function(info_df, lld_range = lld_range_1) {
   extract_block_header_in_range(info_df, lld_range, col_names = NULL) %>%
     rename(parameter = "X") %>%
+    filter(!is.na(parameter)) %>%
+    fill_from_right() %>%
     pivot_longer(!c(parameter), names_to = "batch_id", values_to = "value") %>%
     mutate(batch_id = map_chr(batch_id, ~str_replace(.x,  pattern = "X",
                                                replacement = ""))) %>%
+    filter(!is.na(parameter)) %>%
     drop_na()
 }
+
+# LLD: comment
+read_data_lld_comment <- function(info_df, lld_range = lld_range_2) {
+  extract_block_header_in_range(info_df, lld_range, col_names = NULL) %>%
+    rename(parameter = "X") %>%
+    mutate(batch_id = "comment") %>%
+    dplyr::select(parameter, comment = Comment) %>%
+    drop_na()
+}
+
 
 # ------------------------------
 # Corrections
@@ -171,7 +185,8 @@ correct_df_lld_info <- function(df) {
     dplyr::select(
       batch_id,
       parameter,
-      value
+      value,
+      comment
     )
 }
 
@@ -180,7 +195,8 @@ correct_df_lld_info <- function(df) {
 # ------------------------------
 df_cruise_info_raw  <- read_data_cruise_info(info_full_raw)
 df_element_info_raw <- read_data_element_info(info_full_raw)
-df_lld_info_raw <- read_data_lld_info(info_full_raw)
+df_lld_info_raw <- read_data_lld_info(info_full_raw) %>%
+  left_join(read_data_lld_comment(info_full_raw))
 
 df_cruise_info  <- correct_df_cruise_info(df_cruise_info_raw)
 df_element_info <- correct_df_element_info(df_element_info_raw)

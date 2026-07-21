@@ -130,6 +130,7 @@ CREATE TABLE lld (
   batch_id TEXT NOT NULL,
   parameter TEXT NOT NULL,
   value TEXT NOT NULL,
+  comment TEXT,
 
   FOREIGN KEY (parameter) REFERENCES parameter(parameter),
 

@@ -27,7 +27,7 @@ data_range_particle <- "A1:AK39709"
 # ------------------------------
 # Source common helpers
 # ------------------------------
-source(file.path("R", "vannmiljo", "vannmiljo_helpers.R"))
+source(file.path("R", "pilot", "vannmiljo", "vannmiljo_helpers.R"))
 
 # ------------------------------
 # Read the data

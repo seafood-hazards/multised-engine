@@ -94,21 +94,24 @@ col_translation <- c(
 
 df_imet <- read_csv(data_file, show_col_types = FALSE) |>
   rename(all_of(col_translation)) |>
-  select(where(~ !all(is.na(.))))
+  select(where(~ !all(is.na(.)))) %>%
+  mutate(measurement_date = as.character(measurement_date),
+         measurement_time = as.character(measurement_time),
+         station_latitude = round(station_latitude, 3),
+         station_longitude = round(station_longitude, 3))
 
 df_others <- read_tsv(data_others_file) |>
   rename(all_of(col_translation)) |>
+  mutate(measurement_date = as.character(measurement_date),
+         measurement_time = as.character(measurement_time),
+         station_latitude = round(station_latitude, 3),
+         station_longitude = round(station_longitude, 3)) |>
   select(any_of(colnames(df_imet))) |>
   filter(parameter_group %in% c("B-BIO", "I-MAJ", "I-NUT", "I-RNC", "O-MAJ",
                                 "P-PHY")) %>%
-  inner_join(df_imet %>% distinct(station_name, station_id, responsible_institute, region,
-                                  institute, latitude, longitude,
-                                  organisation, project_affiliation,
-                                  station_type, year, measurement_date),
-             by = c("station_name", "station_id", "responsible_institute", "region",
-                    "institute", "latitude", "longitude",
-                    "organisation", "project_affiliation",
-                    "station_type", "year", "measurement_date"))
+  inner_join(df_imet %>%
+               distinct(station_latitude, station_longitude, year, measurement_date),
+             by = c("station_latitude", "station_longitude", "year", "measurement_date"))
 
 df_all <- bind_rows(df_imet, df_others)
 
@@ -231,7 +234,7 @@ df_code_lookup <- code_lookup |>
          code_name = `Code name`)
 
 # ------------------------------
-# Station: 482
+# Station: 823 (I-MET: 482)
 # ------------------------------
 df_station <- df_all %>% distinct(station_name, station_id, responsible_institute, region,
                                   institute, latitude, longitude,
@@ -243,20 +246,20 @@ df_station <- df_all %>% distinct(station_name, station_id, responsible_institut
                 station_type, water_body_category)
 
 # ------------------------------
-# Parameter: 52 (I-MET: 32)
+# Parameter: 61 (I-MET: 32)
 # ------------------------------
 df_parameter <- df_all %>% distinct(parameter, parameter_name, parameter_group,
                                     cas_number, lawa_code)
 
 # ------------------------------
-# Measurement time: 5,399 (I-MET: 5,359)
+# Measurement time: 5,514 (I-MET: 5,359)
 # ------------------------------
 df_measurement_time <- df_all %>% distinct(year, measurement_date, measurement_time) %>%
   mutate(measurement_time_id = row_number()) %>%
   dplyr::select(measurement_time_id, year, measurement_date, measurement_time)
 
 # ------------------------------
-# Analysis method: 244 (I-MED: 190)
+# Analysis method: 342 (I-MED: 190)
 # ------------------------------
 df_analysis_method <- df_all %>% distinct(measurement_method_code, chemical_treatment, physical_treatment,
                                           measurement_basis, accreditation, analytical_laboratory,
@@ -267,7 +270,7 @@ df_analysis_method <- df_all %>% distinct(measurement_method_code, chemical_trea
                 control_chart_type, discipline, proficiency_testing)
 
 # ------------------------------
-# Reference material: 529 (I-MET: 475)
+# Reference material: 542 (I-MET: 475)
 # ------------------------------
 df_reference_material <- df_all %>% distinct(parameter, reference_material_code, reference_material_basis,
                                              reference_material_type, reference_material_sd,
@@ -278,7 +281,7 @@ df_reference_material <- df_all %>% distinct(parameter, reference_material_code,
                 reference_material_mean)
 
 # ------------------------------
-# Survey: 4,185 (I-MET: 3897)
+# Survey: 3,981 (Original I-MET: 3897)
 # ------------------------------
 df_survey <- df_all %>% distinct(monitoring_station_name, measurement_depth,
                                  station_latitude, station_longitude,
@@ -293,7 +296,7 @@ df_survey <- df_all %>% distinct(monitoring_station_name, measurement_depth,
                 vessel_code, platform_type, vessel_name)
 
 # ------------------------------
-# Sample: 7,976 (I-MET: 7067)
+# Sample: 14,089 (I-MET: 7067)
 # ------------------------------
 df_sample <- df_all %>% distinct(sample_id,
                                  layer_upper_boundary, layer_lower_boundary,
@@ -310,7 +313,7 @@ df_sample <- df_all %>% distinct(sample_id,
 
 
 # ------------------------------
-# LOD: 436 (I-MET: 380)
+# LOD: 482 (I-MET: 380)
 # ------------------------------
 df_lod <- df_all %>% distinct(parameter,
                               internal_qa_detection_limit,
@@ -324,7 +327,7 @@ df_lod <- df_all %>% distinct(parameter,
                 uncertainty_method)
 
 # ------------------------------
-# Sediment 114,490 (I-MET: 109,544)
+# Sediment 167,124 (I-MET: 109,544)
 # ------------------------------
 df_sediment <- df_all %>%
   inner_join(df_station, by = c("station_name", "station_id",
@@ -370,7 +373,7 @@ df_sediment <- df_all %>%
 # ------------------------------
 
 # ------------------------------
-# Station: 482
+# Station: 823
 # ------------------------------
 region_translation <- c(
   "Nordsee" = "North Sea",
@@ -383,7 +386,7 @@ df_station <- df_station %>%
                 station_type, water_body_category)
 
 # ------------------------------
-# Sample: 7,976 (I-MET: 7067)
+# Sample: 14,089 (I-MET: 7067)
 # ------------------------------
 sediment_translations <- tribble(
   ~german,                                                                           ~english,
