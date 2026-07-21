@@ -1,0 +1,74 @@
+# Slim pipeline — schema reference & QC/marking plan
+
+Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
+its per-source column differences, and (2) the intended behaviour of the
+not-yet-implemented steps 3–6.
+
+## 1. Shared slim schema
+
+Seven tables, built by `02_create_tables.R` for every source. Common columns:
+
+- **element** — `symbol` (PK), `element`. (Some sources also carry `cas_no`.)
+- **dataset** — `dataset_id` (PK), `source`, `dataset_name`, `country`,
+  `institute`; several sources add `dataset_code`/`dataset_group`/`region`.
+- **site** — `site_id` (PK), `latitude`, `longitude`, `country`,
+  `country_code`, `dist_to_coast`, `municipality`, `sea_name`; mareano also has
+  `depth`.
+- **event** — `event_id` (PK), `dataset_id` (FK), `site_id` (FK),
+  `sampling_tool`, `year`, `date`; some add `tool_description`, `time`,
+  `datetime`.
+- **method** — `method_id` (PK), `symbol` (FK), `method`, `lab`, plus source
+  detection/quantification limits (`lld`, or `lod`/`loq`), and optional
+  `lab_name`/`method_description`/`uncertainty`.
+- **subsample** — `subsample_id` (PK), `event_id` (FK), `depth_from`,
+  `depth_to`. One row per depth interval; `event` is one row per core.
+- **measurement** — `measurement_id` (PK), `subsample_id` (FK), `symbol` (FK),
+  `value`, `unit`, `method_id` (FK), plus source-specific columns below.
+
+### `measurement` columns by source
+
+| Source     | Extra columns beyond `value`, `unit`                                             |
+|------------|----------------------------------------------------------------------------------|
+| mareano    | `below_lld`                                                                       |
+| vannmiljo  | `operator`, `filtered`                                                            |
+| ices-dome  | `basis`, `matrix`, `qflag`, `vflag`, `uncrt`, `metcu`, `dcflag`                   |
+| mudab      | `basis`, `matrix`, `qflag`                                                        |
+| 4demon     | `corrected_value`, `basis`, `matrix`, `fraction_range`, `vflag`, `limit_flag`, `range_check_flag`, `outlier_extreme_flag`, `outlier_stdev_flag` |
+
+When writing cross-source logic, do not assume a column exists — branch on the
+source or guard with `if ("col" %in% names(df))`.
+
+## 2. Step 3 — Quality control (`03_quality_control.R`)
+
+Add `qc_flag` columns to the relevant tables.
+
+- **Area QC** — restrict to European seas/oceans; flag samples whose location
+  falls outside Europe. (Site-level; uses `site.latitude`/`longitude`, and
+  `sea_name`/`country` already derived in the pilot stage.)
+- **Invalid values** — flag measurements that are negative or exceed unit-based
+  limits (e.g. `unit == "ug/g"` ⇒ max 1000). Applies to `measurement.value`.
+
+## 3. Step 4 — Mark duplicates (`04_mark_duplicates.R`)
+
+Add `dup_flag` columns to the relevant tables. Two observations share the same
+date, location, and element:
+
+- **Duplicate** — if the actual value is also identical, mark as duplicate.
+- **Technical replicate** — same date/location/element but a *different* value,
+  mark as technical replicate.
+
+## 4. Step 5 — Mark additional data (`05_mark_additional_data.R`)
+
+Add `exist_flag` columns to the relevant tables, indicating, per event/site:
+
+- whether normaliser elements **FE** and **AL** are present, and
+- whether **sediment composition** data (grain-size mass-fraction, the ICES-DOME
+  `GS…`/`GSMF…` codes) are present.
+
+Full list of grain-size codes lives in [sediment-composition-codes.md](sediment-composition-codes.md).
+
+## 5. Step 6 — Mark multi (`06_mark_multi.R`)
+
+Some sampling tools collect multiple layers or cores. Mark those samples so
+multi-layer / multi-core sampling can be distinguished (via `sampling_tool` and
+the `subsample` depth intervals per `event`).
