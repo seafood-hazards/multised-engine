@@ -58,16 +58,19 @@ the per-source column map and the plan for the QC/marking steps.
 
 | 3 | `03_quality_control.R`      | add `qc_flag` columns          | done   |
 | 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | done   |
-| 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | stub   |
+| 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | done   |
 | 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | stub   |
 
 Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
 `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
 `measurement` (`duplicate` / `technical_replicate`, NULL = neither), grouping on
 location + date + depth + element + unit. Both are suspicious markers for manual
-review, not deletions; each script body is identical across sources bar the DB
-path. Steps 5–6 still contain only the boilerplate that reads the seven slim
-tables from `./data/db/<source>_slim.sqlite`. The intended behaviour of each is
+review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `comp_exist`
+(integer 0/1) to `subsample`, flagging whether the FE/AL normalisers and
+grain-size composition are available for that sample (composition = any element
+that is not a target and not FE/AL). Each script body is identical across sources
+bar the DB path. Step 6 still contains only the boilerplate that reads the seven
+slim tables from `./data/db/<source>_slim.sqlite`. The intended behaviour is
 specified in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions

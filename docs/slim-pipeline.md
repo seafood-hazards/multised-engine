@@ -59,13 +59,21 @@ date, location, and element:
 
 ## 4. Step 5 — Mark additional data (`05_mark_additional_data.R`)
 
-Add `exist_flag` columns to the relevant tables, indicating, per event/site:
+Adds three integer (0/1) existence flags to the **`subsample`** table (the
+finest sampling unit = site + date + depth interval):
 
-- whether normaliser elements **FE** and **AL** are present, and
-- whether **sediment composition** data (grain-size mass-fraction, the ICES-DOME
-  `GS…`/`GSMF…` codes) are present.
+- `fe_exist` — a **FE** measurement is present in the subsample,
+- `al_exist` — an **AL** measurement is present,
+- `comp_exist` — any **sediment composition** (grain-size) measurement is present.
+
+Classification is by symbol: the `element` table contains only the 7 targets,
+the FE/AL normalisers, and composition params, so composition is defined as *any
+element that is neither a target nor FE/AL* (no description parsing). Symbols are
+upper-cased first since sources case them differently (`Fe` vs `FE`). Flags roll
+up to event/site by taking the max over a group's subsamples.
 
 Full list of grain-size codes lives in [sediment-composition-codes.md](sediment-composition-codes.md).
+(Note: 4Demon carries no composition params, so its `comp_exist` is always 0.)
 
 ## 5. Step 6 — Mark multi (`06_mark_multi.R`)
 
