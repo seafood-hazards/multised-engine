@@ -23,7 +23,7 @@ sources <- c(
 base_max <- tibble::tribble(
   ~unit_canon, ~ceiling,
   "%", 1e2, "vol.%", 1e2, "wt.%", 1e2,
-  "g/kg", 1e3, "mg/g", 1e3,
+  "g/kg", 1e3, "g/kg c", 1e3, "mg/g", 1e3,
   "mg/kg", 1e6, "ug/g", 1e6, "ppm", 1e6,
   "ug/kg", 1e9, "ng/g", 1e9, "ppb", 1e9
 )

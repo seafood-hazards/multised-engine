@@ -27,6 +27,7 @@ base_max <- tibble::tribble(
   "vol.%",    1e2,
   "wt.%",     1e2,
   "g/kg",     1e3,
+  "g/kg c",   1e3,   # organic-carbon basis, e.g. vannmiljo TOC "g/kg C dw"
   "mg/g",     1e3,
   "mg/kg",    1e6,
   "ug/g",     1e6,

@@ -66,10 +66,11 @@ Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
 `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
 `measurement` (`duplicate` / `technical_replicate`, NULL = neither), grouping on
 location + date + depth + element + unit. Both are suspicious markers for manual
-review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `comp_exist`
-(integer 0/1) to `subsample`, flagging whether the FE/AL normalisers and
-grain-size composition are available for that sample (composition = any element
-that is not a target and not FE/AL). Step 6 adds `n_layers` + `multi_flag` (0/1)
+review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `org_exist` /
+`comp_exist` (integer 0/1) to `subsample`, flagging whether the FE/AL normalisers,
+organic carbon (CORG/TOC), and grain-size composition are available for that
+sample (composition = any element that is not a target, not FE/AL, and not
+organic carbon). Step 6 adds `n_layers` + `multi_flag` (0/1)
 to `event`, marking multi-layer/-core samplings (events with >1 subsample) versus
 single grabs; it is derived from the data, not the tool code, since the same gear
 yields both. Step 7 adds `below_loq` (integer 0/1) to `measurement`, folding each
@@ -100,5 +101,7 @@ the source flag differs. Full step specs are in
 
 - **7 targets:** CO, CU, I, MN, MO, SE, ZN.
 - **2 normalisers:** FE, AL.
+- **Organic carbon:** CORG (ices-dome, mudab) / TOC, TOC63 (mareano, vannmiljo);
+  its own category, tracked by `org_exist` — not counted as composition.
 - **Sediment composition:** grain-size mass-fraction parameters (ICES-DOME
   `GS…`/`GSMF…` codes); used to flag whether composition data exist.

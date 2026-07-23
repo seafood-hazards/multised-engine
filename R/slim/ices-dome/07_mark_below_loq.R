@@ -17,10 +17,11 @@ if (!"below_loq" %in% dbListFields(con, "measurement")) {
 # ── 2. Map the source detection flag onto below_loq ──────────────────────────
 # ICES-DOME uses the ICES `qflag` quality flag. All the non-NULL codes present
 # are below-limit indicators: '<' less-than, 'D' below detection limit, 'Q'
-# below quantification limit, '<~Q' less-than / approx / below quantification.
-# NULL = an ordinary quantified value. Any unexpected non-NULL code is reported
-# below so the mapping stays auditable after a rebuild.
-below_codes <- c("<", "D", "Q", "<~Q")
+# below quantification limit, '<~Q'/'<~D' less-than / approx / below the
+# quantification or detection limit. NULL = an ordinary quantified value. Any
+# unexpected non-NULL code is reported below so the mapping stays auditable
+# after a rebuild.
+below_codes <- c("<", "D", "Q", "<~Q", "<~D")
 
 qf <- dbGetQuery(con, "SELECT DISTINCT qflag FROM measurement WHERE qflag IS NOT NULL")$qflag
 unmapped <- setdiff(qf, below_codes)

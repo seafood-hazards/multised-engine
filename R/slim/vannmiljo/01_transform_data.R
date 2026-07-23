@@ -48,7 +48,8 @@ df_ref_parameter <- df_parameter %>%
   filter(param_id %in% c("FE", "AL",
                          "GSMF2_63", "GSMF_2000", "GSMF125_250", "GSMF1000_2000",
                          "GSMF250_500", "GSMF63_125", "GSMF500_1000",
-                         "GSMF_63", "GSMF2", "FINS"))
+                         "GSMF_63", "GSMF2", "FINS",
+                         "TOC", "TOC63"))
 
 df_ref_sediment <- df_sediment %>%
   inner_join(df_ref_parameter %>% distinct(param_id)) %>%

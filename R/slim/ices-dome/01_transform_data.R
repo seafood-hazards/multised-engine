@@ -35,7 +35,7 @@ df_base_project <- df_project %>%
 
 # ── 2. Reference elements ────────────────────────────────────────────────────
 df_ref_parameter <- df_parameter %>%
-  filter(param %in% c("FE", "AL")
+  filter(param %in% c("FE", "AL", "CORG")
          | ((group_code == "P-PHY")
             & !(param %in% c("GSSKEW", "GSSORT", "LOIGN", "MOCON%",
                              "REDOX", "SEDAGE",
