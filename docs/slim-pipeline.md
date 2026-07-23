@@ -1,8 +1,8 @@
 # Slim pipeline — schema reference & QC/marking plan
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
-its per-source column differences, and (2) the intended behaviour of the
-not-yet-implemented steps 3–6.
+its per-source column differences, and (2) the behaviour of the
+marking steps 3–7.
 
 ## 1. Shared slim schema
 
@@ -89,3 +89,30 @@ yields both single- and multi-layer events (e.g. Mareano `MC` is ~60 % multi,
 reliable discriminator. Replicate-core events (several events at one
 station/date/tool) are rare and inconsistent across sources (ICES-DOME: 0), so
 they are not separately flagged; add that later if the clean stage needs it.
+
+## 6. Step 7 — Mark below LOQ (`07_mark_below_loq.R`)
+
+Adds one integer column to the **`measurement`** table:
+
+- `below_loq` — 1 when the value is below the detection/quantification limit (an
+  uncertain "less-than" reading), 0 for a quantified value.
+
+It folds LOD and LOQ together into a single below-limit marker, taken from each
+source's own detection flag (not a numeric `value < loq` comparison — the flags
+are the authoritative source-provided signal). These rows are candidates for
+removal in the clean stage (`WHERE below_loq = 1`). Unlike steps 3–6 the body is
+**not** identical across sources, because the source flag differs:
+
+| Source     | Flag column          | Values meaning below-limit | rows |
+|------------|----------------------|----------------------------|-----:|
+| mareano    | `below_lld` (0/1)    | `1` (LOD only; no LOQ)     | 4,583 |
+| vannmiljo  | `operator`           | `<`, `ND`                  | 1,987 |
+| ices-dome  | `qflag` (ICES)       | `<`, `Q`, `D`, `<~Q`       | 2,043 |
+| mudab      | `qflag` (ICES)       | `<`, `Q`, `D`              | 1,299 |
+| 4demon     | `limit_flag` (0/1)   | `1`                        | 53 |
+
+`Q` = below limit of quantification, `D` = below detection limit, `<` = less-than,
+`ND` = not detected. Vannmiljø's `operator` also carries `>` (above-range) which
+is kept as 0 — it is not a detection-limit case. The two `qflag` scripts warn if a
+rebuild introduces a non-NULL flag code outside the mapped set, so the crosstab in
+each script's verify block stays auditable.
