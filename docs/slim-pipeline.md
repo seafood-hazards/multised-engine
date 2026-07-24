@@ -51,10 +51,15 @@ Add `qc_flag` columns to the relevant tables.
 ## 3. Step 4 — Mark duplicates (`04_mark_duplicates.R`)
 
 Add `dup_flag` columns to the relevant tables. Two observations share the same
-date, location, and element:
+date, location, depth, element, unit, **and method** (`method` plus `lab` where
+the source records it — Vannmiljø and 4Demon carry no `lab`). Including the
+method means two readings of one element on the same occasion but from different
+analytical methods/labs are kept as distinct analyses, not replicates (e.g.
+Mareano measures Se by both AAS and ICP-AES). Per-result LOD/LOQ/uncertainty are
+metadata, not part of the method identity.
 
 - **Duplicate** — if the actual value is also identical, mark as duplicate.
-- **Technical replicate** — same date/location/element but a *different* value,
+- **Technical replicate** — same occasion + method but a *different* value,
   mark as technical replicate.
 
 ## 4. Step 5 — Mark additional data (`05_mark_additional_data.R`)

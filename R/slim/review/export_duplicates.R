@@ -39,7 +39,9 @@ for (src in names(sources)) {
   date_col <- intersect(c("date", "datetime", "year"), names(ev))[1]
   if (!"lab" %in% names(mt)) mt$lab <- NA_character_
 
-  # same key as 04_mark_duplicates.R, so dup_group matches the flag grouping
+  # same key as 04_mark_duplicates.R (incl. method identity), so dup_group
+  # matches the flag grouping. `lab` is guaranteed present (NA where the source
+  # records none), so grouping on it is a no-op for those sources.
   d <- m |>
     select(measurement_id, subsample_id, symbol, value, unit, method_id, dup_flag) |>
     left_join(ss |> select(subsample_id, event_id, depth_from, depth_to),
@@ -47,7 +49,8 @@ for (src in names(sources)) {
     left_join(ev |> transmute(event_id, dataset_id, site_id,
                               date = as.character(.data[[date_col]])),
               by = "event_id") |>
-    group_by(site_id, date, depth_from, depth_to, symbol, unit) |>
+    left_join(mt |> select(method_id, method, lab), by = "method_id") |>
+    group_by(site_id, date, depth_from, depth_to, symbol, unit, method, lab) |>
     mutate(dup_group = cur_group_id()) |>
     ungroup()
 
@@ -56,7 +59,6 @@ for (src in names(sources)) {
       left_join(st |> select(site_id, latitude, longitude), by = "site_id") |>
       left_join(el |> select(symbol, element), by = "symbol") |>
       left_join(ds |> select(dataset_id, dataset_name), by = "dataset_id") |>
-      left_join(mt |> select(method_id, method, lab), by = "method_id") |>
       mutate(dup_group = dense_rank(dup_group)) |>
       arrange(dup_group, symbol, value) |>
       transmute(dup_group, dup_flag, measurement_id, dataset_name,

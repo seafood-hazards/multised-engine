@@ -65,7 +65,9 @@ the per-source column map and the plan for the QC/marking steps.
 Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
 `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
 `measurement` (`duplicate` / `technical_replicate`, NULL = neither), grouping on
-location + date + depth + element + unit. Both are suspicious markers for manual
+location + date + depth + element + unit + method (`method` plus `lab` where the
+source records it), so readings of the same element from different methods/labs
+are not treated as replicates of each other. Both are suspicious markers for manual
 review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `org_exist` /
 `comp_exist` (integer 0/1) to `subsample`, flagging whether the FE/AL normalisers,
 organic carbon (CORG/TOC), and grain-size composition are available for that
