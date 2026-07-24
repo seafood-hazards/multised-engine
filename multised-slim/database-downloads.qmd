@@ -3,33 +3,21 @@ title: "Database Downloads"
 subtitle: Download links for the five slim SQLite databases
 ---
 
-```{css, echo=FALSE}
-th { white-space: nowrap; }
-```
-
 Each source's slim database is published as an asset on the GitHub release of its
 pilot repository. All five share the common [DB Schema (Slim)](./db-schema-slim.qmd)
 — the same seven tables, differing only in a few source-specific columns.
 
 ## Available databases
 
-```{r}
-library(tibble)
-library(knitr)
+| Source | File | Download |
+|:-------|:-----|:---------|
+| Mareano | `mareano_slim.sqlite` | [Download](https://github.com/seafood-hazards/mareano-pilot/releases/download/v0.1.16/mareano_slim.sqlite) |
+| Vannmiljø | `vannmiljo_slim.sqlite` | [Download](https://github.com/seafood-hazards/vannmiljo-pilot/releases/download/v0.1.16/vannmiljo_slim.sqlite) |
+| ICES-DOME | `ices_dome_slim.sqlite` | [Download](https://github.com/seafood-hazards/ices-dome-pilot/releases/download/v0.1.17/ices_dome_slim.sqlite) |
+| MUDAB | `mudab_slim.sqlite` | [Download](https://github.com/seafood-hazards/mudab-pilot/releases/download/v0.1.4/mudab_slim.sqlite) |
+| 4Demon | `4demon_slim.sqlite` | [Download](https://github.com/seafood-hazards/4demon-pilot/releases/download/v0.1.0/4demon_slim.sqlite) |
 
-rel <- "https://github.com/seafood-hazards"
-
-database_tbl <- tribble(
-  ~Source,      ~File,                  ~Download,
-  "Mareano",    "mareano_slim.sqlite",   sprintf("<a href='%s/mareano-pilot/releases/download/v0.1.16/mareano_slim.sqlite'>Download</a>", rel),
-  "Vannmiljø",  "vannmiljo_slim.sqlite", sprintf("<a href='%s/vannmiljo-pilot/releases/download/v0.1.16/vannmiljo_slim.sqlite'>Download</a>", rel),
-  "ICES-DOME",  "ices_dome_slim.sqlite", sprintf("<a href='%s/ices-dome-pilot/releases/download/v0.1.17/ices_dome_slim.sqlite'>Download</a>", rel),
-  "MUDAB",      "mudab_slim.sqlite",     sprintf("<a href='%s/mudab-pilot/releases/download/v0.1.4/mudab_slim.sqlite'>Download</a>", rel),
-  "4Demon",     "4demon_slim.sqlite",    sprintf("<a href='%s/4demon-pilot/releases/download/v0.1.0/4demon_slim.sqlite'>Download</a>", rel)
-)
-
-kable(database_tbl, escape = FALSE)
-```
+: Slim databases {.striped .hover tbl-colwidths="[25,45,30]"}
 
 ::: {.callout-note}
 Each file is a self-contained SQLite database. See the
