@@ -23,7 +23,7 @@ The data moves through three generations. Each is one SQLite DB **per source**.
    source. **Done.**
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
-   and derive a standardised value. **All nine steps done** (see below).
+   and derive a standardised value. **All ten steps done** (see below).
 3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
 
 ## Slim schema (7 tables)
@@ -63,6 +63,7 @@ the per-source column map and the plan for the QC/marking steps.
 | 7 | `07_mark_below_loq.R`       | add `below_loq` column         | done   |
 | 8 | `08_add_converted_value.R`  | add `value_std`/`unit_std`     | done   |
 | 9 | `09_mark_range.R`           | add `range_flag` column        | done   |
+| 10| `10_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 
 Step 3 adds two flags (NULL = passed): `area_flag` on `site` (`outside_europe`)
 and `invalid_flag` on `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
@@ -89,9 +90,21 @@ normalisation, cross-source merge), not a flag. Step 9 adds `range_flag`
 (`below_min` / `above_max`, NULL = in range/unbounded/below-LOQ) to `measurement`,
 comparing `value_std` against a per-element plausible range (draft, generous
 bounds for the 7 targets + FE/AL + organic carbon; grain-size unbounded) to catch
-implausibly high and low values. Steps 3–6, 8 and 9 have identical bodies across
-sources bar the DB path; step 7 differs per source because the source flag
-differs. Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
+implausibly high and low values. Step 10 adds `below_loq_num` (integer 0/1, NULL
+where the method has no numeric limit) to `measurement`: a numeric cross-check of
+step 7's label-based `below_loq`, comparing `value_std` against the method's own
+detection/quantification limit (LOQ, else LOD/LLD) converted to the standardised
+unit. `value < limit` → 1, `value > limit` → 0, and at `value == limit` it defers
+to the detection flag `below_loq` (some sources substitute the reported value at
+the limit — Mareano reports value == LLD for below-detection results — so a value
+equal to the limit is below only when the flag is set). It catches below-limit
+values the source labels missed; the clean stage can take the union `below_loq = 1
+OR below_loq_num = 1`. Coverage is partial — 4Demon has no numeric limits and only
+~13% of Vannmiljø does, so those rows stay NULL; Mareano's `lld` is a collapsed
+representative limit, so its extra flags should be read with that caveat. Steps
+3–6 and 8–10 have identical bodies across sources bar the DB path; step 7 differs
+per source because the source flag differs. Full step specs are in
+[docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
 

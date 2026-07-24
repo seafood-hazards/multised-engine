@@ -181,3 +181,32 @@ composition is unbounded (noisy, deferred to its own step). Draft bounds
 | Se | 0.01 | 100    | | | | |
 
 Steps 8 and 9 have identical bodies across sources bar the DB path.
+
+## 9. Step 10 — Mark below limit, numeric (`10_mark_below_loq_num.R`)
+
+Adds one column to the **`measurement`** table:
+
+- `below_loq_num` — `1` when the value is at or below the method's numeric
+  detection/quantification limit, `0` when above it, NULL when the method carries
+  no numeric limit (not assessable).
+
+This is a **numeric cross-check** of step 7's label-based `below_loq`: a source's
+detection *label* can be wrong, so the value is also compared directly against the
+`method` table's own limit. The limit taken is **LOQ, else LOD, else LLD** (the
+most inclusive), converted into the same standardised unit as `value_std` (via the
+step-8 mass basis) so value and limit are compared like for like. `value_std <
+limit_std` → `1`, `value_std > limit_std` → `0`, and **at the limit exactly**
+(`value_std == limit_std`) it defers to the source detection flag `below_loq`:
+some sources substitute the reported value *at* the limit (Mareano reports
+value == LLD for below-detection results), so a value equal to the limit is
+below-detection only when the flag is set, and a genuine reading equal to the
+limit (flag off) stays `0`.
+
+It is kept **separate** from `below_loq` so the two stay auditable; the clean stage
+can take the union `below_loq = 1 OR below_loq_num = 1` for aggressive removal.
+Caveats: coverage is partial — 4Demon has no numeric limits, and only ~13 % of
+Vannmiljø does, so those rows are NULL; and Mareano's `lld` is a single collapsed
+representative limit per method, so its extra flags (values below the
+representative LLD but likely from lower-LLD batches) should be read with that in
+mind. Like steps 3–6, 8 and 9, the body is identical across sources bar the DB
+path (the limit column is picked by whichever of `loq`/`lod`/`lld` the source has).
