@@ -1,6 +1,6 @@
 # Export over-range measurements (failed the physical-ceiling QC) for review.
 #
-# Uses the measurement.qc_flag == 'over_range' mark from 03_quality_control.R:
+# Uses the measurement.invalid_flag == 'over_range' mark from 03_quality_control.R:
 # values that exceed "100 % of the sample mass" for their unit. Writes one
 # per-source CSV to ./data/qc_review/<source>_over_range.csv, including the
 # `ceiling` that was exceeded (recomputed with the same unit map as step 3) plus
@@ -43,7 +43,7 @@ summary_rows <- list()
 
 for (src in names(sources)) {
   con <- dbConnect(RSQLite::SQLite(), sources[[src]])
-  m  <- dbReadTable(con, "measurement") |> as_tibble() |> filter(qc_flag == "over_range")
+  m  <- dbReadTable(con, "measurement") |> as_tibble() |> filter(invalid_flag == "over_range")
   if (nrow(m) == 0) { dbDisconnect(con); next }
   ss <- dbReadTable(con, "subsample") |> as_tibble()
   ev <- dbReadTable(con, "event")     |> as_tibble()

@@ -40,13 +40,16 @@ source or guard with `if ("col" %in% names(df))`.
 
 ## 2. Step 3 — Quality control (`03_quality_control.R`)
 
-Add `qc_flag` columns to the relevant tables.
+Add a flag column per check (NULL = passed): `area_flag` on `site` and
+`invalid_flag` on `measurement`.
 
-- **Area QC** — restrict to European seas/oceans; flag samples whose location
-  falls outside Europe. (Site-level; uses `site.latitude`/`longitude`, and
-  `sea_name`/`country` already derived in the pilot stage.)
-- **Invalid values** — flag measurements that are negative or exceed unit-based
-  limits (e.g. `unit == "ug/g"` ⇒ max 1000). Applies to `measurement.value`.
+- **Area QC** (`site.area_flag`) — restrict to European seas/oceans; flag sites
+  whose location falls outside Europe (`outside_europe`). Uses
+  `site.latitude`/`longitude`, and `sea_name`/`country` already derived in the
+  pilot stage.
+- **Invalid values** (`measurement.invalid_flag`) — flag measurements that are
+  negative (`negative`) or exceed unit-based limits (`over_range`, e.g.
+  `unit == "ug/g"` ⇒ max 1000). Applies to `measurement.value`.
 
 ## 3. Step 4 — Mark duplicates (`04_mark_duplicates.R`)
 

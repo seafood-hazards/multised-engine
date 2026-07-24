@@ -46,17 +46,20 @@ canon_unit <- function(u) {
     str_replace_all("µ|μ", "u")   # micro sign / greek mu -> u
 }
 
-# ── 2. Add qc_flag columns (idempotent) ──────────────────────────────────────
-# NULL qc_flag = passed. A short code names the failed check.
-for (tbl in c("site", "measurement")) {
-  if (!"qc_flag" %in% dbListFields(con, tbl)) {
-    dbExecute(con, sprintf("ALTER TABLE %s ADD COLUMN qc_flag TEXT;", tbl))
+# ── 2. Add flag columns (idempotent) ─────────────────────────────────────────
+# NULL = passed; a short code names the failed check. Each check gets its own
+# column: site.area_flag (out-of-scope location) and measurement.invalid_flag
+# (physically invalid value).
+flag_cols <- c(site = "area_flag", measurement = "invalid_flag")
+for (tbl in names(flag_cols)) {
+  if (!flag_cols[[tbl]] %in% dbListFields(con, tbl)) {
+    dbExecute(con, sprintf("ALTER TABLE %s ADD COLUMN %s TEXT;", tbl, flag_cols[[tbl]]))
   }
 }
 
 # ── 3. Area QC: flag sites outside European seas ─────────────────────────────
 dbExecute(con, sprintf(
-  "UPDATE site SET qc_flag = CASE
+  "UPDATE site SET area_flag = CASE
      WHEN latitude  BETWEEN %g AND %g
       AND longitude BETWEEN %g AND %g THEN NULL
      ELSE 'outside_europe' END;",
@@ -81,18 +84,18 @@ dbWriteTable(con, "qc_unit_max",
              temporary = TRUE, overwrite = TRUE)
 
 dbExecute(con, sprintf("
-  UPDATE measurement SET qc_flag = CASE
+  UPDATE measurement SET invalid_flag = CASE
     WHEN value < %g THEN 'negative'
     WHEN value > (SELECT max_value FROM qc_unit_max u
                   WHERE u.unit = measurement.unit) THEN 'over_range'
     ELSE NULL END;", -neg_tol))
 
 # ── 5. Verify ────────────────────────────────────────────────────────────────
-cat("site qc_flag:\n")
-print(dbGetQuery(con, "SELECT COALESCE(qc_flag,'(pass)') qc_flag, COUNT(*) n
-                       FROM site GROUP BY qc_flag ORDER BY n DESC"))
-cat("measurement qc_flag:\n")
-print(dbGetQuery(con, "SELECT COALESCE(qc_flag,'(pass)') qc_flag, COUNT(*) n
-                       FROM measurement GROUP BY qc_flag ORDER BY n DESC"))
+cat("site area_flag:\n")
+print(dbGetQuery(con, "SELECT COALESCE(area_flag,'(pass)') area_flag, COUNT(*) n
+                       FROM site GROUP BY area_flag ORDER BY n DESC"))
+cat("measurement invalid_flag:\n")
+print(dbGetQuery(con, "SELECT COALESCE(invalid_flag,'(pass)') invalid_flag, COUNT(*) n
+                       FROM measurement GROUP BY invalid_flag ORDER BY n DESC"))
 
 dbDisconnect(con)

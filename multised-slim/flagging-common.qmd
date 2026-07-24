@@ -59,8 +59,8 @@ pct  <- function(n, d) ifelse(d == 0, "—", sprintf("%.1f%%", 100 * n / d))
 
 ## 1. Invalid values
 
-Adds a `qc_flag` to `site` and `measurement`. A site is flagged
-**outside Europe** when its coordinates fall outside the European seas of
+Adds an `area_flag` to `site` and an `invalid_flag` to `measurement`. A site is
+flagged **outside Europe** when its coordinates fall outside the European seas of
 interest. A measurement is flagged **negative** when its value is below zero, or
 **over-range** when it exceeds the physical ceiling of 100 % of the sample mass
 for its unit (e.g. a `mg/kg` value above 1,000,000). These are candidates for
@@ -71,10 +71,10 @@ srcs |>
   rowwise() |>
   mutate(
     Sites            = scal(file, "SELECT COUNT(*) FROM site"),
-    `Outside Europe` = scal(file, "SELECT COUNT(*) FROM site WHERE qc_flag = 'outside_europe'"),
+    `Outside Europe` = scal(file, "SELECT COUNT(*) FROM site WHERE area_flag = 'outside_europe'"),
     Measurements     = scal(file, "SELECT COUNT(*) FROM measurement"),
-    Negative         = scal(file, "SELECT COUNT(*) FROM measurement WHERE qc_flag = 'negative'"),
-    `Over-range`     = scal(file, "SELECT COUNT(*) FROM measurement WHERE qc_flag = 'over_range'")
+    Negative         = scal(file, "SELECT COUNT(*) FROM measurement WHERE invalid_flag = 'negative'"),
+    `Over-range`     = scal(file, "SELECT COUNT(*) FROM measurement WHERE invalid_flag = 'over_range'")
   ) |>
   ungroup() |>
   select(-file) |>

@@ -201,14 +201,14 @@ quality-control pages.
 ```{r}
 tribble(
   ~Table,        ~Column,      ~Type,     ~Meaning,
-  "site",        "qc_flag",    "TEXT",    "Location flag: outside_europe, else NULL.",
+  "site",        "area_flag",  "TEXT",    "Location flag: outside_europe, else NULL.",
   "event",       "n_layers",   "INTEGER", "Number of subsamples (depth layers) under the event.",
   "event",       "multi_flag", "INTEGER", "1 = multi-layer / -core sampling, 0 = single grab.",
   "subsample",   "fe_exist",   "INTEGER", "1 = an Fe (iron) normaliser measurement is present.",
   "subsample",   "al_exist",   "INTEGER", "1 = an Al (aluminium) normaliser measurement is present.",
   "subsample",   "org_exist",  "INTEGER", "1 = an organic-carbon measurement (CORG / TOC) is present.",
   "subsample",   "comp_exist", "INTEGER", "1 = a grain-size composition measurement is present.",
-  "measurement", "qc_flag",    "TEXT",    "Value flag: negative / over_range, else NULL.",
+  "measurement", "invalid_flag", "TEXT",  "Value flag: negative / over_range, else NULL.",
   "measurement", "dup_flag",   "TEXT",    "duplicate / technical_replicate, else NULL.",
   "measurement", "below_loq",  "INTEGER", "1 = value is below the detection / quantification limit."
 ) |> kable()

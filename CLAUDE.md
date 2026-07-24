@@ -56,14 +56,14 @@ the per-source column map and the plan for the QC/marking steps.
 > because the numbers looked plausible.
 
 
-| 3 | `03_quality_control.R`      | add `qc_flag` columns          | done   |
+| 3 | `03_quality_control.R`      | add `area_flag`/`invalid_flag` | done   |
 | 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | done   |
 | 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | done   |
 | 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | done   |
 | 7 | `07_mark_below_loq.R`       | add `below_loq` column         | done   |
 
-Step 3 adds a `qc_flag` (NULL = passed) to `site` (`outside_europe`) and
-`measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
+Step 3 adds two flags (NULL = passed): `area_flag` on `site` (`outside_europe`)
+and `invalid_flag` on `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
 `measurement` (`duplicate` / `technical_replicate`, NULL = neither), grouping on
 location + date + depth + element + unit + method (`method` plus `lab` where the
 source records it), so readings of the same element from different methods/labs
