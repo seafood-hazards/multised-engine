@@ -7,7 +7,7 @@ subtitle: Standardising values to a common unit, then flagging implausible conce
 th { white-space: nowrap; }
 ```
 
-The five sources report the same measurements in different units — `mg/kg`,
+The five sources report the same measurements in different units: `mg/kg`,
 `µg/kg`, `%`, `g/kg`, and so on. Before implausible values can be flagged
 consistently, every value is first **converted to a common unit**, and the
 standardised chemistry values are then compared against a **plausible range** per
@@ -55,7 +55,7 @@ kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
 Each measurement gets a standardised value `value_std` and its unit `unit_std`,
 assigned by **measurand** rather than by the raw unit:
 
-- **Chemistry** — the 7 target elements, the Fe/Al normalisers, and organic
+- **Chemistry**: the 7 target elements, the Fe/Al normalisers, and organic
   carbon (CORG / TOC / TOC63) → **mg/kg** dry weight.
 - **Grain-size composition** → **%** (a mass/volume fraction). There is no
   length/µm grain-size in the data, so every grain-size value is a fraction and
@@ -98,11 +98,11 @@ srcs |>
 
 The standardised `value_std` (mg/kg) of every chemistry measurement is compared
 against a per-element **plausible range**. A value below the minimum is flagged
-`below_min`, above the maximum `above_max`; everything else — including grain-size
-(unbounded) and below-LOQ readings (a limit, not a value) — stays unflagged.
+`below_min`, above the maximum `above_max`; everything else, including grain-size
+(unbounded) and below-LOQ readings (a limit, not a value), stays unflagged.
 
 ::: {.callout-warning}
-These bounds are a **draft**, deliberately generous — they target *clearly
+These bounds are a **draft**, deliberately generous: they target *clearly
 implausible* values (both impossibly high and impossibly low), not strict
 geochemical limits, and are still to be reviewed with domain experts.
 :::

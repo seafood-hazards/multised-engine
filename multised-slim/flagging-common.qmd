@@ -9,11 +9,11 @@ th { white-space: nowrap; }
 
 After each source is reshaped into the common slim schema, a series of **flagging
 steps** annotates the data for quality control and review. Every step *adds*
-columns — it never changes or deletes a value. Suspicious or redundant records
+columns; it never changes or deletes a value. Suspicious or redundant records
 are marked so they can be inspected; the actual removal of unnecessary rows is a
 later **Data Cleaning** step, performed once the grain-size analysis is complete.
 
-This page covers the **common** flags — the columns that all five sources end up
+This page covers the **common** flags: the columns that all five sources end up
 with, applied the same way everywhere. The source-native flags that only some
 sources report (e.g. detection flags and outlier flags) are summarised on the
 companion *Source specific* page. Each section below gives a short description
@@ -54,7 +54,7 @@ add_total <- function(df) {
 }
 
 kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
-pct  <- function(n, d) ifelse(d == 0, "—", sprintf("%.1f%%", 100 * n / d))
+pct  <- function(n, d) ifelse(d == 0, "-", sprintf("%.1f%%", 100 * n / d))
 ```
 
 ## 1. Invalid values
@@ -164,7 +164,7 @@ bind_rows(
 Adds a `below_loq` flag to `measurement`, folding each source's own detection
 flag (Mareano `below_lld`, Vannmiljø `operator`, the ICES `qflag`, 4Demon
 `limit_flag`) into one common marker. A value of 1 means the measurement is an
-uncertain "less-than" reading below the limit of detection or quantification —
+uncertain "less-than" reading below the limit of detection or quantification,
 the main set of rows to remove in the clean stage.
 
 ```{r}

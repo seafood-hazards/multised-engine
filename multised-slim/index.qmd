@@ -35,31 +35,31 @@ its own pilot site), then reshaped into the shared **slim** schema used here.
 The data moves through four generations, each one SQLite database **per source**
 until the final merge:
 
-1. **pilot** — each source's raw files parsed into a per-source database whose
+1. **pilot**: each source's raw files parsed into a per-source database whose
    table structure follows that source. Documented on the individual pilot sites:
    [Mareano](https://seafood-hazards.github.io/mareano-pilot/),
    [Vannmiljø](https://seafood-hazards.github.io/vannmiljo-pilot/),
    [ICES-DOME](https://seafood-hazards.github.io/ices-dome-pilot/),
    [MUDAB](https://seafood-hazards.github.io/mudab-pilot/), and
    [4Demon](https://seafood-hazards.github.io/4demon-pilot/).
-2. **slim** *(this site)* — every source reshaped into the same seven-table
+2. **slim** *(this site)*: every source reshaped into the same seven-table
    schema, then annotated with quality-control and marking flags. The underlying
    values are untouched; suspicious records are *flagged*, not deleted, so they
    can be reviewed.
-3. **clean** — the flags are applied (uncertain rows removed), units are
+3. **clean**: the flags are applied (uncertain rows removed), units are
    harmonised, and normalisation (Fe/Al) and grain-size analyses are run.
-4. **merged** — the five clean databases are combined into a single database for
+4. **merged**: the five clean databases are combined into a single database for
    the background / pristine-sediment analysis.
 
 ## What this site covers
 
-The slim stage is still in progress — more flagging columns will be added — but
+The slim stage is still in progress (more flagging columns will be added), but
 the database design is settled. The **DB Design** section is available now:
 
-- [DB Schema (Slim)](./db-schema-slim.qmd) — the common seven-table schema, the
+- [DB Schema (Slim)](./db-schema-slim.qmd): the common seven-table schema, the
   entity-relationship diagram, and a per-source column comparison showing which
   columns are shared and which are source-specific.
-- [Database Downloads](./database-downloads.qmd) — download links for the five
+- [Database Downloads](./database-downloads.qmd): download links for the five
   slim SQLite databases.
 
 Pages summarising the quality-control and marking results (invalid values,

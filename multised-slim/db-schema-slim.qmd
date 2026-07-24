@@ -8,8 +8,8 @@ th { white-space: nowrap; }
 ```
 
 The slim schema is a **common** seven-table schema shared by all five sources.
-The core structure — table set, primary/foreign keys, and the columns needed for
-the trace-element analysis — is identical everywhere. Around that core, each
+The core structure (table set, primary/foreign keys, and the columns needed for
+the trace-element analysis) is identical everywhere. Around that core, each
 source keeps a handful of **source-specific** columns that carry information only
 that source provides (extra identifiers, detection flags, reporting basis, and so
 on).
@@ -27,7 +27,7 @@ down to `measurement`. The `element` table is a lookup for both `method` and
 ![Slim schema entity-relationship diagram](./image/slim_db_schema.svg)
 
 ::: {.callout-note}
-The `symbol` column in `measurement` is an intentional denormalisation — it is
+The `symbol` column in `measurement` is an intentional denormalisation: it is
 derivable via `method_id → method.symbol` but retained as a key for query
 efficiency.
 :::
@@ -102,7 +102,7 @@ tribble(
 
 ## `event`
 
-A single sampling event — one deployment of a sampling tool at a site.
+A single sampling event: one deployment of a sampling tool at a site.
 
 ```{r}
 tribble(
@@ -194,7 +194,7 @@ tribble(
 
 On top of the structural schema above, the slim quality-control steps append a
 common set of flag columns. These are **identical across all five sources** and
-never overwrite the original values — they only mark records for review or later
+never overwrite the original values; they only mark records for review or later
 removal. Their detailed semantics will be covered on the forthcoming
 quality-control pages.
 

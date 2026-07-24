@@ -4,8 +4,8 @@ subtitle: Download links for the five slim SQLite databases
 ---
 
 Each source's slim database is published as an asset on the GitHub release of its
-pilot repository. All five share the common [DB Schema (Slim)](./db-schema-slim.qmd)
-— the same seven tables, differing only in a few source-specific columns.
+pilot repository. All five share the common [DB Schema (Slim)](./db-schema-slim.qmd):
+the same seven tables, differing only in a few source-specific columns.
 
 ## Available databases
 
