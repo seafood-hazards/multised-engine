@@ -180,6 +180,34 @@ srcs |>
   kfmt()
 ```
 
+## 6. Below limit (numeric cross-check)
+
+Adds a `below_loq_num` flag to `measurement`: a numeric check that compares each
+value against the method's own detection/quantification limit (LOQ, else LOD/LLD),
+as a cross-check on the label above, since a source's detection label can be
+wrong. A value below the limit is flagged 1; at the limit exactly it defers to the
+label; a value above it is 0. Where the `method` table records no numeric limit
+the value cannot be assessed and the flag stays NULL (all of 4Demon, most of
+Vannmiljø).
+
+The **Missed by label** column counts values the numeric check flags as
+below-limit that the source did *not* label, the errors this step is meant to
+catch.
+
+```{r}
+srcs |>
+  rowwise() |>
+  mutate(
+    Assessable        = scal(file, "SELECT COUNT(*) FROM measurement WHERE below_loq_num IS NOT NULL"),
+    `Below limit`     = scal(file, "SELECT COUNT(*) FROM measurement WHERE below_loq_num = 1"),
+    `Missed by label` = scal(file, "SELECT COUNT(*) FROM measurement WHERE below_loq_num = 1 AND below_loq = 0")
+  ) |>
+  ungroup() |>
+  select(-file) |>
+  add_total() |>
+  kfmt()
+```
+
 ::: {.callout-note}
 No rows have been deleted. These flags will drive the removal of uncertain,
 duplicated, and out-of-scope records when the **clean** databases are built.
