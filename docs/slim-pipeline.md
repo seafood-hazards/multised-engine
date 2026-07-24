@@ -129,3 +129,55 @@ removal in the clean stage (`WHERE below_loq = 1`). Unlike steps 3–6 the body 
 is kept as 0 — it is not a detection-limit case. The two `qflag` scripts warn if a
 rebuild introduces a non-NULL flag code outside the mapped set, so the crosstab in
 each script's verify block stays auditable.
+
+## 7. Step 8 — Add converted value (`08_add_converted_value.R`)
+
+Adds two columns to the **`measurement`** table — a source-agnostic standardised
+value and its unit — reused by the range check (step 9), Fe/Al normalisation, and
+the cross-source merge:
+
+- `value_std` (REAL) — the value in a common unit,
+- `unit_std` (TEXT) — that unit.
+
+Standardisation is by **measurand**, not raw unit:
+
+- **Chemistry** — the 7 targets, the Fe/Al normalisers, and organic carbon
+  (CORG/TOC/TOC63) → **mg/kg** dry weight.
+- **Grain-size composition** → **%** (mass/volume fraction). There is no
+  length/µm grain-size in the data, so every grain-size value is a fraction; `%`
+  is the only standardised grain-size unit. `vol.%` is treated as `%` here — the
+  mass-vs-volume distinction is left to the dedicated grain-size step.
+
+The conversion goes through the mass fraction `value / denom`, where `denom` is
+"100 % of sample mass" in the original unit (the same canonical-unit map as
+step 3). The fraction is then scaled to the target unit's full scale (`1e6` for
+mg/kg, `1e2` for %). Units without a mass basis leave `value_std`/`unit_std` NULL
+and warn. This is a derived value, not a flag.
+
+## 8. Step 9 — Mark implausible range (`09_mark_range.R`)
+
+Adds one column to the **`measurement`** table:
+
+- `range_flag` — `below_min` / `above_max` when `value_std` falls outside a
+  per-element plausible range; NULL when in range, when the element has no bound,
+  or when the row is a below-LOQ reading (a limit, not a value).
+
+It reads the standardised `value_std` (mg/kg) from step 8 and compares it to a
+per-element min/max table. The bounds are **draft, deliberately generous** — they
+target clearly implausible values (both impossibly high *and* impossibly low,
+e.g. Vannmiljø's Al at ~60 mg/kg or Fe at ~0.0002 mg/kg) rather than strict
+geochemical limits, and should be reviewed with domain input. They cover the 7
+targets, the Fe/Al normalisers, and organic carbon (as carbon mass); grain-size
+composition is unbounded (noisy, deferred to its own step). Draft bounds
+(mg/kg dry weight):
+
+| Element | min | max | | Element | min | max |
+|---------|----:|----:|-|---------|----:|----:|
+| Co | 0.1  | 300    | | Zn             | 1   | 20,000  |
+| Cu | 0.5  | 10,000 | | Fe             | 500 | 250,000 |
+| I  | 0.1  | 1,000  | | Al             | 500 | 200,000 |
+| Mn | 1    | 50,000 | | CORG/TOC/TOC63 | 100 | 300,000 |
+| Mo | 0.05 | 500    | | | | |
+| Se | 0.01 | 100    | | | | |
+
+Steps 8 and 9 have identical bodies across sources bar the DB path.

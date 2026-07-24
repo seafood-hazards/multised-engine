@@ -23,7 +23,7 @@ The data moves through three generations. Each is one SQLite DB **per source**.
    source. **Done.**
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
-   **All seven steps done** (see below).
+   and derive a standardised value. **All nine steps done** (see below).
 3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
 
 ## Slim schema (7 tables)
@@ -61,6 +61,8 @@ the per-source column map and the plan for the QC/marking steps.
 | 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | done   |
 | 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | done   |
 | 7 | `07_mark_below_loq.R`       | add `below_loq` column         | done   |
+| 8 | `08_add_converted_value.R`  | add `value_std`/`unit_std`     | done   |
+| 9 | `09_mark_range.R`           | add `range_flag` column        | done   |
 
 Step 3 adds two flags (NULL = passed): `area_flag` on `site` (`outside_europe`)
 and `invalid_flag` on `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
@@ -78,10 +80,18 @@ single grabs; it is derived from the data, not the tool code, since the same gea
 yields both. Step 7 adds `below_loq` (integer 0/1) to `measurement`, folding each
 source's detection/quantification flag (mareano `below_lld`, vannmiljo `operator`
 `<`/`ND`, ices-dome/mudab ICES `qflag` `<`/`Q`/`D`/`<~Q`, 4demon `limit_flag`)
-into one common below-limit marker for removal in the clean stage. Steps 3–6 have
-identical bodies across sources bar the DB path; step 7 differs per source because
-the source flag differs. Full step specs are in
-[docs/slim-pipeline.md](docs/slim-pipeline.md).
+into one common below-limit marker for removal in the clean stage. Step 8 adds
+`value_std` + `unit_std` to `measurement`: a standardised value keyed on the
+measurand — chemistry (targets + FE/AL + organic carbon) → **mg/kg**, grain-size
+composition → **%** — converted from each source's unit via the step-3 mass basis
+(`value / denom`). It is a reusable derived value (range check, Fe/Al
+normalisation, cross-source merge), not a flag. Step 9 adds `range_flag`
+(`below_min` / `above_max`, NULL = in range/unbounded/below-LOQ) to `measurement`,
+comparing `value_std` against a per-element plausible range (draft, generous
+bounds for the 7 targets + FE/AL + organic carbon; grain-size unbounded) to catch
+implausibly high and low values. Steps 3–6, 8 and 9 have identical bodies across
+sources bar the DB path; step 7 differs per source because the source flag
+differs. Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
 
