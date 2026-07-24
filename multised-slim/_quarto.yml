@@ -23,6 +23,10 @@ website:
             href: db-schema-slim.qmd
           - text: "Database Downloads"
             href: database-downloads.qmd
+      - text: "Flagging"
+        menu:
+          - text: "Common"
+            href: flagging-common.qmd
 
 format:
   html:
