@@ -1,0 +1,6 @@
+/* css styles */
+
+/* Keep wide per-source comparison tables readable and scrollable on narrow screens */
+table {
+  font-size: 0.9rem;
+}

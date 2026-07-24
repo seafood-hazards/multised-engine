@@ -1,0 +1,67 @@
+---
+title: "multised (slim)"
+subtitle: "Harmonised marine-sediment trace-element data from five sources"
+---
+
+**multised** assembles a database of marine-sediment trace-element measurements
+from five external sources, harmonises them into a common schema, and
+progressively quality-controls the result. This site documents the **slim**
+stage: five per-source databases that share one common schema, together with the
+quality-control and marking work performed on them.
+
+## Data sources
+
+```{r}
+library(tibble)
+library(knitr)
+
+sources_tbl <- tribble(
+  ~Source,      ~Origin,            ~Notes,
+  "Mareano",    "Norway / IMR",     "Norwegian cruise data.",
+  "Vannmiljø",  "Norway",           "Norwegian environmental monitoring.",
+  "ICES-DOME",  "International",     "Rich sediment-composition data.",
+  "MUDAB",      "International",     "German marine environmental database.",
+  "4Demon",     "International",     "Compiled historical Baltic/North Sea data."
+)
+
+kable(sources_tbl)
+```
+
+Each source was first parsed into a per-source **pilot** database (documented on
+its own pilot site), then reshaped into the shared **slim** schema used here.
+
+## Pipeline generations
+
+The data moves through four generations, each one SQLite database **per source**
+until the final merge:
+
+1. **pilot** — each source's raw files parsed into a per-source database whose
+   table structure follows that source. Documented on the individual pilot sites:
+   [Mareano](https://seafood-hazards.github.io/mareano-pilot/),
+   [Vannmiljø](https://seafood-hazards.github.io/vannmiljo-pilot/),
+   [ICES-DOME](https://seafood-hazards.github.io/ices-dome-pilot/),
+   [MUDAB](https://seafood-hazards.github.io/mudab-pilot/), and
+   [4Demon](https://seafood-hazards.github.io/4demon-pilot/).
+2. **slim** *(this site)* — every source reshaped into the same seven-table
+   schema, then annotated with quality-control and marking flags. The underlying
+   values are untouched; suspicious records are *flagged*, not deleted, so they
+   can be reviewed.
+3. **clean** — the flags are applied (uncertain rows removed), units are
+   harmonised, and normalisation (Fe/Al) and grain-size analyses are run.
+4. **merged** — the five clean databases are combined into a single database for
+   the background / pristine-sediment analysis.
+
+## What this site covers
+
+The slim stage is still in progress — more flagging columns will be added — but
+the database design is settled. The **DB Design** section is available now:
+
+- [DB Schema (Slim)](./db-schema-slim.qmd) — the common seven-table schema, the
+  entity-relationship diagram, and a per-source column comparison showing which
+  columns are shared and which are source-specific.
+- [Database Downloads](./database-downloads.qmd) — download links for the five
+  slim SQLite databases.
+
+Pages summarising the quality-control and marking results (invalid values,
+duplicates, below-LOQ, grain-size availability, and more) will follow as that
+work is finalised.

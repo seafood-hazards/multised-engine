@@ -1,0 +1,37 @@
+project:
+  type: website
+  render:
+    - "*.qmd"
+    - "!CHANGELOG.md"
+    - "!CLAUDE.md"
+    - "!README.md"
+
+website:
+  title: "multised (slim)"
+  navbar:
+    search: true
+    right:
+      - icon: github
+        href: https://github.com/seafood-hazards/multised-slim
+        aria-label: GitHub
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "DB Design"
+        menu:
+          - text: "DB Schema (Slim)"
+            href: db-schema-slim.qmd
+          - text: "Database Downloads"
+            href: database-downloads.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    df-print: kable
+
+execute:
+  echo: false
+  warning: false
+  message: false
