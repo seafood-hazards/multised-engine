@@ -1,6 +1,6 @@
 # Export below-LOQ measurements for manual review.
 #
-# Reads the below_loq flag written by each source's 07_mark_below_loq.R and
+# Reads the below_loq flag written by each source's 08_mark_below_loq.R and
 # dumps every below-limit measurement (below_loq == 1) to a per-source CSV in
 # ./data/qc_review/, with key context columns plus `source_flag` (the native
 # detection flag value that caused the mark). Run from the project root.

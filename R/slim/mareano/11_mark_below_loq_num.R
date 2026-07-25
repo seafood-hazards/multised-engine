@@ -3,17 +3,12 @@ library(RSQLite)
 library(tidyverse)
 
 # ── 0. Open slim db ──────────────────────────────────────────────────────────
-con <- dbConnect(RSQLite::SQLite(), "./data/db/ices_dome_slim.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mareano_slim.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
-# ── 1. Measurand classes + unit mass basis (mirror of step 8) ─────────────────
+# ── 1. Unit mass basis (mirror of step 9) ─────────────────────────────────────
 # Needed to convert a method limit into the same standardised unit as value_std
-# (chemistry -> mg/kg, grain-size -> %), so value and limit are compared like for
-# like.
-targets     <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
-normalisers <- c("FE", "AL")
-organic     <- c("CORG", "TOC", "TOC63")
-
+# (chemistry -> mg/kg), so value and limit are compared like for like.
 mass_basis <- tibble::tribble(
   ~unit_canon, ~denom,
   "%", 1e2, "vol.%", 1e2, "wt.%", 1e2,
@@ -28,14 +23,16 @@ canon_unit <- function(u) {
 }
 
 # ── 2. Add below_loq_num column (idempotent) ─────────────────────────────────
-# A numeric cross-check of the label-based `below_loq` (step 7), since a source's
+# A numeric cross-check of the label-based `below_loq` (step 8), since a source's
 # detection label can be wrong. 1 = value below the method's numeric
-# detection/quantification limit; 0 = above it; NULL = the method carries no
-# numeric limit (not assessable, e.g. 4Demon). At the limit exactly, the source
-# detection flag decides: some sources substitute the value at the limit (Mareano
-# reports value == LLD for below-detection results), so a value == limit is
-# below-limit only when `below_loq` is set; a genuine reading equal to the limit
-# (flag off) stays 0. The clean stage can union `below_loq = 1 OR below_loq_num = 1`.
+# detection/quantification limit; 0 = above it; NULL = not assessable (the method
+# carries no numeric limit, e.g. 4Demon, or the measurand is grain-size
+# composition, whose method 'limit' is a size-class boundary in µm, not a
+# detection limit). At the limit exactly, the source detection flag decides: some
+# sources substitute the value at the limit (Mareano reports value == LLD for
+# below-detection results), so a value == limit is below-limit only when
+# `below_loq` is set; a genuine reading equal to the limit (flag off) stays 0. The
+# clean stage can union `below_loq = 1 OR below_loq_num = 1`.
 if (!"below_loq_num" %in% dbListFields(con, "measurement")) {
   dbExecute(con, "ALTER TABLE measurement ADD COLUMN below_loq_num INTEGER;")
 }
@@ -51,23 +48,27 @@ for (col in c("loq", "lod", "lld")) {
 }
 
 # ── 4. Flag values at or below the (standardised) limit ──────────────────────
-m <- dbReadTable(con, "measurement") |> as_tibble()
+# The numeric check runs on chemistry only (element.category from step 3);
+# grain-size composition is left NULL because its method limit is a size-class
+# boundary in µm, not a detection limit.
+el <- dbReadTable(con, "element") |> as_tibble() |> select(symbol, category)
+m  <- dbReadTable(con, "measurement") |> as_tibble()
 if (!"value_std" %in% names(m)) {
-  stop("value_std is missing -- run 08_add_converted_value.R first.")
+  stop("value_std is missing -- run 09_add_converted_value.R first.")
 }
 if (!"below_loq" %in% names(m)) {
-  stop("below_loq is missing -- run 07_mark_below_loq.R first.")
+  stop("below_loq is missing -- run 08_mark_below_loq.R first.")
 }
 
 d <- m |>
   left_join(me_lim |> select(method_id, limit), by = "method_id") |>
-  mutate(sym = str_to_upper(symbol),
-         unit_canon = canon_unit(unit),
-         is_chem = sym %in% c(targets, normalisers, organic)) |>
+  left_join(el, by = "symbol") |>
+  mutate(unit_canon = canon_unit(unit),
+         is_chem = category %in% c("target", "reference", "organic")) |>
   left_join(mass_basis, by = "unit_canon") |>
   mutate(limit_std = limit / denom * if_else(is_chem, 1e6, 1e2),
          below_loq_num = case_when(
-           !is_chem ~ NA_integer_,  # grain-size: method 'lld' is a size-class boundary (um), not a detection limit
+           !is_chem ~ NA_integer_,  # grain-size: method 'limit' is a size-class boundary (um), not a detection limit
            is.na(limit_std) | is.na(value_std) | limit_std <= 0 ~ NA_integer_,
            value_std <  limit_std  ~ 1L,
            value_std == limit_std  ~ as.integer(below_loq == 1L),  # at the limit, defer to the flag

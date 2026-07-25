@@ -3,31 +3,26 @@ library(RSQLite)
 library(tidyverse)
 
 # ── 0. Open slim db ──────────────────────────────────────────────────────────
-con <- dbConnect(RSQLite::SQLite(), "./data/db/4demon_slim.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mareano_slim.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
-# ── 1. Classify each measurement's element ───────────────────────────────────
-# The element table holds the 7 targets, the FE/AL normalisers, the organic-
-# carbon parameters (CORG/TOC/TOC63), and the grain-size composition parameters.
-# Each measurement is classified; composition is the remainder (anything that is
-# not a target, not FE/AL, and not organic carbon). Symbols are cased differently
-# per source (Fe vs FE), so match on the upper-cased symbol.
-targets <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
-organic <- c("CORG", "TOC", "TOC63")
+# ── 1. Classify each measurement via the element category (step 3) ───────────
+# org_exist / comp_exist read element.category directly (organic carbon and
+# grain-size composition). fe_exist / al_exist still need the specific Fe vs Al
+# symbol, which the shared 'reference' category does not distinguish. Symbols are
+# cased differently per source (Fe vs FE), so match on the upper-cased symbol.
+el <- dbReadTable(con, "element") |> as_tibble() |>
+  transmute(sym = str_to_upper(symbol), category)
 m <- dbReadTable(con, "measurement") |> as_tibble() |>
-  transmute(subsample_id, sym = str_to_upper(symbol),
-            cat = case_when(sym == "FE"       ~ "fe",
-                            sym == "AL"       ~ "al",
-                            sym %in% targets  ~ "target",
-                            sym %in% organic  ~ "organic",
-                            TRUE              ~ "comp"))
+  transmute(subsample_id, sym = str_to_upper(symbol)) |>
+  left_join(el, by = "sym")
 
 # ── 2. Per-subsample existence of normalisers / organic C / composition ──────
 ex <- m |> group_by(subsample_id) |>
-  summarise(fe_exist   = as.integer(any(cat == "fe")),
-            al_exist   = as.integer(any(cat == "al")),
-            org_exist  = as.integer(any(cat == "organic")),
-            comp_exist = as.integer(any(cat == "comp")),
+  summarise(fe_exist   = as.integer(any(sym == "FE")),
+            al_exist   = as.integer(any(sym == "AL")),
+            org_exist  = as.integer(any(category == "organic")),
+            comp_exist = as.integer(any(category == "composition")),
             .groups = "drop")
 
 # ── 3. Write exist flags back to subsample (idempotent) ──────────────────────

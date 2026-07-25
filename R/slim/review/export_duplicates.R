@@ -1,6 +1,6 @@
 # Export duplicate / technical-replicate measurements for manual review.
 #
-# Uses the dup_flag written by each source's 04_mark_duplicates.R. Re-derives the
+# Uses the dup_flag written by each source's 05_mark_duplicates.R. Re-derives the
 # duplicate grouping key (site + date + depth + element + unit) so each flagged
 # row can be shown together with its whole sibling group. Writes two per-source
 # CSVs to ./data/qc_review/ :
@@ -39,7 +39,7 @@ for (src in names(sources)) {
   date_col <- intersect(c("date", "datetime", "year"), names(ev))[1]
   if (!"lab" %in% names(mt)) mt$lab <- NA_character_
 
-  # same key as 04_mark_duplicates.R (incl. method identity), so dup_group
+  # same key as 05_mark_duplicates.R (incl. method identity), so dup_group
   # matches the flag grouping. `lab` is guaranteed present (NA where the source
   # records none), so grouping on it is a no-op for those sources.
   d <- m |>

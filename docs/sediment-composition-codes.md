@@ -1,6 +1,6 @@
 # Sediment composition codes (ICES-DOME)
 
-Grain-size parameters used in step 5 (`05_mark_additional_data.R`) to flag
+Grain-size parameters used in step 6 (`06_mark_additional_data.R`) to flag
 whether sediment-composition data exist. Source: ICES-DOME.
 
 | Code | Description |

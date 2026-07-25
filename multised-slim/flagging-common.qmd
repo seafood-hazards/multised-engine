@@ -1,5 +1,5 @@
 ---
-title: "Common"
+title: "Common Flags"
 subtitle: Common flagging columns shared by all five slim databases
 ---
 
@@ -14,11 +14,12 @@ are marked so they can be inspected; the actual removal of unnecessary rows is a
 later **Data Cleaning** step, performed once the grain-size analysis is complete.
 
 This page covers the **common** flags: the columns that all five sources end up
-with, applied the same way everywhere. The source-native flags that only some
-sources report (e.g. detection flags and outlier flags) are summarised on the
-companion *Source specific* page. Each section below gives a short description
-followed by a cross-source count table, computed directly from the current slim
-databases.
+with, applied the same way everywhere. The measurand classes and supporting-data
+availability are on the companion *Class Summary* page; the source-native flags
+that only some sources report (e.g. detection flags and outlier flags) are
+summarised on the *Source specific* page. Each section below gives a short
+description followed by a cross-source count table, computed directly from the
+current slim databases.
 
 ```{r}
 #| label: setup
@@ -103,31 +104,7 @@ srcs |>
   kfmt()
 ```
 
-## 3. Supporting-data availability
-
-Adds four existence flags to `subsample`, recording whether the data needed for
-later normalisation and characterisation is present in each depth interval: an
-**Fe** or **Al** normaliser, **organic carbon** (CORG / TOC), or **grain-size
-composition**. The counts below are subsamples for which each is available.
-(4Demon carries no organic-carbon or composition parameters, so those are 0.)
-
-```{r}
-srcs |>
-  rowwise() |>
-  mutate(
-    Subsamples      = scal(file, "SELECT COUNT(*) FROM subsample"),
-    Fe              = scal(file, "SELECT COUNT(*) FROM subsample WHERE fe_exist = 1"),
-    Al              = scal(file, "SELECT COUNT(*) FROM subsample WHERE al_exist = 1"),
-    `Organic C`     = scal(file, "SELECT COUNT(*) FROM subsample WHERE org_exist = 1"),
-    Composition     = scal(file, "SELECT COUNT(*) FROM subsample WHERE comp_exist = 1")
-  ) |>
-  ungroup() |>
-  select(-file) |>
-  add_total() |>
-  kfmt()
-```
-
-## 4. Multi-layer samplings
+## 3. Multi-layer samplings
 
 Adds `n_layers` and `multi_flag` to `event`. An event with more than one
 subsample is a **multi-layer** sampling (e.g. a sliced core), while a single
@@ -159,7 +136,7 @@ bind_rows(
   kfmt()
 ```
 
-## 5. Below detection / quantification limit
+## 4. Below detection / quantification limit
 
 Adds a `below_loq` flag to `measurement`, folding each source's own detection
 flag (Mareano `below_lld`, Vannmiljø `operator`, the ICES `qflag`, 4Demon
@@ -180,7 +157,7 @@ srcs |>
   kfmt()
 ```
 
-## 6. Below limit (numeric cross-check)
+## 5. Below limit (numeric cross-check)
 
 Adds a `below_loq_num` flag to `measurement`: a numeric check that compares each
 value against the method's own detection/quantification limit (LOQ, else LOD/LLD),

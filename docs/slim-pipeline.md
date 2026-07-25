@@ -2,7 +2,7 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–7.
+marking steps 3–11.
 
 ## 1. Shared slim schema
 
@@ -38,7 +38,22 @@ Seven tables, built by `02_create_tables.R` for every source. Common columns:
 When writing cross-source logic, do not assume a column exists — branch on the
 source or guard with `if ("col" %in% names(df))`.
 
-## 2. Step 3 — Quality control (`03_quality_control.R`)
+## 2. Step 3 — Categorize (`03_categorize.R`)
+
+Adds one column to the **`element`** table:
+
+- `category` — the measurand class of each element symbol: `target` (the 7
+  targets Co/Cu/I/Mn/Mo/Se/Zn), `reference` (the Fe/Al normalisers), `organic`
+  (organic carbon: CORG/TOC/TOC63), or `composition` (grain-size, the remainder).
+
+This is the single source of truth for the measurand class. The later steps that
+used to redefine their own `targets`/`normalisers`/`organic` symbol vectors read
+this column instead (step 6 supporting-data availability, step 9 unit conversion,
+step 11 numeric below-limit), so the classification lives in one place. It is a
+pure function of the upper-cased symbol (`Fe` vs `FE`), so the step is fully
+idempotent; the stored `symbol` keeps its original case.
+
+## 3. Step 4 — Quality control (`04_quality_control.R`)
 
 Add a flag column per check (NULL = passed): `area_flag` on `site` and
 `invalid_flag` on `measurement`.
@@ -51,7 +66,7 @@ Add a flag column per check (NULL = passed): `area_flag` on `site` and
   negative (`negative`) or exceed unit-based limits (`over_range`, e.g.
   `unit == "ug/g"` ⇒ max 1000). Applies to `measurement.value`.
 
-## 3. Step 4 — Mark duplicates (`04_mark_duplicates.R`)
+## 4. Step 5 — Mark duplicates (`05_mark_duplicates.R`)
 
 Add `dup_flag` columns to the relevant tables. Two observations share the same
 date, location, depth, element, unit, **and method** (`method` plus `lab` where
@@ -65,7 +80,7 @@ metadata, not part of the method identity.
 - **Technical replicate** — same occasion + method but a *different* value,
   mark as technical replicate.
 
-## 4. Step 5 — Mark additional data (`05_mark_additional_data.R`)
+## 5. Step 6 — Mark additional data (`06_mark_additional_data.R`)
 
 Adds four integer (0/1) existence flags to the **`subsample`** table (the
 finest sampling unit = site + date + depth interval):
@@ -75,20 +90,17 @@ finest sampling unit = site + date + depth interval):
 - `org_exist` — an **organic-carbon** measurement is present (CORG / TOC / TOC63),
 - `comp_exist` — any **sediment composition** (grain-size) measurement is present.
 
-Classification is by symbol: the `element` table contains only the 7 targets,
-the FE/AL normalisers, the organic-carbon params, and the composition params, so
-composition is defined as *any element that is not a target, not FE/AL, and not
-organic carbon* (no description parsing). The organic-carbon set is the explicit
-list `CORG`, `TOC`, `TOC63` — sources code it differently (CORG for
-ices-dome/mudab, TOC/TOC63 for mareano/vannmiljo). Symbols are upper-cased first
-since sources case them differently (`Fe` vs `FE`). Flags roll up to event/site
-by taking the max over a group's subsamples.
+`org_exist` and `comp_exist` read `element.category` from step 3 (`organic` and
+`composition`); `fe_exist`/`al_exist` still test the specific FE/AL symbol, which
+the shared `reference` category does not distinguish. Symbols are upper-cased
+first since sources case them differently (`Fe` vs `FE`). Flags roll up to
+event/site by taking the max over a group's subsamples.
 
 Full list of grain-size codes lives in [sediment-composition-codes.md](sediment-composition-codes.md).
 (Note: 4Demon carries no composition or organic-carbon params, so its
 `comp_exist` and `org_exist` are always 0.)
 
-## 5. Step 6 — Mark multi (`06_mark_multi.R`)
+## 6. Step 7 — Mark multi (`07_mark_multi.R`)
 
 Adds two integer columns to the **`event`** table:
 
@@ -103,7 +115,7 @@ reliable discriminator. Replicate-core events (several events at one
 station/date/tool) are rare and inconsistent across sources (ICES-DOME: 0), so
 they are not separately flagged; add that later if the clean stage needs it.
 
-## 6. Step 7 — Mark below LOQ (`07_mark_below_loq.R`)
+## 7. Step 8 — Mark below LOQ (`08_mark_below_loq.R`)
 
 Adds one integer column to the **`measurement`** table:
 
@@ -113,8 +125,9 @@ Adds one integer column to the **`measurement`** table:
 It folds LOD and LOQ together into a single below-limit marker, taken from each
 source's own detection flag (not a numeric `value < loq` comparison — the flags
 are the authoritative source-provided signal). These rows are candidates for
-removal in the clean stage (`WHERE below_loq = 1`). Unlike steps 3–6 the body is
-**not** identical across sources, because the source flag differs:
+removal in the clean stage (`WHERE below_loq = 1`). Unlike the other marking
+steps the body is **not** identical across sources, because the source flag
+differs:
 
 | Source     | Flag column          | Values meaning below-limit | rows |
 |------------|----------------------|----------------------------|-----:|
@@ -130,19 +143,20 @@ is kept as 0 — it is not a detection-limit case. The two `qflag` scripts warn 
 rebuild introduces a non-NULL flag code outside the mapped set, so the crosstab in
 each script's verify block stays auditable.
 
-## 7. Step 8 — Add converted value (`08_add_converted_value.R`)
+## 8. Step 9 — Add converted value (`09_add_converted_value.R`)
 
 Adds two columns to the **`measurement`** table — a source-agnostic standardised
-value and its unit — reused by the range check (step 9), Fe/Al normalisation, and
-the cross-source merge:
+value and its unit — reused by the range check (step 10), the numeric below-limit
+check (step 11), Fe/Al normalisation, and the cross-source merge:
 
 - `value_std` (REAL) — the value in a common unit,
 - `unit_std` (TEXT) — that unit.
 
-Standardisation is by **measurand**, not raw unit:
+Standardisation is by **measurand** (`element.category` from step 3), not raw
+unit:
 
-- **Chemistry** — the 7 targets, the Fe/Al normalisers, and organic carbon
-  (CORG/TOC/TOC63) → **mg/kg** dry weight.
+- **Chemistry** (`target` / `reference` / `organic`) — the 7 targets, the Fe/Al
+  normalisers, and organic carbon (CORG/TOC/TOC63) → **mg/kg** dry weight.
 - **Grain-size composition** → **%** (mass/volume fraction). There is no
   length/µm grain-size in the data, so every grain-size value is a fraction; `%`
   is the only standardised grain-size unit. `vol.%` is treated as `%` here — the
@@ -150,11 +164,11 @@ Standardisation is by **measurand**, not raw unit:
 
 The conversion goes through the mass fraction `value / denom`, where `denom` is
 "100 % of sample mass" in the original unit (the same canonical-unit map as
-step 3). The fraction is then scaled to the target unit's full scale (`1e6` for
+step 4). The fraction is then scaled to the target unit's full scale (`1e6` for
 mg/kg, `1e2` for %). Units without a mass basis leave `value_std`/`unit_std` NULL
 and warn. This is a derived value, not a flag.
 
-## 8. Step 9 — Mark implausible range (`09_mark_range.R`)
+## 9. Step 10 — Mark implausible range (`10_mark_range.R`)
 
 Adds one column to the **`measurement`** table:
 
@@ -162,7 +176,7 @@ Adds one column to the **`measurement`** table:
   per-element plausible range; NULL when in range, when the element has no bound,
   or when the row is a below-LOQ reading (a limit, not a value).
 
-It reads the standardised `value_std` (mg/kg) from step 8 and compares it to a
+It reads the standardised `value_std` (mg/kg) from step 9 and compares it to a
 per-element min/max table. The bounds are **draft, deliberately generous** — they
 target clearly implausible values (both impossibly high *and* impossibly low,
 e.g. Vannmiljø's Al at ~60 mg/kg or Fe at ~0.0002 mg/kg) rather than strict
@@ -180,9 +194,9 @@ composition is unbounded (noisy, deferred to its own step). Draft bounds
 | Mo | 0.05 | 500    | | | | |
 | Se | 0.01 | 100    | | | | |
 
-Steps 8 and 9 have identical bodies across sources bar the DB path.
+Steps 9 and 10 have identical bodies across sources bar the DB path.
 
-## 9. Step 10 — Mark below limit, numeric (`10_mark_below_loq_num.R`)
+## 10. Step 11 — Mark below limit, numeric (`11_mark_below_loq_num.R`)
 
 Adds one column to the **`measurement`** table:
 
@@ -190,12 +204,12 @@ Adds one column to the **`measurement`** table:
   detection/quantification limit, `0` when above it, NULL when the method carries
   no numeric limit (not assessable).
 
-This is a **numeric cross-check** of step 7's label-based `below_loq`: a source's
+This is a **numeric cross-check** of step 8's label-based `below_loq`: a source's
 detection *label* can be wrong, so the value is also compared directly against the
 `method` table's own limit. The limit taken is **LOQ, else LOD, else LLD** (the
 most inclusive), converted into the same standardised unit as `value_std` (via the
-step-8 mass basis) so value and limit are compared like for like. It runs on
-**chemistry only** (the 7 targets + Fe/Al + organic carbon); grain-size
+step-9 mass basis) so value and limit are compared like for like. It runs on
+**chemistry only** (`element.category` in `target` / `reference` / `organic`); grain-size
 composition is left NULL, because a grain-size method's limit column holds the
 particle-size class boundary in µm (e.g. Gravel 2000, Sand 63), not a
 concentration detection limit — comparing that against a mass-% value would flag
@@ -213,5 +227,5 @@ Caveats: coverage is partial — 4Demon has no numeric limits, and only ~13 % of
 Vannmiljø does, so those rows are NULL; and Mareano's `lld` is a single collapsed
 representative limit per method, so its extra flags (values below the
 representative LLD but likely from lower-LLD batches) should be read with that in
-mind. Like steps 3–6, 8 and 9, the body is identical across sources bar the DB
+mind. Like steps 3–7 and 9–10, the body is identical across sources bar the DB
 path (the limit column is picked by whichever of `loq`/`lod`/`lld` the source has).

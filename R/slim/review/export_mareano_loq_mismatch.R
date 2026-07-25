@@ -1,12 +1,15 @@
 # Export Mareano rows where the numeric limit check and the detection label
 # disagree, for manual checking of the raw LLD/LOD/LOQ values.
 #
-# Step 7 sets `below_loq` from Mareano's own `below_lld` flag; step 10 sets
+# Step 8 sets `below_loq` from Mareano's own `below_lld` flag; step 11 sets
 # `below_loq_num` by comparing `value_std` against the method's numeric limit
 # (LLD here) converted to the standardised unit. This script exports the rows the
 # numeric check flags as below-limit that the label did NOT
-# (`below_loq_num = 1 AND below_loq = 0`) — the ~6,350 "missed by label" cases —
-# so the reported value can be checked against the method LLD by hand.
+# (`below_loq_num = 1 AND below_loq = 0`) — the "missed by label" cases — so the
+# reported value can be checked against the method LLD by hand. (Since step 11 now
+# skips grain-size composition, these are the ~27 genuine chemistry cases; before
+# that guard the count was inflated to ~6,350 by grain-size size-class boundaries
+# being misread as detection limits.)
 #
 # The Mareano caveat: `lld` in the method table is a single collapsed
 # representative limit per method, so a value below that representative LLD may
@@ -22,7 +25,7 @@ library(tidyverse)
 db <- "./data/db/mareano_slim.sqlite"
 out_path <- "./data/qc_review/mareano_loq_mismatch.csv"
 
-# ── Unit mass basis (mirror of steps 8 & 10) ─────────────────────────────────
+# ── Unit mass basis (mirror of steps 9 & 11) ─────────────────────────────────
 targets     <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
 normalisers <- c("FE", "AL")
 organic     <- c("CORG", "TOC", "TOC63")

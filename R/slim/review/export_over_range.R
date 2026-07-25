@@ -1,9 +1,9 @@
 # Export over-range measurements (failed the physical-ceiling QC) for review.
 #
-# Uses the measurement.invalid_flag == 'over_range' mark from 03_quality_control.R:
+# Uses the measurement.invalid_flag == 'over_range' mark from 04_quality_control.R:
 # values that exceed "100 % of the sample mass" for their unit. Writes one
 # per-source CSV to ./data/qc_review/<source>_over_range.csv, including the
-# `ceiling` that was exceeded (recomputed with the same unit map as step 3) plus
+# `ceiling` that was exceeded (recomputed with the same unit map as step 4) plus
 # whichever source-specific flag/method columns are present. Sources with no
 # over_range rows (mareano, 4demon) are skipped. Run from the project root.
 
@@ -19,7 +19,7 @@ sources <- c(
   "4demon"  = "./data/db/4demon_slim.sqlite"
 )
 
-# Physical ceiling per unit = 100 % of sample mass in that unit (mirror of step 3).
+# Physical ceiling per unit = 100 % of sample mass in that unit (mirror of step 4).
 base_max <- tibble::tribble(
   ~unit_canon, ~ceiling,
   "%", 1e2, "vol.%", 1e2, "wt.%", 1e2,

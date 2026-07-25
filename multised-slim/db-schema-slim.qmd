@@ -193,14 +193,15 @@ tribble(
 ## Quality-control & marking columns
 
 On top of the structural schema above, the slim quality-control steps append a
-common set of flag columns. These are **identical across all five sources** and
-never overwrite the original values; they only mark records for review or later
-removal. Their detailed semantics will be covered on the forthcoming
-quality-control pages.
+common set of classification and flag columns. These are **identical across all
+five sources** and never overwrite the original values; they only classify or
+mark records for review or later removal. Their detailed semantics are covered on
+the *Flagging* pages.
 
 ```{r}
 tribble(
   ~Table,        ~Column,      ~Type,     ~Meaning,
+  "element",     "category",   "TEXT",    "Measurand class: target / reference / organic / composition.",
   "site",        "area_flag",  "TEXT",    "Location flag: outside_europe, else NULL.",
   "event",       "n_layers",   "INTEGER", "Number of subsamples (depth layers) under the event.",
   "event",       "multi_flag", "INTEGER", "1 = multi-layer / -core sampling, 0 = single grab.",
@@ -210,6 +211,10 @@ tribble(
   "subsample",   "comp_exist", "INTEGER", "1 = a grain-size composition measurement is present.",
   "measurement", "invalid_flag", "TEXT",  "Value flag: negative / over_range, else NULL.",
   "measurement", "dup_flag",   "TEXT",    "duplicate / technical_replicate, else NULL.",
-  "measurement", "below_loq",  "INTEGER", "1 = value is below the detection / quantification limit."
+  "measurement", "below_loq",  "INTEGER", "1 = value is below the detection / quantification limit.",
+  "measurement", "value_std",  "REAL",    "Standardised value (chemistry mg/kg, composition %), else NULL.",
+  "measurement", "unit_std",   "TEXT",    "Unit of value_std: mg/kg or %, else NULL.",
+  "measurement", "range_flag", "TEXT",    "Plausible-range flag: below_min / above_max, else NULL.",
+  "measurement", "below_loq_num", "INTEGER", "1 = value below the method's numeric limit (chemistry only), else 0 / NULL."
 ) |> kable()
 ```

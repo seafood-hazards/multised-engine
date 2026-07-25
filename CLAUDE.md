@@ -23,7 +23,7 @@ The data moves through three generations. Each is one SQLite DB **per source**.
    source. **Done.**
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
-   and derive a standardised value. **All ten steps done** (see below).
+   and derive a standardised value. **All eleven steps done** (see below).
 3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
 
 ## Slim schema (7 tables)
@@ -56,56 +56,62 @@ the per-source column map and the plan for the QC/marking steps.
 > because the numbers looked plausible.
 
 
-| 3 | `03_quality_control.R`      | add `area_flag`/`invalid_flag` | done   |
-| 4 | `04_mark_duplicates.R`      | add `dup_flag` columns         | done   |
-| 5 | `05_mark_additional_data.R` | add `exist_flag` columns       | done   |
-| 6 | `06_mark_multi.R`           | mark multi-layer/-core samples | done   |
-| 7 | `07_mark_below_loq.R`       | add `below_loq` column         | done   |
-| 8 | `08_add_converted_value.R`  | add `value_std`/`unit_std`     | done   |
-| 9 | `09_mark_range.R`           | add `range_flag` column        | done   |
-| 10| `10_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
+| 3 | `03_categorize.R`           | add `element.category`         | done   |
+| 4 | `04_quality_control.R`      | add `area_flag`/`invalid_flag` | done   |
+| 5 | `05_mark_duplicates.R`      | add `dup_flag` columns         | done   |
+| 6 | `06_mark_additional_data.R` | add `exist_flag` columns       | done   |
+| 7 | `07_mark_multi.R`           | mark multi-layer/-core samples | done   |
+| 8 | `08_mark_below_loq.R`       | add `below_loq` column         | done   |
+| 9 | `09_add_converted_value.R`  | add `value_std`/`unit_std`     | done   |
+| 10| `10_mark_range.R`           | add `range_flag` column        | done   |
+| 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 
-Step 3 adds two flags (NULL = passed): `area_flag` on `site` (`outside_europe`)
-and `invalid_flag` on `measurement` (`negative` / `over_range`). Step 4 adds a `dup_flag` to
+Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
+`composition`), the single source of truth for the measurand class that later
+steps read instead of each redefining its own symbol lists (target = the 7
+targets, reference = FE/AL, organic = CORG/TOC/TOC63, composition = grain-size
+remainder). Step 4 adds two flags (NULL = passed): `area_flag` on `site`
+(`outside_europe`) and `invalid_flag` on `measurement` (`negative` /
+`over_range`). Step 5 adds a `dup_flag` to
 `measurement` (`duplicate` / `technical_replicate`, NULL = neither), grouping on
 location + date + depth + element + unit + method (`method` plus `lab` where the
 source records it), so readings of the same element from different methods/labs
 are not treated as replicates of each other. Both are suspicious markers for manual
-review, not deletions. Step 5 adds `fe_exist` / `al_exist` / `org_exist` /
+review, not deletions. Step 6 adds `fe_exist` / `al_exist` / `org_exist` /
 `comp_exist` (integer 0/1) to `subsample`, flagging whether the FE/AL normalisers,
 organic carbon (CORG/TOC), and grain-size composition are available for that
-sample (composition = any element that is not a target, not FE/AL, and not
-organic carbon). Step 6 adds `n_layers` + `multi_flag` (0/1)
+sample (org/comp read `element.category`; FE/AL still keyed on the specific
+symbol). Step 7 adds `n_layers` + `multi_flag` (0/1)
 to `event`, marking multi-layer/-core samplings (events with >1 subsample) versus
 single grabs; it is derived from the data, not the tool code, since the same gear
-yields both. Step 7 adds `below_loq` (integer 0/1) to `measurement`, folding each
+yields both. Step 8 adds `below_loq` (integer 0/1) to `measurement`, folding each
 source's detection/quantification flag (mareano `below_lld`, vannmiljo `operator`
 `<`/`ND`, ices-dome/mudab ICES `qflag` `<`/`Q`/`D`/`<~Q`, 4demon `limit_flag`)
-into one common below-limit marker for removal in the clean stage. Step 8 adds
+into one common below-limit marker for removal in the clean stage. Step 9 adds
 `value_std` + `unit_std` to `measurement`: a standardised value keyed on the
-measurand — chemistry (targets + FE/AL + organic carbon) → **mg/kg**, grain-size
-composition → **%** — converted from each source's unit via the step-3 mass basis
-(`value / denom`). It is a reusable derived value (range check, Fe/Al
-normalisation, cross-source merge), not a flag. Step 9 adds `range_flag`
-(`below_min` / `above_max`, NULL = in range/unbounded/below-LOQ) to `measurement`,
-comparing `value_std` against a per-element plausible range (draft, generous
-bounds for the 7 targets + FE/AL + organic carbon; grain-size unbounded) to catch
-implausibly high and low values. Step 10 adds `below_loq_num` (integer 0/1, NULL
-where the method has no numeric limit) to `measurement`: a numeric cross-check of
-step 7's label-based `below_loq`, comparing `value_std` against the method's own
-detection/quantification limit (LOQ, else LOD/LLD) converted to the standardised
-unit. `value < limit` → 1, `value > limit` → 0, and at `value == limit` it defers
-to the detection flag `below_loq` (some sources substitute the reported value at
-the limit — Mareano reports value == LLD for below-detection results — so a value
-equal to the limit is below only when the flag is set). It catches below-limit
-values the source labels missed; the clean stage can take the union `below_loq = 1
-OR below_loq_num = 1`. It runs on chemistry only (targets + FE/AL + organic
-carbon); grain-size is left NULL, since a grain-size method's limit column holds
-the size-class boundary in µm, not a detection limit. Coverage is partial — 4Demon
-has no numeric limits and only ~13% of Vannmiljø does, so those rows stay NULL;
-Mareano's `lld` is a collapsed representative limit, so its extra flags should be
-read with that caveat. Steps
-3–6 and 8–10 have identical bodies across sources bar the DB path; step 7 differs
+measurand (`element.category`) — chemistry (target + reference + organic) →
+**mg/kg**, grain-size composition → **%** — converted from each source's unit via
+the step-4 mass basis (`value / denom`). It is a reusable derived value (range
+check, Fe/Al normalisation, cross-source merge), not a flag. Step 10 adds
+`range_flag` (`below_min` / `above_max`, NULL = in range/unbounded/below-LOQ) to
+`measurement`, comparing `value_std` against a per-element plausible range (draft,
+generous bounds for the 7 targets + FE/AL + organic carbon; grain-size unbounded)
+to catch implausibly high and low values. Step 11 adds `below_loq_num` (integer
+0/1, NULL where the method has no numeric limit) to `measurement`: a numeric
+cross-check of step 8's label-based `below_loq`, comparing `value_std` against the
+method's own detection/quantification limit (LOQ, else LOD/LLD) converted to the
+standardised unit. `value < limit` → 1, `value > limit` → 0, and at `value ==
+limit` it defers to the detection flag `below_loq` (some sources substitute the
+reported value at the limit — Mareano reports value == LLD for below-detection
+results — so a value equal to the limit is below only when the flag is set). It
+catches below-limit values the source labels missed; the clean stage can take the
+union `below_loq = 1 OR below_loq_num = 1`. It runs on chemistry only (via
+`element.category`); grain-size is left NULL, since a grain-size method's limit
+column holds the size-class boundary in µm, not a detection limit. Coverage is
+partial — 4Demon has no numeric limits and only ~13% of Vannmiljø does, so those
+rows stay NULL; Mareano's `lld` is a collapsed representative limit, so its extra
+flags should be read with that caveat. Steps
+3–7 and 9–11 have identical bodies across sources bar the DB path; step 8 differs
 per source because the source flag differs. Full step specs are in
 [docs/slim-pipeline.md](docs/slim-pipeline.md).
 

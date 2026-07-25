@@ -25,9 +25,11 @@ website:
             href: database-downloads.qmd
       - text: "Flagging"
         menu:
+          - text: "Class Summary"
+            href: class-summary.qmd
           - text: "Unit Conversion & Range Check"
             href: flagging-conversion-range.qmd
-          - text: "Common"
+          - text: "Common Flags"
             href: flagging-common.qmd
 
 format:

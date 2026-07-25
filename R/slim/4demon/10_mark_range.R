@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # ── 0. Open slim db ──────────────────────────────────────────────────────────
-con <- dbConnect(RSQLite::SQLite(), "./data/db/vannmiljo_slim.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/4demon_slim.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # ── 1. Plausible concentration range per element (mg/kg dry weight) ───────────
@@ -36,12 +36,12 @@ if (!"range_flag" %in% dbListFields(con, "measurement")) {
   dbExecute(con, "ALTER TABLE measurement ADD COLUMN range_flag TEXT;")
 }
 
-# ── 3. Compare the standardised mg/kg value (step 8) against the bounds ───────
+# ── 3. Compare the standardised mg/kg value (step 9) against the bounds ───────
 m <- dbReadTable(con, "measurement") |> as_tibble()
 if (!"value_std" %in% names(m)) {
-  stop("value_std is missing -- run 08_add_converted_value.R first.")
+  stop("value_std is missing -- run 09_add_converted_value.R first.")
 }
-has_loq <- "below_loq" %in% names(m)   # common column from step 7
+has_loq <- "below_loq" %in% names(m)   # common column from step 8
 
 d <- m |>
   mutate(sym = str_to_upper(symbol),
@@ -50,7 +50,7 @@ d <- m |>
   mutate(range_flag = case_when(
     is.na(min_mgkg)       ~ NA_character_,   # element not bounded (e.g. grain size)
     loq == 1L             ~ NA_character_,   # below-LOQ reading is a limit, not a value
-    is.na(value_std)      ~ NA_character_,   # unit was not convertible in step 8
+    is.na(value_std)      ~ NA_character_,   # unit was not convertible in step 9
     value_std < min_mgkg  ~ "below_min",
     value_std > max_mgkg  ~ "above_max",
     TRUE                  ~ NA_character_))
