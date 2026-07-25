@@ -215,6 +215,7 @@ tribble(
   "measurement", "value_std",  "REAL",    "Standardised value (chemistry mg/kg, composition %), else NULL.",
   "measurement", "unit_std",   "TEXT",    "Unit of value_std: mg/kg or %, else NULL.",
   "measurement", "range_flag", "TEXT",    "Plausible-range flag: below_min / above_max, else NULL.",
-  "measurement", "below_loq_num", "INTEGER", "1 = value below the method's numeric limit (chemistry only), else 0 / NULL."
+  "measurement", "below_loq_num", "INTEGER", "1 = value below the method's numeric limit (chemistry only), else 0 / NULL.",
+  "measurement", "weight_basis", "TEXT",     "Sample weight basis of a chemistry value: dry / wet, else NULL."
 ) |> kable()
 ```

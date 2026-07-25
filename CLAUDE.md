@@ -23,7 +23,7 @@ The data moves through three generations. Each is one SQLite DB **per source**.
    source. **Done.**
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
-   and derive a standardised value. **All eleven steps done** (see below).
+   and derive a standardised value. **All twelve steps done** (see below).
 3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
 
 ## Slim schema (7 tables)
@@ -65,6 +65,7 @@ the per-source column map and the plan for the QC/marking steps.
 | 9 | `09_add_converted_value.R`  | add `value_std`/`unit_std`     | done   |
 | 10| `10_mark_range.R`           | add `range_flag` column        | done   |
 | 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
+| 12| `12_mark_weight_basis.R`    | add `weight_basis` column      | done   |
 
 Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
 `composition`), the single source of truth for the measurand class that later
@@ -110,9 +111,14 @@ union `below_loq = 1 OR below_loq_num = 1`. It runs on chemistry only (via
 column holds the size-class boundary in µm, not a detection limit. Coverage is
 partial — 4Demon has no numeric limits and only ~13% of Vannmiljø does, so those
 rows stay NULL; Mareano's `lld` is a collapsed representative limit, so its extra
-flags should be read with that caveat. Steps
-3–7 and 9–11 have identical bodies across sources bar the DB path; step 8 differs
-per source because the source flag differs. Full step specs are in
+flags should be read with that caveat. Step 12 adds `weight_basis` (`dry` / `wet`,
+NULL for grain-size composition) to `measurement`, harmonising each source's
+stated sample weight basis: from a `basis` column (ices-dome/mudab/4demon) or the
+unit suffix (vannmiljo `dw`), with Mareano all dry (confirmed). Only chemistry is
+classified; dry weight is the sediment standard, so the few wet rows (only
+ices-dome, 363) are review candidates. Steps
+3–7 and 9–11 have identical bodies across sources bar the DB path; steps 8 and 12
+differ per source because the source signal differs. Full step specs are in
 [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions

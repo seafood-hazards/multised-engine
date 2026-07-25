@@ -185,6 +185,31 @@ srcs |>
   kfmt()
 ```
 
+## 6. Dry / wet weight
+
+Adds a `weight_basis` flag to `measurement`, harmonising each source's stated
+sample weight basis into **dry** or **wet** weight. It is read from the source's
+own signal: a `basis` column (ICES-DOME / MUDAB / 4Demon) or the unit suffix
+(Vannmiljø `mg/kg dw`); Mareano reports everything on a dry-weight basis. Only
+chemistry (target / reference / organic) is classified: the counts below are over
+chemistry measurements, and grain-size composition is left unset (the dry/wet
+distinction is a concentration concept, handled separately for grain size). Dry
+weight is the sediment standard, so the few **wet** rows are the ones to review.
+
+```{r}
+srcs |>
+  rowwise() |>
+  mutate(
+    Chemistry = scal(file, "SELECT COUNT(*) FROM measurement WHERE weight_basis IS NOT NULL"),
+    Dry       = scal(file, "SELECT COUNT(*) FROM measurement WHERE weight_basis = 'dry'"),
+    Wet       = scal(file, "SELECT COUNT(*) FROM measurement WHERE weight_basis = 'wet'")
+  ) |>
+  ungroup() |>
+  select(-file) |>
+  add_total() |>
+  kfmt()
+```
+
 ::: {.callout-note}
 No rows have been deleted. These flags will drive the removal of uncertain,
 duplicated, and out-of-scope records when the **clean** databases are built.

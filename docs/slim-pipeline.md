@@ -2,7 +2,7 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–11.
+marking steps 3–12.
 
 ## 1. Shared slim schema
 
@@ -229,3 +229,29 @@ representative limit per method, so its extra flags (values below the
 representative LLD but likely from lower-LLD batches) should be read with that in
 mind. Like steps 3–7 and 9–10, the body is identical across sources bar the DB
 path (the limit column is picked by whichever of `loq`/`lod`/`lld` the source has).
+
+## 11. Step 12 — Mark weight basis (`12_mark_weight_basis.R`)
+
+Adds one column to the **`measurement`** table:
+
+- `weight_basis` — `dry` / `wet` for a chemistry measurement, NULL for grain-size
+  composition (the dry/wet-weight distinction is a concentration concept; a
+  grain-size fraction's vol.%/wt.% basis is left to the dedicated grain-size
+  step).
+
+It harmonises each source's stated sample weight basis into one common marker.
+Like step 8, the body is **not** identical across sources, because the signal
+differs:
+
+| Source     | Signal                       | Values                     |
+|------------|------------------------------|----------------------------|
+| mareano    | none (all dry, confirmed)    | every chemistry row `dry`  |
+| vannmiljo  | unit suffix                  | `… dw` ⇒ dry, `… ww` ⇒ wet |
+| ices-dome  | `basis` column               | `D` ⇒ dry, `W` ⇒ wet       |
+| mudab      | `basis` column               | `D` ⇒ dry                  |
+| 4demon     | `basis` column               | `dw` ⇒ dry                 |
+
+Classification is scoped to chemistry via `element.category` (step 3); grain-size
+composition stays NULL. Dry weight is the sediment standard, so the only
+wet-weight rows in the data are ICES-DOME's 363 chemistry measurements; those are
+review / conversion candidates for the clean stage.
