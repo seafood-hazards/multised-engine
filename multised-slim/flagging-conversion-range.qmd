@@ -65,6 +65,12 @@ The conversion goes through the mass fraction `value / denom`, where `denom` is
 "100 % of the sample mass" expressed in the original unit, then scales to the
 target unit's full scale (`1,000,000` for mg/kg, `100` for %).
 
+Where a source supplies a QC-corrected value, that is the value standardised here:
+4Demon's `corrected_value` (which its metadata recommends for analysis) carries
+scale-error fixes and below-detection substitutions, while the raw `value` is kept
+as provenance. This corrected a batch of 4Demon iron values reported about 10 times
+too high.
+
 ```{r}
 tribble(
   ~Measurand,                                ~`Standard unit`, ~`Example conversion`,

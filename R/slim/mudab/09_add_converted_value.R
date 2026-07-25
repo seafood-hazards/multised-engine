@@ -43,12 +43,23 @@ for (coldef in c("value_std REAL", "unit_std TEXT")) {
 el <- dbReadTable(con, "element") |> as_tibble() |> select(symbol, category)
 m  <- dbReadTable(con, "measurement") |> as_tibble()
 
+# Analysis value: prefer a source-provided QC-corrected value where present
+# (4Demon's `corrected_value`: scale-error fixes, below-detection substitutions,
+# unit normalisation -- the column 4Demon recommends for analysis). The raw
+# `value` is kept untouched as provenance; other sources have no such column, so
+# this is a no-op for them.
+m$value_analysis <- if ("corrected_value" %in% names(m)) {
+  coalesce(m$corrected_value, m$value)
+} else {
+  m$value
+}
+
 d <- m |>
   left_join(el, by = "symbol") |>
   mutate(unit_canon = canon_unit(unit),
          is_chem    = category %in% c("target", "reference", "organic")) |>
   left_join(mass_basis, by = "unit_canon") |>
-  mutate(frac      = value / denom,
+  mutate(frac      = value_analysis / denom,
          value_std = if_else(is.na(denom), NA_real_,
                              if_else(is_chem, frac * 1e6, frac * 1e2)),
          unit_std  = if_else(is.na(denom), NA_character_,

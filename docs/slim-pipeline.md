@@ -169,6 +169,16 @@ step 4). The fraction is then scaled to the target unit's full scale (`1e6` for
 mg/kg, `1e2` for %). Units without a mass basis leave `value_std`/`unit_std` NULL
 and warn. This is a derived value, not a flag.
 
+Where a source provides a **QC-corrected value**, `value_std` is standardised from
+that rather than the raw `value`: 4Demon's `corrected_value` (which the 4Demon
+metadata recommends for analysis) carries scale-error fixes and below-detection
+substitutions — e.g. Fe reported as 720,000 µg/g (72 %) corrected to 72,000 µg/g
+(7.2 %). The raw `value` column is left untouched as provenance. The step reads
+`corrected_value` where the column exists (`coalesce(corrected_value, value)`) and
+falls back to `value` for every other source, so the body stays identical across
+sources. Adopting the corrected values cleared all 49 of 4Demon's spurious
+`above_max` range flags (step 10).
+
 ## 9. Step 10 — Mark implausible range (`10_mark_range.R`)
 
 Adds one column to the **`measurement`** table:

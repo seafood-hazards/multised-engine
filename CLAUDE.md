@@ -97,7 +97,10 @@ into one common below-limit marker for removal in the clean stage. Step 9 adds
 `value_std` + `unit_std` to `measurement`: a standardised value keyed on the
 measurand (`element.category`) — chemistry (target + reference + organic) →
 **mg/kg**, grain-size composition → **%** — converted from each source's unit via
-the step-4 mass basis (`value / denom`). It is a reusable derived value (range
+the step-4 mass basis. It standardises the source's QC-corrected value where one
+is provided (4Demon's `corrected_value`: scale-error fixes, below-detection
+substitutions; raw `value` kept as provenance), else the raw `value`. It is a
+reusable derived value (range
 check, Fe/Al normalisation, cross-source merge), not a flag. Step 10 adds
 `range_flag` (`below_min` / `above_max`, NULL = in range/unbounded/below-LOQ) to
 `measurement`, comparing `value_std` against a per-element plausible range (draft,
