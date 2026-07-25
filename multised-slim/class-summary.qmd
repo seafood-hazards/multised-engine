@@ -18,8 +18,8 @@ the data:
 - **Composition**: grain-size parameters (the remainder).
 
 This page summarises how the measurements split across those classes in each
-source, the distribution of their standardised values, and which supporting data
-(normalisers, organic carbon, grain-size composition) is available per sample.
+source, and which supporting data (normalisers, organic carbon, grain-size
+composition) is available per sample.
 
 ```{r}
 #| label: setup
@@ -56,15 +56,6 @@ add_total <- function(df) {
 }
 
 kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
-
-# Format a summary statistic to 3 significant figures, comma-grouped, never
-# scientific, so a table can mix 0.05 and 90,000,000,000 legibly. Sub-nanoscale
-# magnitudes are floating-point noise (e.g. a grain-size % of -1.3e-14) and snap
-# to 0.
-fmt_val <- function(x) {
-  x <- ifelse(abs(x) < 1e-9, 0, x)
-  prettyNum(signif(x, 3), big.mark = ",", scientific = FALSE)
-}
 
 # Fixed class order for display.
 cls_levels <- c("target", "reference", "organic", "composition")
@@ -121,44 +112,7 @@ el_by_class |>
   kfmt()
 ```
 
-## 2. Standardised-value distribution by class
-
-Each measurement's standardised value `value_std` (chemistry in **mg/kg**,
-composition in **%**, see *Unit Conversion & Range Check*) is summarised per
-class and source. Chemistry classes are therefore comparable across sources on
-one scale; composition is a percentage. Below-limit and unconvertible rows carry
-no `value_std` and are excluded.
-
-```{r}
-vals <- bind_rows(lapply(seq_len(nrow(srcs)), function(i) {
-  qry(srcs$file[i],
-      "SELECT e.category AS category, m.value_std AS value_std
-       FROM measurement m JOIN element e ON e.symbol = m.symbol
-       WHERE m.value_std IS NOT NULL") |>
-    mutate(Source = srcs$Source[i])
-}))
-
-vals |>
-  mutate(category = factor(category, levels = cls_levels)) |>
-  group_by(Source, Class = category) |>
-  summarise(
-    Unit     = if (first(Class) == "composition") "%" else "mg/kg",
-    N        = n(),
-    Min      = fmt_val(min(value_std)),
-    Q1       = fmt_val(quantile(value_std, 0.25)),
-    Median   = fmt_val(median(value_std)),
-    Q3       = fmt_val(quantile(value_std, 0.75)),
-    Max      = fmt_val(max(value_std)),
-    .groups = "drop"
-  ) |>
-  mutate(Source = factor(Source, levels = srcs$Source),
-         Class  = factor(cls_label[as.character(Class)], levels = cls_named)) |>
-  arrange(Source, Class) |>
-  mutate(Source = as.character(Source), Class = as.character(Class)) |>
-  kfmt()
-```
-
-## 3. Supporting-data availability
+## 2. Supporting-data availability
 
 Which data needed for later normalisation and characterisation is present in each
 depth interval (`subsample`): an **Fe** or **Al** normaliser, **organic carbon**,
