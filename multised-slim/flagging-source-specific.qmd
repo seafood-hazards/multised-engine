@@ -11,8 +11,8 @@ The *Common Flags* are applied the same way to all five sources. Some sources
 also carry **native columns of their own** that the common steps do not cover.
 Where those add information worth keeping, they are folded into a per-source
 `src_flag` on `measurement` (NULL = pass), so the clean stage can review or remove
-them. This is a source-by-source step (13 onward in the pipeline); so far only
-**Vannmiljø** has one.
+them. This is a source-by-source step (13 onward in the pipeline); so far
+**Vannmiljø** and **ICES-DOME** have one.
 
 ```{r}
 #| label: setup
@@ -70,13 +70,42 @@ qry("vannmiljo_slim",
   kfmt()
 ```
 
+## ICES-DOME
+
+ICES-DOME's detection/quantification flag (`qflag`) and dry/wet basis (`basis`)
+are already handled by the common `below_loq` and `weight_basis` steps. Its
+`vflag`, the originator's value-quality flag, is folded into `src_flag` (meanings
+from the ICES `code_lookup` table):
+
+```{r}
+tribble(
+  ~`src_flag`,    ~`Source column`, ~Meaning,
+  "suspect",    "vflag = 'S'",  "Suspect value: considered suspect by the originator on the basis of quality control or instrument performance.",
+  "calculated", "vflag = 'C'",  "Calculated value: a derived value rather than a direct measurement."
+) |> kable()
+```
+
+`vflag = 'A'` (acceptable value) and rows with no `vflag` pass. The counts below
+are the current ICES-DOME slim database.
+
+```{r}
+qry("ices_dome_slim",
+    "SELECT COALESCE(src_flag, '(pass)') AS `src_flag`, COUNT(*) AS Rows
+     FROM measurement GROUP BY src_flag ORDER BY Rows DESC") |>
+  kfmt()
+```
+
+ICES-DOME's remaining native columns are **not** folded in: `dcflag` holds ICES
+DATSU screening / conversion codes (mostly benign unit conversions), and
+`metcu` / `uncrt` / `matrix` are uncertainty and sample-fraction metadata rather
+than quality flags.
+
 ## Other sources
 
-The international sources carry their own native columns (e.g. ICES-DOME's
-`vflag` / `dcflag` / `metcu` / `uncrt`, and 4Demon's `range_check_flag` /
-`outlier_extreme_flag` / `outlier_stdev_flag`). These are retained in the slim
-`measurement` tables but are **not yet folded into a `src_flag`**; they will be
-added here as their handling is decided.
+MUDAB and 4Demon carry their own native columns too (e.g. 4Demon's
+`range_check_flag` / `outlier_extreme_flag` / `outlier_stdev_flag`). These are
+retained in the slim `measurement` tables but are **not yet folded into a
+`src_flag`**; they will be added here as their handling is decided.
 
 ::: {.callout-note}
 No rows have been deleted. `src_flag` marks source-native records for review; the

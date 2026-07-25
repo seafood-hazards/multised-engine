@@ -2,7 +2,7 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–12, plus the source-specific step 13 (Vannmiljø).
+marking steps 3–12, plus the source-specific step 13 (Vannmiljø, ICES-DOME).
 
 ## 1. Shared slim schema
 
@@ -256,22 +256,21 @@ composition stays NULL. Dry weight is the sediment standard, so the only
 wet-weight rows in the data are ICES-DOME's 363 chemistry measurements; those are
 review / conversion candidates for the clean stage.
 
-## 12. Step 13 — Mark source-specific (Vannmiljø only)
+## 12. Step 13 — Mark source-specific (`13_mark_source_specific.R`)
 
 Steps 1–12 are common to every source. From step 13 the pipeline becomes
 **source-specific**: a source gets one only if it carries native flags the common
-steps do not already cover. So far only Vannmiljø has one.
+steps do not already cover. Each such source adds its own `src_flag` (TEXT, NULL =
+pass) to `measurement`, with its own value vocabulary, folding those leftovers into
+one review marker for the clean stage. So far Vannmiljø and ICES-DOME have one.
 
-`13_mark_source_specific.R` adds one column to the **`measurement`** table:
-
-- `src_flag` — `above_range` / `filtered` (NULL = pass), folding Vannmiljø's two
-  native leftovers into one review marker.
+### Vannmiljø
 
 Vannmiljø carries `operator` (a relational sign) and `filtered`. The
 below-detection meaning of `operator` (`<` / `ND`) is already in `below_loq`
 (step 8); what remains is:
 
-| Value         | Source condition | Meaning                                             | rows |
+| `src_flag`    | Source condition | Meaning                                             | rows |
 |---------------|------------------|-----------------------------------------------------|-----:|
 | `above_range` | `operator = '>'` | right-censored "greater-than" reading (lower bound)  | 15 |
 | `filtered`    | `filtered = 1`   | filtered-water sample rather than bulk sediment      | 2 |
@@ -279,4 +278,21 @@ below-detection meaning of `operator` (`<` / `ND`) is already in `below_loq`
 The two are disjoint in the data (a combined `above_range,filtered` label is kept
 only as a guard). Unlike `weight_basis`, `above_range` is not scoped to chemistry:
 a `>` grain-size fraction is right-censored too (11 of the 15 are grain size).
-Both are review / removal candidates for the clean stage.
+
+### ICES-DOME
+
+ICES's `qflag` (detection/quantification) and `basis` are already folded (steps 8
+and 12). Its `vflag` (the originator value-quality flag) is folded here; meanings
+are from the pilot `code_lookup` table:
+
+| `src_flag`   | Source condition | Meaning                                              | rows |
+|--------------|------------------|------------------------------------------------------|-----:|
+| `suspect`    | `vflag = 'S'`    | suspect value (originator QC / instrument performance) | 68 |
+| `calculated` | `vflag = 'C'`    | a calculated (derived) value, not a direct measurement | 16 |
+
+`vflag = 'A'` ("Acceptable value") and NULL pass. ICES's other native columns are
+left unfolded on purpose: `dcflag` holds DATSU screening/conversion codes (mostly
+benign unit conversions), and `metcu`/`uncrt`/`matrix` are uncertainty and
+sample-fraction metadata, not clean quality flags.
+
+All `src_flag` values are review / removal candidates for the clean stage.
