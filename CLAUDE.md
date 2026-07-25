@@ -99,9 +99,12 @@ to the detection flag `below_loq` (some sources substitute the reported value at
 the limit — Mareano reports value == LLD for below-detection results — so a value
 equal to the limit is below only when the flag is set). It catches below-limit
 values the source labels missed; the clean stage can take the union `below_loq = 1
-OR below_loq_num = 1`. Coverage is partial — 4Demon has no numeric limits and only
-~13% of Vannmiljø does, so those rows stay NULL; Mareano's `lld` is a collapsed
-representative limit, so its extra flags should be read with that caveat. Steps
+OR below_loq_num = 1`. It runs on chemistry only (targets + FE/AL + organic
+carbon); grain-size is left NULL, since a grain-size method's limit column holds
+the size-class boundary in µm, not a detection limit. Coverage is partial — 4Demon
+has no numeric limits and only ~13% of Vannmiljø does, so those rows stay NULL;
+Mareano's `lld` is a collapsed representative limit, so its extra flags should be
+read with that caveat. Steps
 3–6 and 8–10 have identical bodies across sources bar the DB path; step 7 differs
 per source because the source flag differs. Full step specs are in
 [docs/slim-pipeline.md](docs/slim-pipeline.md).

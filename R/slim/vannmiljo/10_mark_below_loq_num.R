@@ -67,6 +67,7 @@ d <- m |>
   left_join(mass_basis, by = "unit_canon") |>
   mutate(limit_std = limit / denom * if_else(is_chem, 1e6, 1e2),
          below_loq_num = case_when(
+           !is_chem ~ NA_integer_,  # grain-size: method 'lld' is a size-class boundary (um), not a detection limit
            is.na(limit_std) | is.na(value_std) | limit_std <= 0 ~ NA_integer_,
            value_std <  limit_std  ~ 1L,
            value_std == limit_std  ~ as.integer(below_loq == 1L),  # at the limit, defer to the flag

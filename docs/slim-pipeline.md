@@ -194,7 +194,12 @@ This is a **numeric cross-check** of step 7's label-based `below_loq`: a source'
 detection *label* can be wrong, so the value is also compared directly against the
 `method` table's own limit. The limit taken is **LOQ, else LOD, else LLD** (the
 most inclusive), converted into the same standardised unit as `value_std` (via the
-step-8 mass basis) so value and limit are compared like for like. `value_std <
+step-8 mass basis) so value and limit are compared like for like. It runs on
+**chemistry only** (the 7 targets + Fe/Al + organic carbon); grain-size
+composition is left NULL, because a grain-size method's limit column holds the
+particle-size class boundary in µm (e.g. Gravel 2000, Sand 63), not a
+concentration detection limit — comparing that against a mass-% value would flag
+almost every grain-size row spuriously. `value_std <
 limit_std` → `1`, `value_std > limit_std` → `0`, and **at the limit exactly**
 (`value_std == limit_std`) it defers to the source detection flag `below_loq`:
 some sources substitute the reported value *at* the limit (Mareano reports
