@@ -127,6 +127,8 @@ per source because the source flag differs. Full step specs are in
   widened into a single `df_slim` join table from which each output table is
   cut with `distinct()` + `row_number()` surrogate keys.
 - Scripts are organised with `# ── N. Title ─────` section headers.
+- **No em-dashes in the Quarto site pages** (`multised-*/*.qmd`): use commas,
+  colons, or parentheses instead.
 - Sites are keyed on latitude/longitude **rounded to 3 decimal places**.
 - The `sedimenter` DESCRIPTION/NAMESPACE make this a package skeleton, but the
   code is a script pipeline, not an exported-function package.

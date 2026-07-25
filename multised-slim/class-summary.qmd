@@ -8,14 +8,14 @@ th { white-space: nowrap; }
 ```
 
 Before any quality flag is applied, each element is assigned a **measurand
-class** — a single `category` column on the `element` table that every later
+class**: a single `category` column on the `element` table that every later
 step reads instead of maintaining its own list of symbols. Four classes cover
 the data:
 
-- **Target** — the 7 trace-element targets: Co, Cu, I, Mn, Mo, Se, Zn.
-- **Reference** — the Fe and Al normalisers.
-- **Organic** — organic carbon (CORG / TOC / TOC63).
-- **Composition** — grain-size parameters (the remainder).
+- **Target**: the 7 trace-element targets: Co, Cu, I, Mn, Mo, Se, Zn.
+- **Reference**: the Fe and Al normalisers.
+- **Organic**: organic carbon (CORG / TOC / TOC63).
+- **Composition**: grain-size parameters (the remainder).
 
 This page summarises how the measurements split across those classes in each
 source, the distribution of their standardised values, and which supporting data
@@ -58,7 +58,7 @@ add_total <- function(df) {
 kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
 
 # Format a summary statistic to 3 significant figures, comma-grouped, never
-# scientific — so a table can mix 0.05 and 90,000,000,000 legibly. Sub-nanoscale
+# scientific, so a table can mix 0.05 and 90,000,000,000 legibly. Sub-nanoscale
 # magnitudes are floating-point noise (e.g. a grain-size % of -1.3e-14) and snap
 # to 0.
 fmt_val <- function(x) {
@@ -99,7 +99,7 @@ meas_by_class |>
   kfmt()
 ```
 
-The number of *distinct elements* backing those measurements differs too — one
+The number of *distinct elements* backing those measurements differs too: one
 target set is largely shared, while composition spans many grain-size codes that
 vary by source.
 
@@ -124,7 +124,7 @@ el_by_class |>
 ## 2. Standardised-value distribution by class
 
 Each measurement's standardised value `value_std` (chemistry in **mg/kg**,
-composition in **%** — see *Unit Conversion & Range Check*) is summarised per
+composition in **%**, see *Unit Conversion & Range Check*) is summarised per
 class and source. Chemistry classes are therefore comparable across sources on
 one scale; composition is a percentage. Below-limit and unconvertible rows carry
 no `value_std` and are excluded.
