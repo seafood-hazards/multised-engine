@@ -2,7 +2,7 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–12.
+marking steps 3–12, plus the source-specific step 13 (Vannmiljø).
 
 ## 1. Shared slim schema
 
@@ -255,3 +255,28 @@ Classification is scoped to chemistry via `element.category` (step 3); grain-siz
 composition stays NULL. Dry weight is the sediment standard, so the only
 wet-weight rows in the data are ICES-DOME's 363 chemistry measurements; those are
 review / conversion candidates for the clean stage.
+
+## 12. Step 13 — Mark source-specific (Vannmiljø only)
+
+Steps 1–12 are common to every source. From step 13 the pipeline becomes
+**source-specific**: a source gets one only if it carries native flags the common
+steps do not already cover. So far only Vannmiljø has one.
+
+`13_mark_source_specific.R` adds one column to the **`measurement`** table:
+
+- `src_flag` — `above_range` / `filtered` (NULL = pass), folding Vannmiljø's two
+  native leftovers into one review marker.
+
+Vannmiljø carries `operator` (a relational sign) and `filtered`. The
+below-detection meaning of `operator` (`<` / `ND`) is already in `below_loq`
+(step 8); what remains is:
+
+| Value         | Source condition | Meaning                                             | rows |
+|---------------|------------------|-----------------------------------------------------|-----:|
+| `above_range` | `operator = '>'` | right-censored "greater-than" reading (lower bound)  | 15 |
+| `filtered`    | `filtered = 1`   | filtered-water sample rather than bulk sediment      | 2 |
+
+The two are disjoint in the data (a combined `above_range,filtered` label is kept
+only as a guard). Unlike `weight_basis`, `above_range` is not scoped to chemistry:
+a `>` grain-size fraction is right-censored too (11 of the 15 are grain size).
+Both are review / removal candidates for the clean stage.

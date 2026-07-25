@@ -66,6 +66,11 @@ the per-source column map and the plan for the QC/marking steps.
 | 10| `10_mark_range.R`           | add `range_flag` column        | done   |
 | 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 | 12| `12_mark_weight_basis.R`    | add `weight_basis` column      | done   |
+| 13| `13_mark_source_specific.R` | add `src_flag` (source-native) | vannmiljo |
+
+Steps 1–12 are common to every source; **step 13 onward is source-specific** and
+present only where a source has native flags to fold in. So far only Vannmiljø
+has one (`13_mark_source_specific.R`).
 
 Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
 `composition`), the single source of truth for the measurand class that later
@@ -118,7 +123,12 @@ unit suffix (vannmiljo `dw`), with Mareano all dry (confirmed). Only chemistry i
 classified; dry weight is the sediment standard, so the few wet rows (only
 ices-dome, 363) are review candidates. Steps
 3–7 and 9–11 have identical bodies across sources bar the DB path; steps 8 and 12
-differ per source because the source signal differs. Full step specs are in
+differ per source because the source signal differs. Step 13 is **Vannmiljø-only**
+and adds `src_flag` (TEXT, NULL = pass) to `measurement`, folding Vannmiljø's
+native leftovers the common flags miss: `above_range` (operator `>`, a
+right-censored greater-than reading, distinct from the `<`/`ND` below-detection
+already in `below_loq`) and `filtered` (`filtered = 1`, a filtered-water sample);
+15 and 2 rows respectively, kept for review/removal. Full step specs are in
 [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
