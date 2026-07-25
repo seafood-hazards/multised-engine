@@ -2,7 +2,8 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–12, plus the source-specific step 13 (Vannmiljø, ICES-DOME).
+marking steps 3–12, plus the source-specific step 13 (Vannmiljø, ICES-DOME,
+4Demon).
 
 ## 1. Shared slim schema
 
@@ -294,5 +295,26 @@ are from the pilot `code_lookup` table:
 left unfolded on purpose: `dcflag` holds DATSU screening/conversion codes (mostly
 benign unit conversions), and `metcu`/`uncrt`/`matrix` are uncertainty and
 sample-fraction metadata, not clean quality flags.
+
+### 4Demon
+
+4Demon's detection-limit flag (`limit_flag`) and `basis` are already handled
+(steps 8 and 12). Unlike the other two sources it carries **several independent**
+quality flags that can co-occur on one row, so its `src_flag` holds a comma-joined
+set of tokens (meanings from the pilot metadata):
+
+| Token              | Source condition          | Meaning                                    |
+|--------------------|---------------------------|--------------------------------------------|
+| `suspect`          | `vflag = 1`               | suspect value                               |
+| `invalid`          | `vflag = 3`               | invalid value                               |
+| `range_check`      | `range_check_flag = 1`    | outside 4Demon's expected range             |
+| `outlier_moderate` | `outlier_extreme_flag = 1`| moderate per-parameter outlier              |
+| `outlier_extreme`  | `outlier_extreme_flag = 2`| extreme per-parameter outlier               |
+| `outlier_stdev`    | `outlier_stdev_flag = 1`  | outlier by a standard-deviation threshold   |
+
+`vflag = 2` (below detection) is **not** folded: it duplicates `below_loq`
+(step 8, from the detection-limit flag). `corrected_value`, `fraction_range` and
+`matrix` are provenance/metadata, not quality flags. 1,621 of 6,739 rows carry at
+least one token.
 
 All `src_flag` values are review / removal candidates for the clean stage.

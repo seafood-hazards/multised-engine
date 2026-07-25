@@ -66,11 +66,11 @@ the per-source column map and the plan for the QC/marking steps.
 | 10| `10_mark_range.R`           | add `range_flag` column        | done   |
 | 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 | 12| `12_mark_weight_basis.R`    | add `weight_basis` column      | done   |
-| 13| `13_mark_source_specific.R` | add `src_flag` (source-native) | van, ices |
+| 13| `13_mark_source_specific.R` | add `src_flag` (source-native) | van, ices, dem |
 
 Steps 1–12 are common to every source; **step 13 onward is source-specific** and
-present only where a source has native flags to fold in. So far Vannmiljø and
-ICES-DOME have one (`13_mark_source_specific.R`).
+present only where a source has native flags to fold in. So far Vannmiljø,
+ICES-DOME and 4Demon have one (`13_mark_source_specific.R`).
 
 Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
 `composition`), the single source of truth for the measurand class that later
@@ -131,8 +131,12 @@ already in `below_loq`) and `filtered` (`filtered = 1`, a filtered-water sample)
 15 and 2 rows. ICES-DOME: `suspect` (`vflag` `S`, originator-flagged suspect) and
 `calculated` (`vflag` `C`, a derived rather than measured value), 68 and 16 rows;
 its `dcflag`/`metcu`/`uncrt`/`matrix` stay unfolded (provenance/metadata, not
-quality flags). Full step specs are in
-[docs/slim-pipeline.md](docs/slim-pipeline.md).
+quality flags). 4Demon carries several independent native flags that can co-occur,
+so its `src_flag` holds a comma-joined token set: `suspect`/`invalid` (`vflag`
+1/3), `range_check` (`range_check_flag`), `outlier_moderate`/`outlier_extreme`
+(`outlier_extreme_flag` 1/2), `outlier_stdev` (`outlier_stdev_flag`); 1,621 rows
+flagged. `vflag = 2` (below detection) is not folded — it duplicates `below_loq`.
+Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions
 

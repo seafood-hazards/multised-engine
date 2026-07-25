@@ -12,7 +12,7 @@ also carry **native columns of their own** that the common steps do not cover.
 Where those add information worth keeping, they are folded into a per-source
 `src_flag` on `measurement` (NULL = pass), so the clean stage can review or remove
 them. This is a source-by-source step (13 onward in the pipeline); so far
-**Vannmiljø** and **ICES-DOME** have one.
+**Vannmiljø**, **ICES-DOME** and **4Demon** have one.
 
 ```{r}
 #| label: setup
@@ -100,12 +100,51 @@ DATSU screening / conversion codes (mostly benign unit conversions), and
 `metcu` / `uncrt` / `matrix` are uncertainty and sample-fraction metadata rather
 than quality flags.
 
+## 4Demon
+
+4Demon's detection-limit flag (`limit_flag`) and dry/wet basis (`basis`) are
+already handled by the common steps. Unlike the other two sources, it carries
+**several independent quality flags that can co-occur** on one measurement, so its
+`src_flag` holds a comma-joined set of tokens (meanings from the 4Demon metadata):
+
+```{r}
+tribble(
+  ~Token,             ~`Source column`,        ~Meaning,
+  "suspect",          "value_flag = 1",        "Suspect value.",
+  "invalid",          "value_flag = 3",        "Invalid value.",
+  "range_check",      "range_check_flag = 1",  "Outside 4Demon's expected range.",
+  "outlier_moderate", "outlier_extreme_flag = 1", "Moderate per-parameter outlier.",
+  "outlier_extreme",  "outlier_extreme_flag = 2", "Extreme per-parameter outlier.",
+  "outlier_stdev",    "outlier_stdev_flag = 1",   "Outlier by a standard-deviation threshold."
+) |> kable()
+```
+
+`value_flag = 2` (below detection) is not folded here: it is already covered by
+`below_loq`. A row can carry more than one token, e.g. `suspect,range_check`. The
+counts below are the current 4Demon slim database (each distinct combination, then
+the total flagged).
+
+```{r}
+qry("4demon_slim",
+    "SELECT COALESCE(src_flag, '(pass)') AS `src_flag`, COUNT(*) AS Rows
+     FROM measurement GROUP BY src_flag ORDER BY Rows DESC") |>
+  kfmt()
+```
+
+```{r}
+qry("4demon_slim",
+    "SELECT COUNT(*) AS Measurements,
+            SUM(CASE WHEN src_flag IS NOT NULL THEN 1 ELSE 0 END) AS `Flagged (any token)`
+     FROM measurement") |>
+  kfmt()
+```
+
 ## Other sources
 
-MUDAB and 4Demon carry their own native columns too (e.g. 4Demon's
-`range_check_flag` / `outlier_extreme_flag` / `outlier_stdev_flag`). These are
-retained in the slim `measurement` tables but are **not yet folded into a
-`src_flag`**; they will be added here as their handling is decided.
+MUDAB carries native columns too (`basis`, `matrix`, `qflag`); its `qflag` and
+`basis` are already handled by the common steps, and it has no further native
+quality flags to fold. Its `matrix` is sample-fraction metadata, retained but not
+a `src_flag`.
 
 ::: {.callout-note}
 No rows have been deleted. `src_flag` marks source-native records for review; the
