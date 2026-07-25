@@ -1,0 +1,84 @@
+---
+title: "Source Specific"
+subtitle: Native flags that only some sources carry
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+The *Common Flags* are applied the same way to all five sources. Some sources
+also carry **native columns of their own** that the common steps do not cover.
+Where those add information worth keeping, they are folded into a per-source
+`src_flag` on `measurement` (NULL = pass), so the clean stage can review or remove
+them. This is a source-by-source step (13 onward in the pipeline); so far only
+**Vannmiljø** has one.
+
+```{r}
+#| label: setup
+library(DBI)
+library(RSQLite)
+library(tibble)
+library(dplyr)
+library(knitr)
+
+db_dir <- "../data/db"
+
+qry <- function(file, sql) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(file, ".sqlite")))
+  on.exit(dbDisconnect(con))
+  as_tibble(dbGetQuery(con, sql))
+}
+
+kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
+```
+
+## Vannmiljø
+
+Vannmiljø records two native columns on each measurement that the other sources
+do not: `operator` (a relational sign on the value) and `filtered`. The
+below-detection meaning of `operator` (`<` and `ND`) is already captured by the
+common `below_loq` flag, so it is not repeated here. What remains is folded into
+`src_flag`:
+
+```{r}
+tribble(
+  ~`src_flag`,     ~`Source column`,  ~Meaning,
+  "above_range", "operator = '>'",  "Right-censored 'greater-than' reading: the value is only a lower bound.",
+  "filtered",    "filtered = 1",    "Filtered-water sample rather than bulk sediment."
+) |> kable()
+```
+
+Neither is scoped to a measurand class. In particular `above_range` also applies
+to grain-size fractions reported as "greater than" a value, not just chemistry.
+The counts below are the current Vannmiljø slim database.
+
+```{r}
+qry("vannmiljo_slim",
+    "SELECT COALESCE(src_flag, '(pass)') AS `src_flag`, COUNT(*) AS Rows
+     FROM measurement GROUP BY src_flag ORDER BY Rows DESC") |>
+  kfmt()
+```
+
+For context, the full `operator` breakdown (its `<` / `ND` values feed
+`below_loq`, `>` feeds `src_flag`, `=` is an ordinary quantified value):
+
+```{r}
+qry("vannmiljo_slim",
+    "SELECT operator AS Operator, COUNT(*) AS Rows
+     FROM measurement GROUP BY operator ORDER BY Rows DESC") |>
+  kfmt()
+```
+
+## Other sources
+
+The international sources carry their own native columns (e.g. ICES-DOME's
+`vflag` / `dcflag` / `metcu` / `uncrt`, and 4Demon's `range_check_flag` /
+`outlier_extreme_flag` / `outlier_stdev_flag`). These are retained in the slim
+`measurement` tables but are **not yet folded into a `src_flag`**; they will be
+added here as their handling is decided.
+
+::: {.callout-note}
+No rows have been deleted. `src_flag` marks source-native records for review; the
+actual removal happens later, when the **clean** databases are built.
+:::

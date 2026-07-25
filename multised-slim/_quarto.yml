@@ -31,6 +31,8 @@ website:
             href: flagging-conversion-range.qmd
           - text: "Common Flags"
             href: flagging-common.qmd
+          - text: "Source Specific"
+            href: flagging-source-specific.qmd
 
 format:
   html:
