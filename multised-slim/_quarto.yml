@@ -33,6 +33,10 @@ website:
             href: flagging-common.qmd
           - text: "Source Specific"
             href: flagging-source-specific.qmd
+      - text: "Grain size"
+        menu:
+          - text: "Sample Fraction (matrix)"
+            href: grain-size-fraction.qmd
 
 format:
   html:

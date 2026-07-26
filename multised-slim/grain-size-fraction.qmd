@@ -1,0 +1,225 @@
+---
+title: "Sample Fraction (matrix)"
+subtitle: What sediment fraction each measurement was made on, and how sieved and bulk samples are told apart
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+Sediment can be analysed **whole** (a bulk grab) or after **sieving** to a
+grain-size fraction, and a trace-element value means something different
+depending on which. Three sources record this on each measurement in a `matrix`
+column: **ICES-DOME**, **MUDAB**, and **4Demon**. Mareano and Vannmiljø have no
+`matrix`; for those the fraction has to come from the grain-size measurements
+themselves (a later page).
+
+This page reads the raw `matrix` values, harmonises them into a common
+sieved/bulk class with a sieve cutoff in micrometres, and shows an important
+subtlety: within one sample the chemistry and the grain-size are usually
+measured on **different** fractions.
+
+```{r}
+#| label: setup
+library(DBI)
+library(RSQLite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(knitr)
+
+db_dir <- "../data/db"
+chem_cats <- c("target", "reference", "organic")
+
+kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
+
+# Sieve cutoff in micrometres, from either encoding:
+#   ICES / MUDAB : matrix = "SED<n>"  -> n         ("SEDtot" has no cutoff)
+#   4Demon       : fraction_range = "0-<n>" -> n   (matrix is only FS / US)
+cut_um <- function(matrix, fraction_range) {
+  fr  <- suppressWarnings(as.numeric(sub(".*-", "", fraction_range)))
+  sed <- suppressWarnings(as.numeric(sub("^SED", "", matrix)))
+  coalesce(fr, sed)
+}
+
+# Harmonised class. Coarse sieving (cutoff >= 1000 um, i.e. <2 mm / <1 mm) is the
+# standard "remove gravel" prep and is treated as bulk-equivalent, together with
+# the untreated total (SEDtot) and the unsieved 4Demon code (US). Finer cutoffs
+# are the sieved fine fractions. PK_default and a missing matrix are unspecified.
+frac_class <- function(matrix, cutoff) {
+  case_when(
+    is.na(matrix)               ~ "unspecified",
+    matrix == "PK_default"      ~ "unspecified",
+    matrix == "SEDtot"          ~ "bulk",
+    matrix == "US"              ~ "bulk",
+    !is.na(cutoff) & cutoff >= 1000 ~ "bulk",
+    !is.na(cutoff)              ~ "sieved",
+    TRUE                        ~ "unspecified"
+  )
+}
+
+load_frac <- function(file) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(file, ".sqlite")))
+  on.exit(dbDisconnect(con))
+  has_fr <- "fraction_range" %in% dbListFields(con, "measurement")
+  fr_sel <- if (has_fr) "m.fraction_range" else "NULL AS fraction_range"
+  sql <- sprintf(
+    "SELECT m.subsample_id, m.matrix, %s, e.category
+       FROM measurement m JOIN element e ON m.symbol = e.symbol", fr_sel)
+  as_tibble(dbGetQuery(con, sql)) |>
+    mutate(
+      fraction_range = as.character(fraction_range),
+      cutoff  = cut_um(matrix, fraction_range),
+      class   = frac_class(matrix, cutoff),
+      grp     = if_else(category %in% chem_cats, "Chemistry", "Grain-size"))
+}
+
+srcs <- c(`ICES-DOME` = "ices_dome_slim",
+          MUDAB       = "mudab_slim",
+          `4Demon`    = "4demon_slim")
+
+frac <- bind_rows(lapply(names(srcs), function(nm)
+  load_frac(srcs[[nm]]) |> mutate(Source = nm)))
+```
+
+## 1. What the matrix codes mean
+
+**ICES-DOME and MUDAB** use ICES `MATRX` codes of the form `SED<mesh>`, "sediment,
+the fraction finer than `<mesh>` micrometres" (`SEDtot` being the whole untreated
+sample). Meanings are from each pilot's `code_lookup` table.
+
+```{r}
+tribble(
+  ~matrix,     ~Meaning,                        ~`Cutoff (um)`,
+  "SEDtot",    "Untreated total (whole sample)", "none (bulk)",
+  "SED2000",   "Finer than 2000 um",             "2000",
+  "SED1000",   "Finer than 1000 um",             "1000",
+  "SED500",    "Finer than 500 um",              "500",
+  "SED90",     "Finer than 90 um",               "90",
+  "SED63",     "Finer than 63 um",               "63",
+  "SED62",     "Finer than 62 um",               "62",
+  "SED20",     "Finer than 20 um",               "20",
+  "PK_default","Placeholder, fraction not stated","unspecified"
+) |> kable()
+```
+
+**4Demon** records only `FS` (a sieved fraction) or `US` (unsieved), and keeps
+the actual cutoff in a separate `fraction_range` column (micrometres), which is
+carried through to the slim database.
+
+```{r}
+tribble(
+  ~matrix, ~`fraction_range`, ~Meaning,
+  "US",    "0-10000",         "Unsieved (whole sample)",
+  "FS",    "0-2000",          "Sieved finer than 2000 um",
+  "FS",    "0-500",           "Sieved finer than 500 um",
+  "FS",    "0-63",            "Sieved finer than 63 um",
+  "FS",    "0-37",            "Sieved finer than 37 um"
+) |> kable()
+```
+
+There is no `SED64` code in any source: the fine cutoff of interest sits at 62
+to 63 micrometres (`SED63`, `SED62`, `FS 0-63`).
+
+## 2. Harmonised sieved / bulk class
+
+Every measurement is placed in one of three classes from its `matrix` (and, for
+4Demon, its `fraction_range`):
+
+```{r}
+tribble(
+  ~Class,        ~Definition,                                                    ~`Codes`,
+  "bulk",        "Whole sample, or coarse sieving at or above 1000 um",          "SEDtot, US, SED2000, SED1000, FS 0-2000",
+  "sieved",      "Sieved to a fine fraction below 1000 um",                      "SED500, SED90, SED63, SED62, SED20, FS 0-500 / 0-63 / 0-37",
+  "unspecified", "No fraction stated",                                           "PK_default, missing matrix"
+) |> kable()
+```
+
+::: {.callout-note}
+Coarse sieving to `<2 mm` or `<1 mm` (`SED2000`, `SED1000`, `FS 0-2000`) is the
+routine step that removes gravel and shell before analysis, not a fine-fraction
+separation, so it is counted as **bulk-equivalent** here rather than as a sieved
+fraction.
+:::
+
+## 3. Fraction by source and measurement class
+
+Because chemistry and grain-size are often run on different fractions (see
+section 5), the split is shown separately for each. Counts are measurements.
+
+```{r}
+frac |>
+  count(Source, grp, class) |>
+  pivot_wider(names_from = class, values_from = n, values_fill = 0) |>
+  relocate(Source, `Measurement class` = grp) |>
+  arrange(Source, `Measurement class`) |>
+  kfmt()
+```
+
+## 4. Chemistry sieve cutoffs
+
+For the chemistry measurements, this is the actual sieve cutoff (micrometres) the
+element value was measured on. The `<63 um` fine fraction is the one of primary
+interest.
+
+```{r}
+frac |>
+  filter(grp == "Chemistry", class == "sieved") |>
+  count(Source, `Cutoff (um)` = cutoff) |>
+  pivot_wider(names_from = `Cutoff (um)`, values_from = n, values_fill = 0) |>
+  kfmt()
+```
+
+Chemistry measured as **bulk** (whole or coarse) for comparison:
+
+```{r}
+frac |>
+  filter(grp == "Chemistry", class == "bulk") |>
+  count(Source, name = "Bulk chemistry rows") |>
+  kfmt()
+```
+
+## 5. The fraction differs between chemistry and grain-size
+
+Within a single subsample the chemistry and the grain-size are usually **not** on
+the same fraction: grain-size is almost always reported on the whole sample
+(`SEDtot`), while chemistry is run on a sieved fine fraction. So there is no single
+"matrix per sample"; the fraction has to be read per measurement, and separately
+for chemistry versus grain-size.
+
+```{r}
+agree <- frac |>
+  filter(Source != "4Demon") |>          # 4Demon has no grain-size
+  group_by(Source, subsample_id, grp) |>
+  summarise(mats = paste(sort(unique(matrix)), collapse = "|"), .groups = "drop") |>
+  pivot_wider(names_from = grp, values_from = mats) |>
+  filter(!is.na(Chemistry), !is.na(`Grain-size`))
+
+agree |>
+  group_by(Source) |>
+  summarise(
+    `Subsamples with both` = n(),
+    `Same matrix`          = sum(Chemistry == `Grain-size`),
+    `Different matrix`     = sum(Chemistry != `Grain-size`),
+    .groups = "drop") |>
+  mutate(`% different` = round(100 * `Different matrix` / `Subsamples with both`)) |>
+  kfmt()
+```
+
+The most common mismatch is chemistry on a sieved fraction while the grain-size is
+reported on the bulk sample:
+
+```{r}
+agree |>
+  filter(Chemistry != `Grain-size`) |>
+  count(Chemistry, `Grain-size`, name = "Subsamples") |>
+  arrange(desc(Subsamples)) |>
+  head(10) |>
+  kfmt()
+```
+
+::: {.callout-note}
+Nothing is deleted or recomputed on this page. It only reads and classifies the
+recorded `matrix`. Recalculating noisy grain-size fractions, and deriving the
+`<63 um` fraction for Mareano and Vannmiljø, come in later pages of this section.
+:::
