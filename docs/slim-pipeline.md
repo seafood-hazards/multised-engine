@@ -331,13 +331,29 @@ All `src_flag` values are review / removal candidates for the clean stage.
 
 ## 13. Step 14 — Derive fines <63µm (`14_derive_fines.R`)
 
-The first **grain-size derivation** step (source-specific; **Mareano** so far). It
-adds two columns to `subsample`:
+A **grain-size derivation** step (source-specific; every source with grain-size,
+i.e. all but 4Demon). It adds two columns to `subsample`:
 
 | column        | type | meaning                                                        |
 |---------------|------|----------------------------------------------------------------|
-| `fines_lt63`  | REAL | percentage of material finer than 63µm (the clay + silt "mud" fraction), NULL where the subsample has no grain-size |
+| `fines_lt63`  | REAL | percentage of material finer than 63µm (the clay + silt "mud" fraction), NULL where the subsample has no usable grain-size |
 | `fines_basis` | TEXT | how it was derived, for provenance / cross-source comparison   |
+
+`fines_lt63` is always taken from the standardised `value_std` (grain-size → %,
+step 9) so units (`%`, `g/kg`, ...) are handled uniformly. The derivation differs
+per source because each encodes grain-size differently and the raw signal is
+noisy, so the per-source parameter definitions below were verified against the
+pilot `parameter` / `code_lookup` tables. Implausible values (`value_std` outside
+0–100%, impossible for a cumulative mass fraction) are **excluded** (the subsample
+is left NULL); no correction is guessed at this step. Coverage is therefore
+partial. A summary of what each source contributes:
+
+| source    | code used            | `fines_basis`                          | subsamples |
+|-----------|----------------------|----------------------------------------|-----------:|
+| Mareano   | Clay + Silt bins     | `sum_bins`                             | 3,265      |
+| Vannmiljø | `FINS`, else complement | `fins` / `gsmf_63_complement`       | 6,722      |
+| ICES-DOME | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 8,811      |
+| MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,033      |
 
 **Mareano** stores grain-size as four named bins (`element.category =
 'composition'`):
@@ -357,15 +373,32 @@ Gravel are the coarse remainder and play no part; Gravel is reported wt.% agains
 the others' vol.%, so the four never sum cleanly, but Clay + Silt share a basis
 and do.
 
+**Vannmiljø** has no `matrix` (all taken as whole-sample) and reports two direct
+codes whose naming is a trap: `FINS` = "Fines <63µm" (the fraction we want) but
+`GSMF_63` = "Particle fraction **>63µm**", the *complement* (the opposite sense of
+the ICES `GSMF63`). Since `FINS + GSMF_63 ≈ 100` (verified), `fines_lt63` = `FINS`
+where present (`fines_basis = 'fins'`), else `100 − GSMF_63`
+(`'gsmf_63_complement'`). 6,722 subsamples (3,628 direct + 3,094 complement).
+
+**ICES-DOME** and **MUDAB** report the cumulative `GSMF63` ("Grain Size Mass
+Fraction <63 micron, silt/clay"): the <63µm fraction, but *of the matrix it was
+measured on*, so the matrix (step-13 sample-fraction work) is combined in:
+
+| matrix                | `GSMF63` means                          | used as fines? |
+|-----------------------|-----------------------------------------|----------------|
+| `SEDtot`              | <63µm of the whole sample               | yes (1st choice) |
+| `SED2000` / `SED1000` | <63µm of the <2 mm / <1 mm material     | yes, bulk-equivalent (2nd choice) |
+| `SED63`, `SED20`, ... | <63µm of an already-fine fraction (~100%) | no, excluded |
+
+Priority `SEDtot` > `SED2000` > `SED1000`; the highest-priority clean value per
+subsample wins, and `fines_basis = 'gsmf63_<matrix>'` records which. ICES-DOME
+8,811 subsamples (6,465 `sedtot` + 2,346 `sed2000`), MUDAB 4,033 (4,023 + 10).
+
 The idempotent write pattern is the usual one, keyed on `subsample_id`: a
 temporary `qc_fines` table plus an unconditional correlated-subquery `UPDATE`
 (subsamples absent from `qc_fines` reset to NULL on re-run).
 
-**Other sources (later).** Vannmiljø / ICES-DOME / MUDAB do not use named bins;
-they carry cumulative `GSMF<n>` codes ("mass fraction finer than n µm"), so their
-<63µm is usually a **direct** `GSMF63` / `GSMF_63` value (`fines_basis` will be
-`'gsmf63'`), with discrete `GS>a<b` bins summable Mareano-style where present.
-Their grain-size values are noisy (impossible percentages such as 13,481 and
-45,903, the same code in both `%` and `g/kg`) and need a correction pass first, so
-those sources are deferred to a later grain-size step. Values are left exactly as
-reported here.
+Not yet done: summing discrete `GS>a<b` bins Mareano-style for subsamples that
+lack a `GSMF63`/`FINS`, and the dedicated correction pass for the noisy values
+excluded here (impossible percentages such as 13,481 and 45,903, gravel-fraction
+reconciliation for `SED2000`-based fines). Values are left exactly as reported.
