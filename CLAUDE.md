@@ -67,10 +67,13 @@ the per-source column map and the plan for the QC/marking steps.
 | 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 | 12| `12_mark_weight_basis.R`    | add `weight_basis` column      | done   |
 | 13| `13_mark_source_specific.R` | add `src_flag` (source-native) | van, ices, dem |
+| 14| `14_derive_fines.R`         | add `fines_lt63` (<63µm %)      | mareano |
 
 Steps 1–12 are common to every source; **step 13 onward is source-specific** and
-present only where a source has native flags to fold in. So far Vannmiljø,
-ICES-DOME and 4Demon have one (`13_mark_source_specific.R`).
+present only where a source has something extra to fold in or derive. So far
+Vannmiljø, ICES-DOME and 4Demon have a step 13 (`src_flag`), and Mareano has a
+step 14 (`fines_lt63`); step numbers are fixed per concern, so a source runs only
+the later steps that apply to it (Mareano has no native flags, so no step 13).
 
 Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
 `composition`), the single source of truth for the measurand class that later
@@ -139,6 +142,18 @@ so its `src_flag` holds a comma-joined token set: `suspect`/`invalid` (`vflag`
 1/3), `range_check` (`range_check_flag`), `outlier_moderate`/`outlier_extreme`
 (`outlier_extreme_flag` 1/2), `outlier_stdev` (`outlier_stdev_flag`); 1,621 rows
 flagged. `vflag = 2` (below detection) is not folded — it duplicates `below_loq`.
+Step 14 is the first **grain-size derivation** (source-specific; Mareano so far):
+it adds `fines_lt63` + `fines_basis` to `subsample`, the percentage of material
+finer than 63µm (the clay + silt "mud" fraction). Mareano stores grain-size as
+four named bins (Clay <2µm, Silt 2–63µm, Sand 63–2000µm, Gravel >2000µm), so
+`fines_lt63` = Clay + Silt, summed from the standardised `value_std` (%) so it is
+unit-safe (`fines_basis = 'sum_bins'`); all Mareano samples are bulk grabs, so
+this is the <63µm fraction of the whole sample (3,265 subsamples, 0–99.5%). The
+international sources (Vannmiljø/ICES-DOME/MUDAB) instead carry cumulative
+`GSMF63`-style codes (a direct <63µm value, `fines_basis` will be `'gsmf63'`) but
+their grain-size values are noisy (impossible percentages, mixed `%`/`g/kg`) and
+need a correction pass first, so they are a later step. Values are left as
+reported here; noisy grain-size correction is separate.
 Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions

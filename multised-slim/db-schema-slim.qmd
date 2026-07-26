@@ -219,3 +219,9 @@ tribble(
   "measurement", "weight_basis", "TEXT",     "Sample weight basis of a chemistry value: dry / wet, else NULL."
 ) |> kable()
 ```
+
+Beyond these common columns, some sources carry **source-specific** columns from
+the later steps: `measurement.src_flag` (native quality flags, on Vannmiljø /
+ICES-DOME / 4Demon) and `subsample.fines_lt63` / `fines_basis` (the derived <63µm
+grain-size fraction, on Mareano so far). These are documented on the *Source
+Specific* and *Grain size* pages.
