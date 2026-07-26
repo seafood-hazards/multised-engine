@@ -222,6 +222,8 @@ tribble(
 
 Beyond these common columns, some sources carry **source-specific** columns from
 the later steps: `measurement.src_flag` (native quality flags, on Vannmiljø /
-ICES-DOME / 4Demon) and `subsample.fines_lt63` / `fines_basis` (the derived <63µm
-grain-size fraction, on every source with grain-size, i.e. all but 4Demon). These
-are documented on the *Source Specific* and *Grain size* pages.
+ICES-DOME / 4Demon); `measurement.value_std_corr` / `gs_corr` (corrected grain-size
+value and its marker, on ICES-DOME / MUDAB / Vannmiljø); and
+`subsample.fines_lt63` / `fines_basis` (the derived <63µm grain-size fraction, on
+every source with grain-size, i.e. all but 4Demon). These are documented on the
+*Source Specific* and *Grain size* pages.

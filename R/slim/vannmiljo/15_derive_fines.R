@@ -30,11 +30,13 @@ for (coldef in c("fines_lt63 REAL", "fines_basis TEXT")) {
 #                sum used for Mareano, an exact <63 um for samples that carry the
 #                fraction bins but neither of the direct codes above.
 # All via the standardised value_std (grain-size -> %, step 9) so units are safe.
-# Implausible values (a cumulative mass fraction outside 0-100 %) are excluded
-# (left NULL); no correction is guessed here.
+# The corrected standardised value value_std_corr (grain-size correction, step 14)
+# is read. For Vannmiljø that is a pass-through of value_std (its noise is flagged,
+# not rescaled), so the implausible values (a cumulative fraction outside 0-100 %,
+# the step-14 'suspect' rows) are excluded here (left NULL) as before.
 comps <- c("FINS", "GSMF_63", "GSMF2", "GSMF2_63")
 g <- dbGetQuery(con, sprintf("
-  SELECT subsample_id, symbol, value_std FROM measurement
+  SELECT subsample_id, symbol, value_std_corr AS value_std FROM measurement
   WHERE symbol IN (%s)", paste0("'", comps, "'", collapse = ","))) |>
   as_tibble() |>
   filter(!is.na(value_std), value_std >= 0, value_std <= 100)

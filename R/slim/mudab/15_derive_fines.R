@@ -28,13 +28,15 @@ for (coldef in c("fines_lt63 REAL", "fines_basis TEXT")) {
 #                        bulk-equivalent (coarse sieving removes gravel), so used
 #                        as the whole-sample fines when SEDtot is absent
 #   finer matrices (SED63, SED20, ...) -> trivially ~100 %, excluded
-# Priority SEDtot > SED2000 > SED1000; the standardised value_std (grain-size ->
-# %, step 9) is used so g/kg and % are handled together. Implausible values
-# (value_std outside 0-100) are excluded (left NULL); no correction is guessed.
+# Priority SEDtot > SED2000 > SED1000. The corrected standardised value
+# value_std_corr (grain-size correction, step 14) is read, so the per-curve
+# renormalisation is already applied and previously over-scaled samples are
+# recovered here. Values still outside 0-100 (the step-14 'suspect' rows) are
+# excluded (left NULL).
 bulk_prio <- c(SEDtot = 1L, SED2000 = 2L, SED1000 = 3L)
 
 g <- dbGetQuery(con, "
-  SELECT subsample_id, matrix, value_std
+  SELECT subsample_id, matrix, value_std_corr AS value_std
   FROM measurement WHERE symbol = 'GSMF63'") |>
   as_tibble() |>
   filter(!is.na(value_std), value_std >= 0, value_std <= 100,

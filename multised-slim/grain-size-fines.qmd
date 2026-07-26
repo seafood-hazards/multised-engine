@@ -15,8 +15,10 @@ percentage), from each source's grain-size measurements, and records in
 `fines_basis` how it was obtained.
 
 Every source with grain-size contributes (all but 4Demon, which carries no
-grain-size). The value is always taken from the standardised `value_std` (grain
-size to %), so mixed reporting units (`%`, `g/kg`) are handled uniformly.
+grain-size). The value is taken from the corrected standardised value
+`value_std_corr` (grain size to %), so mixed reporting units (`%`, `g/kg`) are
+handled uniformly and the grain-size curves repaired in the correction step (see
+below) are used.
 
 ```{r}
 #| label: setup
@@ -83,7 +85,39 @@ Two points that the derivation has to get right:
   Values measured on an already-fine fraction (which would be near 100 %) are not
   used.
 
-## 2. Coverage
+## 2. Correcting noisy grain-size curves
+
+Much of the international grain-size data is noisy: many curves are internally
+consistent (a monotone cumulative distribution) but scaled wrong, so a value that
+should sit near 100 % is reported as thousands of percent, with every code in the
+sample inflated by the same factor. A separate correction step handles this before
+the fines are derived, writing a corrected value (`value_std_corr`) and a marker
+(`gs_corr`) on each measurement:
+
+- **ICES-DOME and MUDAB** renormalise each over-scaled, still-monotone curve so its
+  coarsest cutoff (the total, near the `<2 mm` fraction) reads 100 %
+  (`gs_corr = 'renorm'`). This recovers the affected samples for the fines below.
+  Curves that stay implausible (not monotone) are marked `suspect` and excluded.
+- **Vannmiljø** has only a handful of isolated bad values (and its codes mean
+  ">n µm", so the curve renormalisation does not apply): these are flagged
+  `suspect` for manual review, not rescaled.
+
+```{r}
+srcs |>
+  filter(Source != "Mareano") |>   # Mareano is clean, has no gs_corr column
+  rowwise() |>
+  mutate(
+    Renormed = scal(file, "SELECT COUNT(*) FROM measurement WHERE gs_corr = 'renorm'"),
+    Suspect  = scal(file, "SELECT COUNT(*) FROM measurement WHERE gs_corr = 'suspect'")) |>
+  ungroup() |>
+  select(Source, Renormed, Suspect) |>
+  kfmt()
+```
+
+Mareano needs no correction (its named-bin grain-size is already clean), so it has
+no `gs_corr` column and its fines read the uncorrected value.
+
+## 3. Coverage
 
 ```{r}
 cov <- srcs |>
@@ -111,7 +145,7 @@ vals |>
   kfmt()
 ```
 
-## 3. Distribution
+## 4. Distribution
 
 Summary of the derived `fines_lt63` (%) per source:
 
@@ -152,6 +186,7 @@ vals |>
 Vannmiljø, samples with neither direct code fall back to the clay + silt sum
 (`GSMF2` + `GSMF2_63`), the same construction as Mareano. The equivalent bin route
 for ICES-DOME and MUDAB reaches only `<60 µm` (a different cutoff) and was left
-out. Still to come: the correction pass for the noisy values excluded here
-(impossible percentages, and the gravel adjustment for `SED2000` based fines).
+out. Still to come: the gravel adjustment for `SED2000` based fines (the `<2 mm`
+total is taken as the whole sample), and manual review of the `suspect` rows that
+the correction could not repair.
 :::

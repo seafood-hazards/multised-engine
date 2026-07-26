@@ -67,14 +67,16 @@ the per-source column map and the plan for the QC/marking steps.
 | 11| `11_mark_below_loq_num.R`   | add `below_loq_num` column     | done   |
 | 12| `12_mark_weight_basis.R`    | add `weight_basis` column      | done   |
 | 13| `13_mark_source_specific.R` | add `src_flag` (source-native) | van, ices, dem |
-| 14| `14_derive_fines.R`         | add `fines_lt63` (<63µm %)      | mar, van, ices, mud |
+| 14| `14_correct_grainsize.R`    | add `value_std_corr`/`gs_corr`  | ices, mud, van |
+| 15| `15_derive_fines.R`         | add `fines_lt63` (<63µm %)      | mar, van, ices, mud |
 
 Steps 1–12 are common to every source; **step 13 onward is source-specific** and
-present only where a source has something extra to fold in or derive. So far
-Vannmiljø, ICES-DOME and 4Demon have a step 13 (`src_flag`), and every source with
-grain-size (all but 4Demon) has a step 14 (`fines_lt63`); step numbers are fixed
-per concern, so a source runs only the later steps that apply to it (Mareano has
-no native flags, so no step 13; 4Demon has no grain-size, so no step 14).
+present only where a source has something extra to fold in or derive. Step numbers
+are fixed per concern, so a source runs only the later steps that apply to it:
+Vannmiljø, ICES-DOME and 4Demon have step 13 (`src_flag`); ICES-DOME, MUDAB and
+Vannmiljø have step 14 (grain-size correction); every source with grain-size (all
+but 4Demon) has step 15 (`fines_lt63`). So Mareano runs …12, 15 (no native flags,
+clean grain-size); 4Demon runs …13 only (no grain-size).
 
 Step 3 adds `category` to `element` (`target` / `reference` / `organic` /
 `composition`), the single source of truth for the measurand class that later
@@ -143,13 +145,27 @@ so its `src_flag` holds a comma-joined token set: `suspect`/`invalid` (`vflag`
 1/3), `range_check` (`range_check_flag`), `outlier_moderate`/`outlier_extreme`
 (`outlier_extreme_flag` 1/2), `outlier_stdev` (`outlier_stdev_flag`); 1,621 rows
 flagged. `vflag = 2` (below detection) is not folded — it duplicates `below_loq`.
-Step 14 is a **grain-size derivation** (source-specific; every source with
+Step 14 is a **grain-size correction** (source-specific; ICES-DOME, MUDAB,
+Vannmiljø): it adds `value_std_corr` + `gs_corr` to `measurement`. Many
+international grain-size curves are internally consistent (a monotone cumulative
+distribution) but scaled wrong, so `value_std` runs to thousands of "percent". For
+ICES-DOME/MUDAB it renormalises each `(subsample, matrix)` cumulative curve so its
+coarsest cutoff (the total, ≈<2mm) reads 100% — applied only where the curve is
+over-scaled (`>100.5%`) and monotone; `gs_corr = 'renorm'` (1,147 and 1,061 rows),
+else `'suspect'` where still implausible (MUDAB 7), else NULL. `value_std_corr`
+equals `value_std` everywhere else (a drop-in "best" standardised value; only
+mass-fraction codes are rescaled, never the grain-size statistics GSMEA/GSMED/…).
+Vannmiljø's noise is instead a handful of isolated values (its `GSMF_63`/`_2000`
+mean ">n", so the curve renorm does not apply), so it only **flags** them
+(`gs_corr = 'suspect'`, 22 rows) for manual review, `value_std_corr` a pass-through.
+Step 15 is a **grain-size derivation** (source-specific; every source with
 grain-size, i.e. all but 4Demon): it adds `fines_lt63` + `fines_basis` to
 `subsample`, the percentage of material finer than 63µm (the clay + silt "mud"
-fraction), always via the standardised `value_std` (%) so units are safe, and
-`fines_basis` records how it was derived. The derivation differs per source
-because each encodes grain-size differently, and the source signal is noisy, so
-per-source parameter definitions were verified against the pilot lookups:
+fraction), via the corrected `value_std_corr` (%, Mareano uses `value_std`; it has
+no correction step, its grain-size is clean), and `fines_basis` records how it was
+derived. The derivation differs per source because each encodes grain-size
+differently, and the source signal is noisy, so per-source parameter definitions
+were verified against the pilot lookups:
 **Mareano** stores four named bins (Clay <2µm, Silt 2–63µm, Sand 63–2000µm,
 Gravel >2000µm), so `fines_lt63` = Clay + Silt (`fines_basis = 'sum_bins'`; all
 Mareano samples are bulk, 3,265 subsamples, 0–99.5%). **Vannmiljø** takes the first available of: `FINS`
@@ -161,11 +177,11 @@ subsamples. **ICES-DOME** / **MUDAB** report the cumulative `GSMF63` ("<63µm
 silt/clay"), which is <63µm *of the matrix it sits on*, so the matrix is combined
 in: preferred on `SEDtot` (whole sample), else the bulk-equivalent `SED2000`/
 `SED1000` (coarse sieving removes gravel), while finer matrices are trivially
-~100% and excluded (`fines_basis = 'gsmf63_<matrix>'`; 8,811 and 4,033
-subsamples). Implausible values (`value_std` outside 0–100%) are excluded (left
-NULL) rather than corrected here. Note `GSMF63`/`GSMF_63` naming is source-
-dependent (ICES = below, Vannmiljø = above); do not assume the number is a
-below-cutoff. The dedicated noisy-grain-size correction pass is still separate.
+~100% and excluded (`fines_basis = 'gsmf63_<matrix>'`; 8,957 and 4,161
+subsamples, including the samples recovered by the step-14 renormalisation).
+Values still outside 0–100% (the step-14 `suspect` rows) are excluded (left NULL).
+Note `GSMF63`/`GSMF_63` naming is source-dependent (ICES = below, Vannmiljø =
+above); do not assume the number is a below-cutoff.
 Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
 
 ## Conventions

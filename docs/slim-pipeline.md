@@ -2,8 +2,8 @@
 
 Companion to [../CLAUDE.md](../CLAUDE.md). Covers (1) the shared slim schema and
 its per-source column differences, and (2) the behaviour of the
-marking steps 3–12, plus the source-specific steps 13 (`src_flag`: Vannmiljø,
-ICES-DOME, 4Demon) and 14 (`fines_lt63`: Mareano).
+marking steps 3–12, plus the source-specific steps 13 (`src_flag`), 14 (grain-size
+correction) and 15 (`fines_lt63`).
 
 ## 1. Shared slim schema
 
@@ -329,31 +329,69 @@ least one token.
 
 All `src_flag` values are review / removal candidates for the clean stage.
 
-## 13. Step 14 — Derive fines <63µm (`14_derive_fines.R`)
+## 13. Step 14 — Correct grain-size (`14_correct_grainsize.R`)
+
+A **grain-size correction** step (source-specific; ICES-DOME, MUDAB, Vannmiljø).
+It adds two columns to `measurement`:
+
+| column           | type | meaning                                                     |
+|------------------|------|-------------------------------------------------------------|
+| `value_std_corr` | REAL | corrected standardised value; equals `value_std` everywhere except renormalised grain-size fractions (a drop-in "best" `value_std` for any row, chemistry included) |
+| `gs_corr`        | TEXT | `renorm` = rescaled by the per-curve factor; `suspect` = grain-size fraction still implausible and not correctable; NULL = untouched |
+
+Many international grain-size curves are internally consistent (a monotone
+cumulative distribution) but scaled wrong: within one sample every code is inflated
+by the same factor, so `value_std` runs to thousands of "percent" (e.g. every code
+≈13,481 instead of ≈100).
+
+**ICES-DOME / MUDAB** renormalise each curve. A curve is one `(subsample, matrix)`
+group, defined by its cumulative `GSMF<n>` codes; the anchor is the largest
+`value_std` in the curve (the coarsest cutoff, i.e. the total). A curve is
+corrected only when it is over-scaled (`anchor > 100.5`) **and** monotone (a valid
+cumulative shape); then every mass-fraction code in the curve is multiplied by
+`100 / anchor` (`gs_corr = 'renorm'`). Grain-size statistics (`GSMEA` / `GSMED` /
+`GSSORT` / …) are not fractions and are never rescaled. Rows still `> 100` after
+this (a non-monotone / uncorrectable curve) are marked `suspect`. Results:
+ICES-DOME 1,147 `renorm`, 0 `suspect`; MUDAB 1,061 `renorm`, 7 `suspect`.
+
+**Vannmiljø** has no matrix, and its `GSMF_63` / `GSMF_2000` codes mean ">n µm"
+(not "<n"), so the per-curve renormalisation does not apply. Its noise is instead a
+handful of isolated values, so they are **flagged** for manual review
+(`gs_corr = 'suspect'`, 22 rows) and left unrescaled; `value_std_corr` is a
+pass-through of `value_std`.
+
+Assumption: renormalising the coarsest cutoff to 100 % treats the `<2 mm` total as
+the whole sample (gravel negligible), consistent with the bulk-equivalent decision
+in the sample-fraction work. Raw `value` / `value_std` are untouched as provenance.
+The later fines step (15) reads `value_std_corr`.
+
+## 14. Step 15 — Derive fines <63µm (`15_derive_fines.R`)
 
 A **grain-size derivation** step (source-specific; every source with grain-size,
-i.e. all but 4Demon). It adds two columns to `subsample`:
+i.e. all but 4Demon). It reads the corrected `value_std_corr` from step 14 (Mareano
+uses `value_std`; it has no correction step). It adds two columns to `subsample`:
 
 | column        | type | meaning                                                        |
 |---------------|------|----------------------------------------------------------------|
 | `fines_lt63`  | REAL | percentage of material finer than 63µm (the clay + silt "mud" fraction), NULL where the subsample has no usable grain-size |
 | `fines_basis` | TEXT | how it was derived, for provenance / cross-source comparison   |
 
-`fines_lt63` is always taken from the standardised `value_std` (grain-size → %,
-step 9) so units (`%`, `g/kg`, ...) are handled uniformly. The derivation differs
-per source because each encodes grain-size differently and the raw signal is
-noisy, so the per-source parameter definitions below were verified against the
-pilot `parameter` / `code_lookup` tables. Implausible values (`value_std` outside
-0–100%, impossible for a cumulative mass fraction) are **excluded** (the subsample
-is left NULL); no correction is guessed at this step. Coverage is therefore
-partial. A summary of what each source contributes:
+`fines_lt63` is taken from the corrected `value_std_corr` (step 14; Mareano uses
+`value_std`, which for its clean vol.%/wt.% data are the same) so units (`%`,
+`g/kg`, ...) are handled uniformly and the renormalised curves are used. The
+derivation differs per source because each encodes grain-size differently and the
+raw signal is noisy, so the per-source parameter definitions below were verified
+against the pilot `parameter` / `code_lookup` tables. Values still outside 0–100%
+after correction (the step-14 `suspect` rows) are **excluded** (the subsample is
+left NULL). Coverage is therefore partial. A summary of what each source
+contributes:
 
 | source    | code used            | `fines_basis`                          | subsamples |
 |-----------|----------------------|----------------------------------------|-----------:|
 | Mareano   | Clay + Silt bins     | `sum_bins`                             | 3,265      |
 | Vannmiljø | `FINS`, else complement, else clay+silt | `fins` / `gsmf_63_complement` / `clay_silt_sum` | 7,113 |
-| ICES-DOME | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 8,811      |
-| MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,033      |
+| ICES-DOME | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 8,957      |
+| MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,161      |
 
 **Mareano** stores grain-size as four named bins (`element.category =
 'composition'`):
@@ -385,7 +423,7 @@ subsamples (3,628 `fins` + 3,094 `gsmf_63_complement` + 391 `clay_silt_sum`).
 
 **ICES-DOME** and **MUDAB** report the cumulative `GSMF63` ("Grain Size Mass
 Fraction <63 micron, silt/clay"): the <63µm fraction, but *of the matrix it was
-measured on*, so the matrix (step-13 sample-fraction work) is combined in:
+measured on*, so the matrix (the sample-fraction work) is combined in:
 
 | matrix                | `GSMF63` means                          | used as fines? |
 |-----------------------|-----------------------------------------|----------------|
@@ -394,8 +432,9 @@ measured on*, so the matrix (step-13 sample-fraction work) is combined in:
 | `SED63`, `SED20`, ... | <63µm of an already-fine fraction (~100%) | no, excluded |
 
 Priority `SEDtot` > `SED2000` > `SED1000`; the highest-priority clean value per
-subsample wins, and `fines_basis = 'gsmf63_<matrix>'` records which. ICES-DOME
-8,811 subsamples (6,465 `sedtot` + 2,346 `sed2000`), MUDAB 4,033 (4,023 + 10).
+subsample wins, and `fines_basis = 'gsmf63_<matrix>'` records which. Reading the
+corrected `value_std_corr` recovers the samples renormalised in step 14: ICES-DOME
+8,957 subsamples (6,611 `sedtot` + 2,346 `sed2000`), MUDAB 4,161 (4,151 + 10).
 
 The idempotent write pattern is the usual one, keyed on `subsample_id`: a
 temporary `qc_fines` table plus an unconditional correlated-subquery `UPDATE`
@@ -410,6 +449,7 @@ samples) and was deliberately **not** added, since those sources are already
 ~60–67 % covered by `GSMF63` and the proxy would mix a different cutoff into the
 column.
 
-Still not done: the dedicated correction pass for the noisy values excluded here
-(impossible percentages such as 13,481 and 45,903, gravel-fraction reconciliation
-for `SED2000`-based fines). Values are left exactly as reported.
+Still not done: the gravel-fraction reconciliation for `SED2000`-based fines (the
+`<2 mm` total is currently taken as the whole sample), and the manual review of the
+step-14 `suspect` rows (Vannmiljø 22, MUDAB 7) that could not be corrected
+automatically.
