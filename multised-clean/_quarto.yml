@@ -4,20 +4,12 @@ project:
     - "*.qmd"
 
 website:
-  title: "multised (clean)"
+  title: "multised (clean analyses)"
   navbar:
     search: true
     left:
       - text: "Home"
         href: index.qmd
-      - text: "Harmonisation"
-        href: harmonisation.qmd
-      - text: "Cleaning"
-        href: cleaning.qmd
-      - text: "Grain size"
-        href: grain-size.qmd
-      - text: "Clean schema"
-        href: db-schema-clean.qmd
 
 format:
   html:

@@ -39,6 +39,18 @@ website:
             href: grain-size-fraction.qmd
           - text: "Fines (<63 µm)"
             href: grain-size-fines.qmd
+      - text: "Clean databases"
+        menu:
+          - text: "Overview"
+            href: clean-overview.qmd
+          - text: "Harmonisation"
+            href: clean-harmonisation.qmd
+          - text: "Cleaning"
+            href: clean-cleaning.qmd
+          - text: "Grain-size tables"
+            href: clean-grain-size.qmd
+          - text: "Clean schema"
+            href: db-schema-clean.qmd
 
 format:
   html:

@@ -87,6 +87,6 @@ bind_rows(lapply(seq_len(nrow(gsrcs)), function(i)
 ::: {.callout-note}
 `fines_lt63` and the fractions are derived, not deleted-from, quantities; the
 grain-size correction (renormalising scaled curves, flagging unreliable values)
-was applied in the slim stage and is documented on the
-[slim site](https://seafood-hazards.github.io/multised-slim/).
+was applied in the slim stage, documented under
+[Grain size](grain-size-fraction.qmd).
 :::
