@@ -151,10 +151,13 @@ international grain-size curves are internally consistent (a monotone cumulative
 distribution) but scaled wrong, so `value_std` runs to thousands of "percent". For
 ICES-DOME/MUDAB it renormalises each `(subsample, matrix)` cumulative curve so its
 coarsest cutoff (the total, ≈<2mm) reads 100% — applied only where the curve is
-over-scaled (`>100.5%`) and monotone; `gs_corr = 'renorm'` (1,147 and 1,061 rows),
-else `'suspect'` where still implausible (MUDAB 7), else NULL. `value_std_corr`
-equals `value_std` everywhere else (a drop-in "best" standardised value; only
-mass-fraction codes are rescaled, never the grain-size statistics GSMEA/GSMED/…).
+over-scaled (`>100.5%`) and monotone; `gs_corr = 'renorm'` (1,147 and 1,068 rows,
+both 0 `suspect`), else NULL. The cumulative curve is built only from the "<n"
+`GSMF<n>` codes; the ">n" gravel codes (`GSMF>2000`/`>8000`) are excluded, else a
+large gravel value breaks the monotonicity check and wrongly rejects the curve.
+`value_std_corr` equals `value_std` everywhere else (a drop-in "best" standardised
+value; only mass-fraction codes are rescaled, never the grain-size statistics
+GSMEA/GSMED/…).
 Vannmiljø's noise is instead a handful of isolated values (its `GSMF_63`/`_2000`
 mean ">n", so the curve renorm does not apply), so it only **flags** them
 (`gs_corr = 'suspect'`, 22 rows) for manual review, `value_std_corr` a pass-through.
@@ -177,7 +180,7 @@ subsamples. **ICES-DOME** / **MUDAB** report the cumulative `GSMF63` ("<63µm
 silt/clay"), which is <63µm *of the matrix it sits on*, so the matrix is combined
 in: preferred on `SEDtot` (whole sample), else `SED2000`/`SED1000` (<63µm of the
 <2mm/<1mm material), while finer matrices are trivially ~100% and excluded
-(`fines_basis = 'gsmf63_<matrix>'`; 8,957 and 4,161 subsamples, including the
+(`fines_basis = 'gsmf63_<matrix>'`; 8,957 and 4,162 subsamples, including the
 samples recovered by the step-14 renormalisation). The `SED2000` samples carry no
 whole-sample grain-size, so their gravel is unmeasured and cannot be reconciled;
 they are taken as whole-sample fines under a **negligible-gravel** assumption (fine

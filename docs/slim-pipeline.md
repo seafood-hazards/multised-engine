@@ -349,10 +349,13 @@ group, defined by its cumulative `GSMF<n>` codes; the anchor is the largest
 `value_std` in the curve (the coarsest cutoff, i.e. the total). A curve is
 corrected only when it is over-scaled (`anchor > 100.5`) **and** monotone (a valid
 cumulative shape); then every mass-fraction code in the curve is multiplied by
-`100 / anchor` (`gs_corr = 'renorm'`). Grain-size statistics (`GSMEA` / `GSMED` /
-`GSSORT` / …) are not fractions and are never rescaled. Rows still `> 100` after
-this (a non-monotone / uncorrectable curve) are marked `suspect`. Results:
-ICES-DOME 1,147 `renorm`, 0 `suspect`; MUDAB 1,061 `renorm`, 7 `suspect`.
+`100 / anchor` (`gs_corr = 'renorm'`). The curve is built only from the cumulative
+"<n" `GSMF<n>` codes; the ">n" gravel codes (`GSMF>2000` / `GSMF>8000`) are
+excluded, else an anomalously large gravel value breaks the monotonicity check and
+wrongly rejects an otherwise correctable curve. Grain-size statistics (`GSMEA` /
+`GSMED` / `GSSORT` / …) are not fractions and are never rescaled. Rows still
+`> 100` after this (a non-monotone / uncorrectable curve) are marked `suspect`.
+Results: ICES-DOME 1,147 `renorm`, MUDAB 1,068 `renorm`, both 0 `suspect`.
 
 **Vannmiljø** has no matrix, and its `GSMF_63` / `GSMF_2000` codes mean ">n µm"
 (not "<n"), so the per-curve renormalisation does not apply. Its noise is instead a
@@ -391,7 +394,7 @@ contributes:
 | Mareano   | Clay + Silt bins     | `sum_bins`                             | 3,265      |
 | Vannmiljø | `FINS`, else complement, else clay+silt | `fins` / `gsmf_63_complement` / `clay_silt_sum` | 7,113 |
 | ICES-DOME | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 8,957      |
-| MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,161      |
+| MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,162      |
 
 **Mareano** stores grain-size as four named bins (`element.category =
 'composition'`):
@@ -434,7 +437,7 @@ measured on*, so the matrix (the sample-fraction work) is combined in:
 Priority `SEDtot` > `SED2000` > `SED1000`; the highest-priority clean value per
 subsample wins, and `fines_basis = 'gsmf63_<matrix>'` records which. Reading the
 corrected `value_std_corr` recovers the samples renormalised in step 14: ICES-DOME
-8,957 subsamples (6,611 `sedtot` + 2,346 `sed2000`), MUDAB 4,161 (4,151 + 10).
+8,957 subsamples (6,611 `sedtot` + 2,346 `sed2000`), MUDAB 4,162 (4,152 + 10).
 
 **Gravel reconciliation (`gsmf63_sed2000`).** A `<2 mm`-based fines value is the
 `<63 µm` share of the `<2 mm` material, not of the whole sample; converting it
@@ -460,8 +463,11 @@ samples) and was deliberately **not** added, since those sources are already
 ~60–67 % covered by `GSMF63` and the proxy would mix a different cutoff into the
 column.
 
-Still not done: manual review of the step-14 `suspect` rows (Vannmiljø 22, MUDAB 7)
-that could not be corrected automatically. (The `SED2000` gravel reconciliation was
-investigated and found to be impossible from the data, since these samples have no
-whole-sample grain-size; it is instead handled by the documented negligible-gravel
-assumption above.)
+Still not done: manual review of the remaining step-14 `suspect` rows (Vannmiljø
+22; ICES-DOME and MUDAB are now 0). These are Vannmiljø's isolated scale errors of
+varying magnitude (×1000, ×10, borderline), which have no single safe auto-fix;
+`R/slim/review/export_vannmiljo_suspect_grainsize.R` exports them with context for a
+person to resolve. (The `SED2000` gravel reconciliation was investigated and found
+to be impossible from the data, since these samples have no whole-sample
+grain-size; it is instead handled by the documented negligible-gravel assumption
+above.)

@@ -30,12 +30,15 @@ for (coldef in c("value_std_corr REAL", "gs_corr TEXT")) {
 }
 
 # ── 2. Per-curve renormalisation factor ──────────────────────────────────────
-# A grain-size curve is one (subsample, matrix) group. The cumulative GSMF codes
-# (GSMF63, GSMF2000, ...) define it; the anchor is the largest value_std in the
-# curve (the coarsest cutoff, i.e. the total). A curve is corrected only when it
-# is over-scaled (anchor > 100.5 %) AND monotone (a valid cumulative shape after
+# A grain-size curve is one (subsample, matrix) group. Only the cumulative "<n"
+# codes GSMF<n> (GSMF63, GSMF2000, ...) define it; the ">n" gravel codes (GSMF>2000,
+# GSMF>8000) and "_n" variants are not cumulative "<n" values and are excluded,
+# else an anomalously large gravel value breaks the monotonicity check and wrongly
+# rejects an otherwise correctable curve. The anchor is the largest value_std in
+# the curve (the coarsest cutoff, i.e. the total). A curve is corrected only when
+# it is over-scaled (anchor > 100.5 %) AND monotone (a valid cumulative shape after
 # renormalising); factor = 100 / anchor. Everything else keeps factor 1.
-cutoff <- function(sym) as.numeric(str_match(sym, "^GSMF>?_?([0-9]+)$")[, 2])
+cutoff <- function(sym) as.numeric(str_match(sym, "^GSMF([0-9]+)$")[, 2])
 
 el <- dbReadTable(con, "element") |> as_tibble() |> select(symbol, category)
 m  <- dbReadTable(con, "measurement") |> as_tibble() |> left_join(el, by = "symbol")

@@ -202,6 +202,7 @@ Vannmiljø, samples with neither direct code fall back to the clay + silt sum
 for ICES-DOME and MUDAB reaches only `<60 µm` (a different cutoff) and was left
 out. The `SED2000` gravel adjustment cannot be computed (no whole-sample grain-size
 exists for those samples), so it is handled by the documented assumption above.
-Still to come: manual review of the `suspect` rows that the correction could not
-repair.
+Still to come: manual review of the Vannmiljø `suspect` rows (isolated scale errors
+with no single safe auto-fix), which are exported with context for a person to
+resolve.
 :::
