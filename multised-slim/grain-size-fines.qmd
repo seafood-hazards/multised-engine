@@ -80,10 +80,24 @@ Two points that the derivation has to get right:
   are `100 minus GSMF_63`.
 - **The fraction is relative to the matrix.** A cumulative `GSMF63` is the <63 µm
   share *of whatever fraction it was measured on* (see the Sample Fraction page).
-  It is taken from the whole sample (`SEDtot`) first, and otherwise from the
-  bulk-equivalent `SED2000` / `SED1000` (coarse sieving that only removes gravel).
-  Values measured on an already-fine fraction (which would be near 100 %) are not
-  used.
+  It is taken from the whole sample (`SEDtot`) first, and otherwise from `SED2000`
+  / `SED1000` (the <2 mm / <1 mm material). Values measured on an already-fine
+  fraction (which would be near 100 %) are not used. The `SED2000` based values
+  come with the gravel caveat below.
+
+::: {.callout-warning}
+## The SED2000 based fines assume negligible gravel
+
+A `SED2000` value is the `<63 µm` share of the `<2 mm` material, not of the whole
+sample. Converting it to a whole-sample value would need the gravel (`>2 mm`)
+proportion, but these ~2,356 subsamples (2,346 ICES-DOME, 10 MUDAB) were analysed
+*only* on the sieved `<2 mm` fraction, so their gravel was never measured and
+cannot be reconciled. They are therefore taken as whole-sample fines assuming
+gravel is negligible (true for open marine sediment, not for gravelly or coastal
+sites). They carry `fines_basis = 'gsmf63_sed2000'`, so they can be identified,
+down-weighted, or dropped downstream. The `gsmf63_sedtot` values are genuine
+whole-sample fines and need no such caveat.
+:::
 
 ## 2. Correcting noisy grain-size curves
 
@@ -186,7 +200,8 @@ vals |>
 Vannmiljø, samples with neither direct code fall back to the clay + silt sum
 (`GSMF2` + `GSMF2_63`), the same construction as Mareano. The equivalent bin route
 for ICES-DOME and MUDAB reaches only `<60 µm` (a different cutoff) and was left
-out. Still to come: the gravel adjustment for `SED2000` based fines (the `<2 mm`
-total is taken as the whole sample), and manual review of the `suspect` rows that
-the correction could not repair.
+out. The `SED2000` gravel adjustment cannot be computed (no whole-sample grain-size
+exists for those samples), so it is handled by the documented assumption above.
+Still to come: manual review of the `suspect` rows that the correction could not
+repair.
 :::

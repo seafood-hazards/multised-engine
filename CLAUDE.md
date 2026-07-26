@@ -175,10 +175,14 @@ fines) as `100 − GSMF_63` (`'gsmf_63_complement'`); else the clay+silt sum `GS
 (<2µm) + `GSMF2_63` (2–63µm) (`'clay_silt_sum'`, the Mareano approach); 7,113
 subsamples. **ICES-DOME** / **MUDAB** report the cumulative `GSMF63` ("<63µm
 silt/clay"), which is <63µm *of the matrix it sits on*, so the matrix is combined
-in: preferred on `SEDtot` (whole sample), else the bulk-equivalent `SED2000`/
-`SED1000` (coarse sieving removes gravel), while finer matrices are trivially
-~100% and excluded (`fines_basis = 'gsmf63_<matrix>'`; 8,957 and 4,161
-subsamples, including the samples recovered by the step-14 renormalisation).
+in: preferred on `SEDtot` (whole sample), else `SED2000`/`SED1000` (<63µm of the
+<2mm/<1mm material), while finer matrices are trivially ~100% and excluded
+(`fines_basis = 'gsmf63_<matrix>'`; 8,957 and 4,161 subsamples, including the
+samples recovered by the step-14 renormalisation). The `SED2000` samples carry no
+whole-sample grain-size, so their gravel is unmeasured and cannot be reconciled;
+they are taken as whole-sample fines under a **negligible-gravel** assumption (fine
+for open-marine, not gravelly/coastal), which `fines_basis = 'gsmf63_sed2000'`
+marks for downstream down-weighting.
 Values still outside 0–100% (the step-14 `suspect` rows) are excluded (left NULL).
 Note `GSMF63`/`GSMF_63` naming is source-dependent (ICES = below, Vannmiljø =
 above); do not assume the number is a below-cutoff.

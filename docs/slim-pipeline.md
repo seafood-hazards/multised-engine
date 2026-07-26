@@ -428,13 +428,24 @@ measured on*, so the matrix (the sample-fraction work) is combined in:
 | matrix                | `GSMF63` means                          | used as fines? |
 |-----------------------|-----------------------------------------|----------------|
 | `SEDtot`              | <63µm of the whole sample               | yes (1st choice) |
-| `SED2000` / `SED1000` | <63µm of the <2 mm / <1 mm material     | yes, bulk-equivalent (2nd choice) |
+| `SED2000` / `SED1000` | <63µm of the <2 mm / <1 mm material     | yes, as whole-sample under the no-gravel assumption below (2nd choice) |
 | `SED63`, `SED20`, ... | <63µm of an already-fine fraction (~100%) | no, excluded |
 
 Priority `SEDtot` > `SED2000` > `SED1000`; the highest-priority clean value per
 subsample wins, and `fines_basis = 'gsmf63_<matrix>'` records which. Reading the
 corrected `value_std_corr` recovers the samples renormalised in step 14: ICES-DOME
 8,957 subsamples (6,611 `sedtot` + 2,346 `sed2000`), MUDAB 4,161 (4,151 + 10).
+
+**Gravel reconciliation (`gsmf63_sed2000`).** A `<2 mm`-based fines value is the
+`<63 µm` share of the `<2 mm` material, not of the whole sample; converting it
+would need the sample's gravel (`>2 mm`) proportion. That proportion is
+**unmeasured**: every one of these ~2,356 subsamples (2,346 ICES-DOME, 10 MUDAB)
+carries grain-size *only* on the `SED2000` matrix, with no `SEDtot` row at all, so
+there is nothing to reconcile against. They are therefore taken as whole-sample
+fines under the assumption that **gravel is negligible** (true for open-marine
+sediment, not for gravelly / coastal), and `fines_basis = 'gsmf63_sed2000'` marks
+them so a downstream user can down-weight or drop them. `SEDtot`-based fines
+(`gsmf63_sedtot`) are genuine whole-sample values and need no such caveat.
 
 The idempotent write pattern is the usual one, keyed on `subsample_id`: a
 temporary `qc_fines` table plus an unconditional correlated-subquery `UPDATE`
@@ -449,7 +460,8 @@ samples) and was deliberately **not** added, since those sources are already
 ~60–67 % covered by `GSMF63` and the proxy would mix a different cutoff into the
 column.
 
-Still not done: the gravel-fraction reconciliation for `SED2000`-based fines (the
-`<2 mm` total is currently taken as the whole sample), and the manual review of the
-step-14 `suspect` rows (Vannmiljø 22, MUDAB 7) that could not be corrected
-automatically.
+Still not done: manual review of the step-14 `suspect` rows (Vannmiljø 22, MUDAB 7)
+that could not be corrected automatically. (The `SED2000` gravel reconciliation was
+investigated and found to be impossible from the data, since these samples have no
+whole-sample grain-size; it is instead handled by the documented negligible-gravel
+assumption above.)

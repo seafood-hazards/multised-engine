@@ -24,9 +24,14 @@ for (coldef in c("fines_lt63 REAL", "fines_basis TEXT")) {
 # fraction directly. But it is <63 um *of the matrix it was measured on*, so the
 # matrix must be combined in:
 #   SEDtot            -> <63 um of the whole sample (what we want)
-#   SED2000 / SED1000 -> <63 um of the <2 mm / <1 mm material; these are
-#                        bulk-equivalent (coarse sieving removes gravel), so used
-#                        as the whole-sample fines when SEDtot is absent
+#   SED2000 / SED1000 -> <63 um of the <2 mm / <1 mm material; used as the
+#                        whole-sample fines when SEDtot is absent. NOTE: these
+#                        samples carry grain-size ONLY on the sieved <2 mm base,
+#                        so the gravel (>2 mm) removed beforehand is unmeasured and
+#                        cannot be reconciled. They are taken as whole-sample fines
+#                        under the assumption that gravel is negligible (true for
+#                        open marine sediment, not for gravelly/coastal). The
+#                        fines_basis 'gsmf63_sed2000' marks them for downstream use.
 #   finer matrices (SED63, SED20, ...) -> trivially ~100 %, excluded
 # Priority SEDtot > SED2000 > SED1000. The corrected standardised value
 # value_std_corr (grain-size correction, step 14) is read, so the per-curve
