@@ -38,9 +38,14 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   `sampling_tool` (ICES), `site_id`, `dataset_id`. `datetime` / `time` dropped.
 - **subsample** — `depth_from` / `depth_to` in **cm**; supporting-data flags
   (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`).
-- **grain_size** (new, one row per subsample that has usable grain-size):
-  `frac_class` (`sieved` / `bulk`), `fines_lt63` (%), `is_fine` (0/1),
-  `fines_basis`, and the individual size fractions.
+- **grain_size** (new, one row per subsample with usable grain-size, summary):
+  `frac_class` (`sieved` / `bulk`; `unknown` dropped), `fines_lt63` (%),
+  `is_fine` (0/1 at a threshold), `fines_basis`.
+- **grain_size_fraction** (new, one row per grain-size mass-fraction measurement,
+  detail): `symbol`, `matrix`, size bounds `lo_um`/`hi_um`, `value_pct` (the
+  corrected %); grain-size statistics (GSMEA/GSMED/...) and `gs_corr='invalid'`
+  rows excluded. The multi-valued fractions are normalised out of the per-subsample
+  summary rather than crammed into one table.
 
 ---
 
@@ -91,14 +96,20 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **Labels kept**: measurement class (`category`, now only target/reference/
   organic since grain-size moved out), supporting-data availability
   (`fe/al/org/comp_exist`), multi-layer (`multi_flag`).
-- **grain_size table** (per subsample, from slim `fines_lt63` / `fines_basis`,
-  the `matrix` sample-fraction work, and the fraction codes):
-  - `frac_class` = `sieved` / `bulk`; **drop the row if unknown**.
+- **grain_size** summary table (per subsample, from slim `fines_lt63` /
+  `fines_basis` and the `matrix` sample-fraction work):
+  - `frac_class` = `sieved` / `bulk` (bulk = whole `SEDtot` or a `>= 1000 µm`
+    coarse sieve); **drop the row if unknown**.
   - `fines_lt63` (%) numeric, plus `is_fine` (0/1) at a threshold (provisional
-    `>= 50 %` mud; OPEN ITEM).
-  - the individual grain-size fractions.
+    `>= 50 %` mud).
+- **grain_size_fraction** detail table: the individual grain-size fractions moved
+  out of `measurement` (corrected `value_pct`, parsed `lo_um`/`hi_um`; statistics
+  and `invalid` rows excluded), restricted to the subsamples the summary kept.
 - **Drop `composition` rows from `measurement`**; `comp_exist` then means "has a
-  `grain_size` row".
+  `grain_size` row". Fines columns move off `subsample` into `grain_size`.
+
+**Status:** built and verified for ICES-DOME (`R/clean/ices-dome/` steps 01-03).
+ICES depth factor = ×100 (metres → cm); `is_fine` threshold = 50 %.
 
 ---
 
