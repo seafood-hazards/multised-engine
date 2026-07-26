@@ -1,0 +1,156 @@
+---
+title: "Fines (<63 µm)"
+subtitle: The mud (clay + silt) fraction of each sample, derived from grain-size data
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+The fraction of a sediment finer than 63 µm (clay plus silt, the "mud" fraction)
+is a key descriptor: it governs how much surface area is available to bind trace
+elements, and it is the usual basis for comparing contaminant levels between
+samples. This page derives a single per-sample value, `subsample.fines_lt63` (a
+percentage), from each source's grain-size measurements, and records in
+`fines_basis` how it was obtained.
+
+Every source with grain-size contributes (all but 4Demon, which carries no
+grain-size). The value is always taken from the standardised `value_std` (grain
+size to %), so mixed reporting units (`%`, `g/kg`) are handled uniformly.
+
+```{r}
+#| label: setup
+library(DBI)
+library(RSQLite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(knitr)
+
+db_dir <- "../data/db"
+
+srcs <- tibble(
+  Source = c("Mareano", "Vannmiljø", "ICES-DOME", "MUDAB"),
+  file   = c("mareano_slim", "vannmiljo_slim", "ices_dome_slim", "mudab_slim"))
+
+scal <- function(file, sql) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(file, ".sqlite")))
+  on.exit(dbDisconnect(con))
+  as.integer(dbGetQuery(con, sql)[[1]])
+}
+qry <- function(file, sql) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(file, ".sqlite")))
+  on.exit(dbDisconnect(con))
+  as_tibble(dbGetQuery(con, sql))
+}
+kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
+
+# all fines values, tagged by source
+vals <- bind_rows(lapply(seq_len(nrow(srcs)), function(i)
+  qry(srcs$file[i], "SELECT fines_lt63 AS v, fines_basis AS basis
+                     FROM subsample WHERE fines_lt63 IS NOT NULL") |>
+    mutate(Source = srcs$Source[i]))) |>
+  mutate(Source = factor(Source, levels = srcs$Source))
+```
+
+## 1. How the fines fraction is derived
+
+Each source encodes grain-size differently, and the parameter names do not mean
+the same thing across sources, so the meaning of every code was checked against
+the pilot parameter definitions before use.
+
+```{r}
+tribble(
+  ~Source,     ~`Code used`,                    ~`fines_lt63`,                                  ~`fines_basis`,
+  "Mareano",   "Clay + Silt bins",              "Clay (<2 µm) + Silt (2 to 63 µm)",             "sum_bins",
+  "Vannmiljø", "FINS, else GSMF_63 complement", "FINS directly, else 100 minus GSMF_63",        "fins / gsmf_63_complement",
+  "ICES-DOME", "GSMF63 on a bulk matrix",       "Cumulative <63 µm on SEDtot, else SED2000",    "gsmf63_sedtot / gsmf63_sed2000",
+  "MUDAB",     "GSMF63 on a bulk matrix",       "Cumulative <63 µm on SEDtot, else SED2000",    "gsmf63_sedtot / gsmf63_sed2000"
+) |> kable()
+```
+
+Two points that the derivation has to get right:
+
+- **The names can be reversed.** In ICES-DOME and MUDAB, `GSMF63` is the mass
+  fraction *finer* than 63 µm (silt and clay). In Vannmiljø the similar-looking
+  `GSMF_63` is the *opposite*: "Particle fraction >63 µm" (sand and coarser). So
+  Vannmiljø's fines come from `FINS`, and where only `GSMF_63` exists the fines
+  are `100 minus GSMF_63`.
+- **The fraction is relative to the matrix.** A cumulative `GSMF63` is the <63 µm
+  share *of whatever fraction it was measured on* (see the Sample Fraction page).
+  It is taken from the whole sample (`SEDtot`) first, and otherwise from the
+  bulk-equivalent `SED2000` / `SED1000` (coarse sieving that only removes gravel).
+  Values measured on an already-fine fraction (which would be near 100 %) are not
+  used.
+
+## 2. Coverage
+
+```{r}
+cov <- srcs |>
+  rowwise() |>
+  mutate(
+    Subsamples   = scal(file, "SELECT COUNT(*) FROM subsample"),
+    `With fines` = scal(file, "SELECT COUNT(*) FROM subsample WHERE fines_lt63 IS NOT NULL")) |>
+  ungroup() |>
+  mutate(`% covered` = round(100 * `With fines` / Subsamples)) |>
+  select(-file)
+kfmt(cov)
+```
+
+Coverage is partial by design: a subsample contributes only if it has a usable
+`<63 µm` measurement. Implausible values (a cumulative mass fraction outside
+0 to 100 %, about 1 % of the international grain-size rows) are left out rather
+than corrected here.
+
+The `fines_basis` breakdown shows which route each value came from:
+
+```{r}
+vals |>
+  count(Source, Basis = basis, name = "Subsamples") |>
+  arrange(Source, desc(Subsamples)) |>
+  kfmt()
+```
+
+## 3. Distribution
+
+Summary of the derived `fines_lt63` (%) per source:
+
+```{r}
+vals |>
+  group_by(Source) |>
+  summarise(
+    N      = n(),
+    Min    = round(min(v), 1),
+    Q1     = round(quantile(v, 0.25), 1),
+    Median = round(median(v), 1),
+    Mean   = round(mean(v), 1),
+    Q3     = round(quantile(v, 0.75), 1),
+    Max    = round(max(v), 1),
+    .groups = "drop") |>
+  kfmt()
+```
+
+Spread across mud-content bands (share of each source's samples):
+
+```{r}
+bands <- c("0-10", "10-25", "25-50", "50-75", "75-90", "90-100")
+vals |>
+  mutate(Band = cut(v, breaks = c(-Inf, 10, 25, 50, 75, 90, Inf),
+                    labels = bands, right = TRUE)) |>
+  count(Source, Band) |>
+  group_by(Source) |>
+  mutate(pct = round(100 * n / sum(n))) |>
+  ungroup() |>
+  select(-n) |>
+  pivot_wider(names_from = Band, values_from = pct, values_fill = 0) |>
+  relocate(Source, all_of(bands)) |>
+  kfmt()
+```
+
+::: {.callout-note}
+`fines_lt63` is a reusable derived quantity, not a flag: nothing is deleted. Still
+to come in this section: summing the discrete `GS>a<b` grain-size bins for samples
+that lack a direct `<63 µm` code, and the correction pass for the noisy values
+excluded here (impossible percentages, and the gravel adjustment for `SED2000`
+based fines).
+:::

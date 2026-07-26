@@ -37,6 +37,8 @@ website:
         menu:
           - text: "Sample Fraction (matrix)"
             href: grain-size-fraction.qmd
+          - text: "Fines (<63 µm)"
+            href: grain-size-fines.qmd
 
 format:
   html:
