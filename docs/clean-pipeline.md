@@ -108,17 +108,36 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **Drop `composition` rows from `measurement`**; `comp_exist` then means "has a
   `grain_size` row". Fines columns move off `subsample` into `grain_size`.
 
-**Status:** built and verified for ICES-DOME (`R/clean/ices-dome/` steps 01-03).
-ICES depth factor = ×100 (metres → cm); `is_fine` threshold = 50 %.
+**Status:** built and verified for **all five sources** (`R/clean/<source>/`).
+ICES-DOME / MUDAB / Mareano / Vannmiljø run steps 01-03; 4Demon runs 01-02 (no
+grain-size). `is_fine` threshold = 50 % everywhere.
+
+Per-source specifics settled during the rollout:
+
+| source    | depth unit | grain-size sieved/bulk | notes |
+|-----------|------------|------------------------|-------|
+| ICES-DOME | metres (×100) | from `matrix` | reference vocabulary |
+| MUDAB     | cm (×1)    | from `matrix` (`PK_default` -> unknown, dropped) | `time` dropped; no `src_flag` |
+| Mareano   | cm (×1)    | all `bulk` (confirmed) | named bins Clay/Silt/Sand/Gravel; `lld`->`lod`; TOC->CORG |
+| Vannmiljø | cm (×1)    | all `bulk` (assumed; no `matrix`) | `date` from `datetime`; `dw`/`C` unit suffix stripped; 221 corrupt depths (>300 cm or inverted) nulled; own GSMF code vocabulary; `gs_corr='invalid'` fractions excluded |
+| 4Demon    | cm (×1)    | none | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
+
+Cross-source portability handled in code: `col_or_false` removal predicate (absent
+`src_flag`), `matrix` NA-guard, and `intersect(c("method","lab"))` grouping (absent
+`lab` in Vannmiljø / 4Demon).
 
 ---
 
-## Open items to resolve during the build
+## Open items (still provisional, easily changed)
 
-- Per-source **depth units** (confirm from pilot metadata) and the Vannmiljø
-  out-of-range depth cleaning.
-- `is_fine` **threshold** (provisional `>= 50 %`).
-- **Replicate / uncertainty** aggregation maths (pooled SD, uncrt propagation).
-- `sampling_tool` / `method` **ICES mapping tables** (best-effort; Vannmiljø tool
-  largely `unknown`).
+- `is_fine` **threshold** = `50 %` mud, provisional (one constant per Step-3 script).
+- Vannmiljø **bulk assumption** (no `matrix`, so grain-size taken as whole-sample)
+  and its **depth-null threshold** (`> 300 cm` or inverted -> NA, 221 rows).
+- **Uncertainty**: only ICES-DOME populates `value_uncrt` (per-measurement
+  `uncrt`/`metcu`); MUDAB `method.uncertainty` and any cross-replicate propagation
+  rule beyond mean-of-1sigma are not yet used.
+- `sampling_tool` / `method` are carried as-is; a proper **ICES mapping** is
+  best-effort and not built (Vannmiljø tool is ISO standards, unmapped).
 - Whether `comp_exist` stays on `subsample` or is inferred from `grain_size`.
+- Next generation (per [plan.md](plan.md)): the single clean-results website, then
+  the cross-source **merge**.
