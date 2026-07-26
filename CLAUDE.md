@@ -152,10 +152,11 @@ because each encodes grain-size differently, and the source signal is noisy, so
 per-source parameter definitions were verified against the pilot lookups:
 **Mareano** stores four named bins (Clay <2µm, Silt 2–63µm, Sand 63–2000µm,
 Gravel >2000µm), so `fines_lt63` = Clay + Silt (`fines_basis = 'sum_bins'`; all
-Mareano samples are bulk, 3,265 subsamples, 0–99.5%). **Vannmiljø** reports `FINS`
-("Fines <63µm") directly (`fines_basis = 'fins'`); where only its complement
-`GSMF_63` ("Particle fraction **>63µm**", the opposite of the ICES `GSMF63`, so
-NOT the fines) exists, `fines_lt63 = 100 − GSMF_63` (`'gsmf_63_complement'`); 6,722
+Mareano samples are bulk, 3,265 subsamples, 0–99.5%). **Vannmiljø** takes the first available of: `FINS`
+("Fines <63µm") directly (`fines_basis = 'fins'`); else its complement `GSMF_63`
+("Particle fraction **>63µm**", the opposite of the ICES `GSMF63`, so NOT the
+fines) as `100 − GSMF_63` (`'gsmf_63_complement'`); else the clay+silt sum `GSMF2`
+(<2µm) + `GSMF2_63` (2–63µm) (`'clay_silt_sum'`, the Mareano approach); 7,113
 subsamples. **ICES-DOME** / **MUDAB** report the cumulative `GSMF63` ("<63µm
 silt/clay"), which is <63µm *of the matrix it sits on*, so the matrix is combined
 in: preferred on `SEDtot` (whole sample), else the bulk-equivalent `SED2000`/

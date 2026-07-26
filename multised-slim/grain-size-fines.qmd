@@ -63,7 +63,7 @@ the pilot parameter definitions before use.
 tribble(
   ~Source,     ~`Code used`,                    ~`fines_lt63`,                                  ~`fines_basis`,
   "Mareano",   "Clay + Silt bins",              "Clay (<2 µm) + Silt (2 to 63 µm)",             "sum_bins",
-  "Vannmiljø", "FINS, else GSMF_63 complement", "FINS directly, else 100 minus GSMF_63",        "fins / gsmf_63_complement",
+  "Vannmiljø", "FINS, complement, or clay+silt", "FINS, else 100 minus GSMF_63, else GSMF2 + GSMF2_63", "fins / gsmf_63_complement / clay_silt_sum",
   "ICES-DOME", "GSMF63 on a bulk matrix",       "Cumulative <63 µm on SEDtot, else SED2000",    "gsmf63_sedtot / gsmf63_sed2000",
   "MUDAB",     "GSMF63 on a bulk matrix",       "Cumulative <63 µm on SEDtot, else SED2000",    "gsmf63_sedtot / gsmf63_sed2000"
 ) |> kable()
@@ -148,9 +148,10 @@ vals |>
 ```
 
 ::: {.callout-note}
-`fines_lt63` is a reusable derived quantity, not a flag: nothing is deleted. Still
-to come in this section: summing the discrete `GS>a<b` grain-size bins for samples
-that lack a direct `<63 µm` code, and the correction pass for the noisy values
-excluded here (impossible percentages, and the gravel adjustment for `SED2000`
-based fines).
+`fines_lt63` is a reusable derived quantity, not a flag: nothing is deleted. For
+Vannmiljø, samples with neither direct code fall back to the clay + silt sum
+(`GSMF2` + `GSMF2_63`), the same construction as Mareano. The equivalent bin route
+for ICES-DOME and MUDAB reaches only `<60 µm` (a different cutoff) and was left
+out. Still to come: the correction pass for the noisy values excluded here
+(impossible percentages, and the gravel adjustment for `SED2000` based fines).
 :::

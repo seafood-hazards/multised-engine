@@ -351,7 +351,7 @@ partial. A summary of what each source contributes:
 | source    | code used            | `fines_basis`                          | subsamples |
 |-----------|----------------------|----------------------------------------|-----------:|
 | Mareano   | Clay + Silt bins     | `sum_bins`                             | 3,265      |
-| Vannmiljø | `FINS`, else complement | `fins` / `gsmf_63_complement`       | 6,722      |
+| Vannmiljø | `FINS`, else complement, else clay+silt | `fins` / `gsmf_63_complement` / `clay_silt_sum` | 7,113 |
 | ICES-DOME | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 8,811      |
 | MUDAB     | `GSMF63` on bulk matrix | `gsmf63_sedtot` / `gsmf63_sed2000`   | 4,033      |
 
@@ -378,7 +378,10 @@ codes whose naming is a trap: `FINS` = "Fines <63µm" (the fraction we want) but
 `GSMF_63` = "Particle fraction **>63µm**", the *complement* (the opposite sense of
 the ICES `GSMF63`). Since `FINS + GSMF_63 ≈ 100` (verified), `fines_lt63` = `FINS`
 where present (`fines_basis = 'fins'`), else `100 − GSMF_63`
-(`'gsmf_63_complement'`). 6,722 subsamples (3,628 direct + 3,094 complement).
+(`'gsmf_63_complement'`), else the clay+silt sum `GSMF2` ("<2µm", clay) +
+`GSMF2_63` ("2–63µm", silt) (`'clay_silt_sum'`, the same construction as Mareano,
+for samples that carry the fraction bins but neither direct code). 7,113
+subsamples (3,628 `fins` + 3,094 `gsmf_63_complement` + 391 `clay_silt_sum`).
 
 **ICES-DOME** and **MUDAB** report the cumulative `GSMF63` ("Grain Size Mass
 Fraction <63 micron, silt/clay"): the <63µm fraction, but *of the matrix it was
@@ -398,7 +401,15 @@ The idempotent write pattern is the usual one, keyed on `subsample_id`: a
 temporary `qc_fines` table plus an unconditional correlated-subquery `UPDATE`
 (subsamples absent from `qc_fines` reset to NULL on re-run).
 
-Not yet done: summing discrete `GS>a<b` bins Mareano-style for subsamples that
-lack a `GSMF63`/`FINS`, and the dedicated correction pass for the noisy values
-excluded here (impossible percentages such as 13,481 and 45,903, gravel-fraction
-reconciliation for `SED2000`-based fines). Values are left exactly as reported.
+Bin-summing was assessed for the remaining uncovered samples. It pays off only
+for Vannmiljø (the clean clay+silt sum above); the international `GS>a<b` bins are
+too sparse and incomplete to help (median partition total ~72 %, no `<20µm` clay
+bin, and a 60µm rather than 63µm boundary). The one bin-based route for
+ICES-DOME / MUDAB, `GSMF20` (<20) + `GS>20<60`, reaches only `<60µm` (~138
+samples) and was deliberately **not** added, since those sources are already
+~60–67 % covered by `GSMF63` and the proxy would mix a different cutoff into the
+column.
+
+Still not done: the dedicated correction pass for the noisy values excluded here
+(impossible percentages such as 13,481 and 45,903, gravel-fraction reconciliation
+for `SED2000`-based fines). Values are left exactly as reported.
