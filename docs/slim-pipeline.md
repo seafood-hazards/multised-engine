@@ -337,7 +337,7 @@ It adds two columns to `measurement`:
 | column           | type | meaning                                                     |
 |------------------|------|-------------------------------------------------------------|
 | `value_std_corr` | REAL | corrected standardised value; equals `value_std` everywhere except renormalised grain-size fractions (a drop-in "best" `value_std` for any row, chemistry included) |
-| `gs_corr`        | TEXT | `renorm` = rescaled by the per-curve factor; `suspect` = grain-size fraction still implausible and not correctable; NULL = untouched |
+| `gs_corr`        | TEXT | `renorm` = rescaled by the per-curve factor; `invalid` = grain-size value reviewed and confirmed unreliable (removal candidate, `value_std_corr` nulled); `suspect` = auto-flagged implausible/uncorrectable curve (currently none); NULL = untouched |
 
 Many international grain-size curves are internally consistent (a monotone
 cumulative distribution) but scaled wrong: within one sample every code is inflated
@@ -359,9 +359,11 @@ Results: ICES-DOME 1,147 `renorm`, MUDAB 1,068 `renorm`, both 0 `suspect`.
 
 **Vannmiljø** has no matrix, and its `GSMF_63` / `GSMF_2000` codes mean ">n µm"
 (not "<n"), so the per-curve renormalisation does not apply. Its noise is instead a
-handful of isolated values, so they are **flagged** for manual review
-(`gs_corr = 'suspect'`, 22 rows) and left unrescaled; `value_std_corr` is a
-pass-through of `value_std`.
+handful of isolated values (22 rows). These were exported
+(`R/slim/review/export_vannmiljo_suspect_grainsize.R`) and manually reviewed
+against the raw data: the error magnitude varies per row (×1000, ×10, borderline)
+and the values were found incorrect, so they are flagged `gs_corr = 'invalid'`
+(with `value_std_corr` nulled) for removal in the clean stage rather than rescaled.
 
 Assumption: renormalising the coarsest cutoff to 100 % treats the `<2 mm` total as
 the whole sample (gravel negligible), consistent with the bulk-equivalent decision
@@ -384,9 +386,10 @@ uses `value_std`; it has no correction step). It adds two columns to `subsample`
 `g/kg`, ...) are handled uniformly and the renormalised curves are used. The
 derivation differs per source because each encodes grain-size differently and the
 raw signal is noisy, so the per-source parameter definitions below were verified
-against the pilot `parameter` / `code_lookup` tables. Values still outside 0–100%
-after correction (the step-14 `suspect` rows) are **excluded** (the subsample is
-left NULL). Coverage is therefore partial. A summary of what each source
+against the pilot `parameter` / `code_lookup` tables. Values whose `value_std_corr`
+is still outside 0–100% or nulled after correction (the step-14 `invalid` /
+`suspect` rows) are **excluded** (the subsample is left NULL). Coverage is therefore
+partial. A summary of what each source
 contributes:
 
 | source    | code used            | `fines_basis`                          | subsamples |
@@ -463,11 +466,9 @@ samples) and was deliberately **not** added, since those sources are already
 ~60–67 % covered by `GSMF63` and the proxy would mix a different cutoff into the
 column.
 
-Still not done: manual review of the remaining step-14 `suspect` rows (Vannmiljø
-22; ICES-DOME and MUDAB are now 0). These are Vannmiljø's isolated scale errors of
-varying magnitude (×1000, ×10, borderline), which have no single safe auto-fix;
-`R/slim/review/export_vannmiljo_suspect_grainsize.R` exports them with context for a
-person to resolve. (The `SED2000` gravel reconciliation was investigated and found
+The step-14 `suspect` rows have all been resolved: the MUDAB false-positive was
+fixed (the gravel-code parser bug above) and Vannmiljø's 22 were reviewed and
+flagged `invalid`. (The `SED2000` gravel reconciliation was investigated and found
 to be impossible from the data, since these samples have no whole-sample
 grain-size; it is instead handled by the documented negligible-gravel assumption
 above.)

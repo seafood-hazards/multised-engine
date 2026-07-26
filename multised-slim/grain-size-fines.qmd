@@ -111,10 +111,11 @@ the fines are derived, writing a corrected value (`value_std_corr`) and a marker
 - **ICES-DOME and MUDAB** renormalise each over-scaled, still-monotone curve so its
   coarsest cutoff (the total, near the `<2 mm` fraction) reads 100 %
   (`gs_corr = 'renorm'`). This recovers the affected samples for the fines below.
-  Curves that stay implausible (not monotone) are marked `suspect` and excluded.
 - **Vannmiljø** has only a handful of isolated bad values (and its codes mean
-  ">n µm", so the curve renormalisation does not apply): these are flagged
-  `suspect` for manual review, not rescaled.
+  ">n µm", so the curve renormalisation does not apply): these were manually
+  reviewed against the raw data, found incorrect, and flagged
+  `gs_corr = 'invalid'` (their standardised value nulled) for removal in the clean
+  stage.
 
 ```{r}
 srcs |>
@@ -122,9 +123,9 @@ srcs |>
   rowwise() |>
   mutate(
     Renormed = scal(file, "SELECT COUNT(*) FROM measurement WHERE gs_corr = 'renorm'"),
-    Suspect  = scal(file, "SELECT COUNT(*) FROM measurement WHERE gs_corr = 'suspect'")) |>
+    Invalid  = scal(file, "SELECT COUNT(*) FROM measurement WHERE gs_corr = 'invalid'")) |>
   ungroup() |>
-  select(Source, Renormed, Suspect) |>
+  select(Source, Renormed, Invalid) |>
   kfmt()
 ```
 
@@ -202,7 +203,6 @@ Vannmiljø, samples with neither direct code fall back to the clay + silt sum
 for ICES-DOME and MUDAB reaches only `<60 µm` (a different cutoff) and was left
 out. The `SED2000` gravel adjustment cannot be computed (no whole-sample grain-size
 exists for those samples), so it is handled by the documented assumption above.
-Still to come: manual review of the Vannmiljø `suspect` rows (isolated scale errors
-with no single safe auto-fix), which are exported with context for a person to
-resolve.
+The Vannmiljø values the correction could not repair have now been reviewed and
+flagged `invalid` (removed in the clean stage), so no grain-size items remain open.
 :::

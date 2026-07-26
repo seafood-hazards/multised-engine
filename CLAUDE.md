@@ -159,8 +159,12 @@ large gravel value breaks the monotonicity check and wrongly rejects the curve.
 value; only mass-fraction codes are rescaled, never the grain-size statistics
 GSMEA/GSMED/…).
 Vannmiljø's noise is instead a handful of isolated values (its `GSMF_63`/`_2000`
-mean ">n", so the curve renorm does not apply), so it only **flags** them
-(`gs_corr = 'suspect'`, 22 rows) for manual review, `value_std_corr` a pass-through.
+mean ">n", so the curve renorm does not apply); these 22 rows were exported and
+manually reviewed, found incorrect/unreliable, and flagged
+`gs_corr = 'invalid'` (with `value_std_corr` nulled) for removal in the clean
+stage. So `gs_corr` values are `renorm` (rescaled), `invalid` (reviewed
+unreliable), `suspect` (an auto-flagged uncorrectable curve, currently none since
+the MUDAB false-positive was fixed), else NULL.
 Step 15 is a **grain-size derivation** (source-specific; every source with
 grain-size, i.e. all but 4Demon): it adds `fines_lt63` + `fines_basis` to
 `subsample`, the percentage of material finer than 63µm (the clay + silt "mud"
@@ -186,7 +190,8 @@ whole-sample grain-size, so their gravel is unmeasured and cannot be reconciled;
 they are taken as whole-sample fines under a **negligible-gravel** assumption (fine
 for open-marine, not gravelly/coastal), which `fines_basis = 'gsmf63_sed2000'`
 marks for downstream down-weighting.
-Values still outside 0–100% (the step-14 `suspect` rows) are excluded (left NULL).
+Rows whose `value_std_corr` is still outside 0–100% or nulled (the step-14
+`invalid`/`suspect` rows) are excluded from fines (left NULL).
 Note `GSMF63`/`GSMF_63` naming is source-dependent (ICES = below, Vannmiljø =
 above); do not assume the number is a below-cutoff.
 Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).

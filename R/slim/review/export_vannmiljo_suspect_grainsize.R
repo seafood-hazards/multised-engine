@@ -1,13 +1,15 @@
-# Export Vannmiljø grain-size rows flagged `suspect` by the grain-size correction
-# (step 14), for manual checking of the raw values.
+# Export the Vannmiljø grain-size rows the correction step (step 14) flags
+# `gs_corr = 'invalid'`, for the record and any further checking.
 #
 # Step 14 renormalises the internally-consistent-but-scaled grain-size curves of
 # ICES-DOME / MUDAB, but Vannmiljø's noise is not a whole-curve scale error: it is a
 # handful of isolated values with an implausible magnitude (a cumulative mass
 # fraction, which cannot exceed 100 %, reported in the hundreds or tens of
 # thousands). The error factor differs from row to row (some look x1000, some x10,
-# some only just over 100), so no single rescaling is safe and they are flagged
-# `gs_corr = 'suspect'` for a person to resolve rather than auto-corrected.
+# some only just over 100), so no single rescaling is safe. These rows were
+# exported by this script and manually reviewed against the raw data, found
+# incorrect / unreliable, and so flagged `gs_corr = 'invalid'` (value_std_corr
+# nulled) for removal in the clean stage rather than corrected.
 #
 # This script lists those rows with their location/date/depth context and a rough
 # `likely_factor` hint (the power of ten that would bring the value back into
@@ -42,7 +44,7 @@ plausible <- m |>
             .groups = "drop")
 
 susp <- m |>
-  filter(gs_corr == "suspect") |>
+  filter(gs_corr == "invalid") |>
   mutate(
     likely_factor = case_when(value_std > 1000 ~ "/1000?",
                               value_std > 300  ~ "/10?",
@@ -68,8 +70,8 @@ susp <- m |>
 dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
 write_csv(susp, out_path)
 
-cat("\n===== Vannmiljø suspect grain-size export =====\n")
-cat("suspect rows:", nrow(susp),
+cat("\n===== Vannmiljø invalid grain-size export =====\n")
+cat("invalid rows:", nrow(susp),
     "| affected subsamples:", n_distinct(susp$subsample_id), "\n")
 cat("written to:", out_path, "\n\n")
 cat("by symbol and likely factor:\n")
