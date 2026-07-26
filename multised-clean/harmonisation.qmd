@@ -1,0 +1,106 @@
+---
+title: "Harmonisation"
+subtitle: "Uniform symbols, units and depths across the five sources"
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+Step 1 puts every source into one format, using the ICES-DOME vocabulary. Values
+are not changed: the original value and unit are kept, alongside a standardised
+value in a common unit.
+
+```{r}
+#| label: setup
+library(DBI)
+library(RSQLite)
+library(tibble)
+library(dplyr)
+library(knitr)
+
+db_dir <- "../data/db"
+srcs <- tibble(
+  Source = c("Mareano", "Vannmiljø", "ICES-DOME", "MUDAB", "4Demon"),
+  stem   = c("mareano", "vannmiljo", "ices_dome", "mudab", "4demon"))
+
+qry <- function(stem, sql) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(stem, "_clean.sqlite")))
+  on.exit(dbDisconnect(con)); as_tibble(dbGetQuery(con, sql))
+}
+kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
+```
+
+## 1. Symbols
+
+Chemistry symbols are unified to the ICES names: the seven targets, the Fe/Al
+normalisers, and organic carbon `CORG` (Mareano/Vannmiljø `TOC` maps to `CORG`;
+Vannmiljø's `TOC63`, carbon on the `<63 µm` fraction, is kept separate). Case is
+folded (`Fe` becomes `FE`). The chemistry symbols now present per source:
+
+```{r}
+bind_rows(lapply(seq_len(nrow(srcs)), function(i)
+  qry(srcs$stem[i], "SELECT DISTINCT symbol FROM measurement ORDER BY symbol") |>
+    summarise(Symbols = paste(symbol, collapse = ", ")) |>
+    mutate(Source = srcs$Source[i]))) |>
+  select(Source, Symbols) |>
+  kable()
+```
+
+## 2. Units
+
+The original `unit` is retained (renamed to the ICES form: micro sign to `u`, and
+Vannmiljø's `dw` / `C` suffixes stripped), and every measurement also carries a
+standardised `value_std` in **mg/kg** (`unit_std`), converted via its mass basis.
+Original chemistry units still present:
+
+```{r}
+bind_rows(lapply(seq_len(nrow(srcs)), function(i)
+  qry(srcs$stem[i], "SELECT DISTINCT unit FROM measurement WHERE unit IS NOT NULL ORDER BY unit") |>
+    summarise(`Original units` = paste(unit, collapse = ", ")) |>
+    mutate(Source = srcs$Source[i]))) |>
+  select(Source, `Original units`) |>
+  kable()
+```
+
+## 3. Depth
+
+Sediment depth intervals are all converted to **centimetres**. The sources stored
+depth differently: ICES-DOME in metres (multiplied by 100), the others already in
+cm. Vannmiljø's corrupt depths (beyond a plausible core length, or inverted) were
+set to unknown.
+
+```{r}
+bind_rows(lapply(seq_len(nrow(srcs)), function(i)
+  qry(srcs$stem[i], "SELECT ROUND(MIN(depth_from),1) dmin, ROUND(MAX(depth_to),1) dmax,
+                     SUM(depth_to IS NULL) n_unknown FROM subsample") |>
+    mutate(Source = srcs$Source[i]))) |>
+  transmute(Source, `Min depth (cm)` = dmin, `Max depth (cm)` = dmax,
+            `Depth unknown` = n_unknown) |>
+  kfmt()
+```
+
+## 4. Gear and detection limits
+
+`sampling_tool` and `method` are carried in the ICES form where the source already
+uses ICES-style codes (Mareano, ICES-DOME, MUDAB, 4Demon). Vannmiljø records ISO
+sampling standards that do not map to ICES gear, so they are left as-is. Detection
+and quantification limits (`lod` / `loq`) are kept on the `method` table with their
+reporting unit (`limit_unit`); Mareano's single `lld` becomes `lod`, and 4Demon
+carries no numeric limits.
+
+```{r}
+limit_avail <- function(stem) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(stem, "_clean.sqlite")))
+  on.exit(dbDisconnect(con))
+  flds <- dbListFields(con, "method")   # Mareano has no loq; 4Demon has neither
+  n1 <- function(col) if (col %in% flds)
+    as.integer(dbGetQuery(con, paste0("SELECT SUM(", col, " IS NOT NULL) FROM method"))[[1]]) else 0L
+  tibble(Methods = as.integer(dbGetQuery(con, "SELECT COUNT(*) FROM method")[[1]]),
+         `With LOD` = n1("lod"), `With LOQ` = n1("loq"))
+}
+bind_rows(lapply(seq_len(nrow(srcs)), function(i)
+  limit_avail(srcs$stem[i]) |> mutate(Source = srcs$Source[i]))) |>
+  select(Source, Methods, `With LOD`, `With LOQ`) |>
+  kfmt()
+```

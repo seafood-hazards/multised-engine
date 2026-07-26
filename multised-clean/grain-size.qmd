@@ -1,0 +1,92 @@
+---
+title: "Grain size"
+subtitle: "Sieved/bulk, the <63 µm fines, and the fraction distribution"
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+Step 3 moves grain-size out of the measurement table into two tables: a
+per-subsample **`grain_size`** summary (sieved or bulk, the `<63 µm` fines, and a
+fine/not flag) and a **`grain_size_fraction`** detail table (the size
+distribution). 4Demon has no grain-size and so does not appear here.
+
+```{r}
+#| label: setup
+library(DBI)
+library(RSQLite)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(knitr)
+
+db_dir <- "../data/db"
+gsrcs <- tibble(
+  Source = c("Mareano", "Vannmiljø", "ICES-DOME", "MUDAB"),
+  stem   = c("mareano", "vannmiljo", "ices_dome", "mudab"))
+
+qry <- function(stem, sql) {
+  con <- dbConnect(SQLite(), file.path(db_dir, paste0(stem, "_clean.sqlite")))
+  on.exit(dbDisconnect(con)); as_tibble(dbGetQuery(con, sql))
+}
+kfmt <- function(df, ...) kable(df, format.args = list(big.mark = ","), ...)
+```
+
+## 1. Sieved or bulk
+
+Whether each grain-size sample is a whole (bulk) sediment or a sieved fraction.
+For ICES-DOME and MUDAB this comes from the sample `matrix`; Mareano samples are
+all bulk (confirmed); Vannmiljø has no sieving metadata and is taken as bulk.
+Subsamples where this could not be determined were dropped.
+
+```{r}
+bind_rows(lapply(seq_len(nrow(gsrcs)), function(i)
+  qry(gsrcs$stem[i], "SELECT frac_class, COUNT(*) n FROM grain_size GROUP BY frac_class") |>
+    mutate(Source = gsrcs$Source[i]))) |>
+  pivot_wider(names_from = frac_class, values_from = n, values_fill = 0) |>
+  relocate(Source) |>
+  kfmt()
+```
+
+## 2. The <63 µm fines
+
+`fines_lt63` is the percentage of material finer than 63 µm (the clay + silt
+"mud"). `is_fine` marks samples that are mud-dominated (at least 50 %). Samples
+with a class but no usable fines value are `NA`.
+
+```{r}
+bind_rows(lapply(seq_len(nrow(gsrcs)), function(i)
+  qry(gsrcs$stem[i], "SELECT
+        COUNT(*) n_samples,
+        SUM(is_fine=1) fine, SUM(is_fine=0) not_fine, SUM(is_fine IS NULL) unknown,
+        ROUND(AVG(fines_lt63),1) mean_fines
+      FROM grain_size") |>
+    mutate(Source = gsrcs$Source[i]))) |>
+  transmute(Source, `Grain-size samples` = n_samples,
+            `Fine (>=50%)` = fine, `Not fine` = not_fine, `Fines unknown` = unknown,
+            `Mean fines (%)` = mean_fines) |>
+  kfmt()
+```
+
+## 3. Fraction distribution
+
+The `grain_size_fraction` table holds the individual size fractions (corrected
+percentages, with parsed `lo_um`/`hi_um` bounds) moved out of `measurement`.
+
+```{r}
+bind_rows(lapply(seq_len(nrow(gsrcs)), function(i)
+  qry(gsrcs$stem[i], "SELECT COUNT(*) rows, COUNT(DISTINCT subsample_id) subsamples,
+                      COUNT(DISTINCT symbol) codes FROM grain_size_fraction") |>
+    mutate(Source = gsrcs$Source[i]))) |>
+  transmute(Source, `Fraction rows` = rows, `Subsamples` = subsamples,
+            `Distinct codes` = codes) |>
+  kfmt()
+```
+
+::: {.callout-note}
+`fines_lt63` and the fractions are derived, not deleted-from, quantities; the
+grain-size correction (renormalising scaled curves, flagging unreliable values)
+was applied in the slim stage and is documented on the
+[slim site](https://seafood-hazards.github.io/multised-slim/).
+:::

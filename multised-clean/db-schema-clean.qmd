@@ -1,0 +1,93 @@
+---
+title: "Clean schema"
+subtitle: "The tables and columns of the clean databases"
+---
+
+```{css, echo=FALSE}
+th { white-space: nowrap; }
+```
+
+Each `\<source\>_clean.sqlite` has the seven shared tables carried from the slim
+schema, plus two grain-size tables (absent for 4Demon, which has no grain-size).
+The differences from the slim schema are that `measurement` is chemistry-only with
+aggregated values, grain-size lives in its own tables, and depths are in cm.
+
+```{r}
+library(tibble)
+library(knitr)
+```
+
+## measurement (chemistry only)
+
+One row per cleaned chemistry measurement (target / reference / organic). Failed-QC
+rows are gone; duplicates and technical replicates are collapsed.
+
+```{r}
+tribble(
+  ~Column,        ~Type,    ~Meaning,
+  "measurement_id","INTEGER","Primary key (carried from slim).",
+  "subsample_id",  "INTEGER","-> subsample.",
+  "symbol",        "TEXT",   "Element, ICES name (-> element).",
+  "value",         "REAL",   "Value in the original (ICES-named) unit.",
+  "unit",          "TEXT",   "Original reporting unit.",
+  "value_std",     "REAL",   "Standardised value, mg/kg (mean where replicates were averaged).",
+  "unit_std",      "TEXT",   "Always mg/kg.",
+  "value_sd",      "REAL",   "SD across technical replicates, else NULL.",
+  "n_rep",         "INTEGER","Number of distinct replicate values averaged (1 = single).",
+  "value_uncrt",   "REAL",   "Analytical uncertainty, mg/kg (ICES-DOME only), else NULL.",
+  "matrix",        "TEXT",   "Sample fraction the chemistry was measured on, where recorded.",
+  "method_id",     "INTEGER","-> method."
+) |> kable()
+```
+
+## grain_size (per subsample)
+
+One row per subsample with usable grain-size.
+
+```{r}
+tribble(
+  ~Column,       ~Type,     ~Meaning,
+  "subsample_id","INTEGER", "Primary key (-> subsample).",
+  "frac_class",  "TEXT",    "'bulk' (whole sample) or 'sieved' (a fine fraction).",
+  "fines_lt63",  "REAL",    "% finer than 63 um (clay + silt), else NULL.",
+  "is_fine",     "INTEGER", "1 if fines_lt63 >= 50% (mud-dominated), 0 if not, NULL if unknown.",
+  "fines_basis", "TEXT",    "How fines_lt63 was derived."
+) |> kable()
+```
+
+## grain_size_fraction (per fraction measurement)
+
+The grain-size distribution moved out of `measurement`.
+
+```{r}
+tribble(
+  ~Column,       ~Type,    ~Meaning,
+  "subsample_id","INTEGER","-> subsample.",
+  "symbol",      "TEXT",   "The source's grain-size code.",
+  "matrix",      "TEXT",   "Sample fraction (where recorded).",
+  "lo_um",       "REAL",   "Lower size bound, um.",
+  "hi_um",       "REAL",   "Upper size bound, um (NULL = open, e.g. gravel).",
+  "value_pct",   "REAL",   "Corrected mass fraction, %."
+) |> kable()
+```
+
+## Unchanged tables
+
+`element` (symbol, name, category), `dataset`, `site`, `event` (date, year, gear;
+`datetime`/`time` dropped), `subsample` (depth in cm + supporting-data flags), and
+`method` (analysis + `lod`/`loq` with `limit_unit`) carry over from slim with the
+harmonisations applied.
+
+## What changed from slim
+
+```{r}
+tribble(
+  ~Change,                              ~Detail,
+  "Rows removed",                       "Out of range, invalid, below limit, wet weight, source-specific QC.",
+  "Duplicates / replicates collapsed",  "One value each; replicates gain value_sd + n_rep.",
+  "measurement is chemistry only",      "Grain-size moved to grain_size / grain_size_fraction.",
+  "Flag columns dropped",               "The slim QC flags were consumed by the cleaning and are not carried.",
+  "Depths in cm",                       "ICES-DOME converted from metres; Vannmiljø corrupt depths nulled.",
+  "Symbols / units unified",            "ICES names; TOC -> CORG; value_std in mg/kg added."
+) |> kable()
+```
