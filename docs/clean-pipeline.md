@@ -55,8 +55,20 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   from ICES `uncrt`/`metcu` and MUDAB `method.uncertainty`). The slim marking
   columns are consumed by Clean and not carried forward (except where a label is
   wanted). `method_id` retained.
-- **method** — `symbol`, `method` (ICES code), `lab`, `lod`, `loq`, and their
-  unit. Mareano keeps its single `lld` as `lod`; 4Demon has none (null).
+- **method** — columns `method_id`, `symbol`, `method`, `method_description`,
+  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`. Grain-size (composition-symbol)
+  methods are dropped (`grain_size_fraction` has no `method_id`, so nothing is
+  orphaned). `method` is mapped to the ICES-DOME vocabulary (MUDAB already uses it;
+  Mareano `ICP-AES`→`ICP-OES`, `LECO-analyser`→`CNA`; Vannmiljø ISO/NS standard
+  references → the technique, e.g. `ISO 17294-2`→`ICP-MS`, `ISO 11885`→`ICP-OES`;
+  4Demon `campaign_technique_fraction` codes → the technique; unlisted / NULL →
+  `unknown`), with `method_description` kept where present (ICES/MUDAB) or filled
+  from the ICES wording. `lod` / `loq` are converted to mg/kg (`limit_unit` =
+  `mg/kg`). `comment` (Mareano) and `uncertainty` (MUDAB, unused by Clean) are
+  dropped. Via `R/clean/_shared/method_meta.R`.
+  - The 4Demon sieve fraction, previously encoded in the method code, moves to the
+    `fraction_range` column and joins the replicate-collapse key (so `<63µm` and
+    `<2000µm` values of the same element are not averaged together).
 - **event** — columns `event_id`, `dataset_id`, `site_id`, `year`, `date`,
   `sampling_tool`, `n_layers`. `date` is derived from `datetime` where needed
   (`datetime` / `time` dropped). `sampling_tool` is remapped from the raw gear codes

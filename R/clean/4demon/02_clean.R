@@ -105,8 +105,13 @@ grp <- chem |>
   left_join(event |> select(event_id, site_id, date), by = "event_id") |>
   left_join(mkey, by = "method_id")
 if (!"matrix" %in% names(grp)) grp$matrix <- NA_character_
+if (!"fraction_range" %in% names(grp)) grp$fraction_range <- NA_character_
 
-grp_keys <- c("site_id", "date", "depth_from", "depth_to", "symbol", "unit", mcols)
+# fraction_range (4Demon sieve fraction, e.g. 0-63 vs 0-2000) is a distinct sample,
+# not a replicate, so it is part of the collapse key (the technique alone no longer
+# distinguishes fractions now that method holds the bare technique).
+grp_keys <- c("site_id", "date", "depth_from", "depth_to", "symbol", "unit",
+              "fraction_range", mcols)
 collapsed <- grp |>
   group_by(across(all_of(grp_keys))) |>
   summarise(
@@ -124,7 +129,7 @@ collapsed <- grp |>
     value_uncrt    = if (all(is.na(value_uncrt))) NA_real_ else mean(value_uncrt, na.rm = TRUE),
     .groups = "drop") |>
   select(measurement_id, subsample_id, symbol, value, unit, value_std, unit_std,
-         value_sd, n_rep, value_uncrt, matrix, method_id)
+         value_sd, n_rep, value_uncrt, matrix, fraction_range, method_id)
 
 cat(sprintf("chemistry after collapse: %d rows (%d technical-replicate groups averaged)\n",
             nrow(collapsed), sum(collapsed$n_rep > 1)))
