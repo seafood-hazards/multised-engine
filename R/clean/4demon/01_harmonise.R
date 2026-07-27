@@ -2,6 +2,7 @@ library(DBI)
 library(RSQLite)
 library(tidyverse)
 source("R/clean/_shared/element_meta.R")  # element_meta + apply_element_meta()
+source("R/clean/_shared/dataset_meta.R")  # dataset_meta + standardise_dataset()
 
 # ── Clean stage, Step 1: Harmonise (4Demon) ──────────────────────────────────
 # Reads the slim DB and writes ./data/db/4demon_clean.sqlite in a uniform format.
@@ -85,6 +86,7 @@ method <- method |> left_join(limit_unit, by = "method_id")
 
 # ── 6. Column selection (drop already-folded raw columns) ────────────────────
 element   <- apply_element_meta(element)  # rename element->name, add canonical name + cas
+dataset   <- standardise_dataset(dataset) # uniform columns + url / accessed / source_type
 measurement <- measurement |> select(any_of(c(
   "measurement_id", "subsample_id", "symbol", "value", "unit",
   "value_std", "unit_std", "value_std_corr", "gs_corr", "matrix", "fraction_range",

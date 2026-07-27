@@ -30,6 +30,13 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   grain-size composition names follow ICES-DOME where the symbol is shared (Mareano's
   named bins and Vannmiljø's `_`-forms keep their own label), all with `cas` NULL.
   Columns: `symbol`, `name`, `category`, `cas`.
+- **dataset** — a common column set across sources: `dataset_id`, `dataset_name`,
+  `dataset_code`, `dataset_group`, `source`, `source_type` (currently "database"),
+  `url` (source website), `doi` (NULL for now), `country`, `region`, `institute`,
+  `institute_code`, `accessed` (retrieval date). Columns a source lacks are NULL;
+  ICES-DOME's multi-nation `country`/`institute` lists are de-duplicated and sorted
+  (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
+  (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
 - **measurement** — chemistry only (`target` / `reference` / `organic`); no
   `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
   ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
