@@ -1,6 +1,7 @@
 library(DBI)
 library(RSQLite)
 library(tidyverse)
+source("R/clean/_shared/site_meta.R")  # consume_area_flag()
 
 # ── Clean stage, Step 2: Clean (ICES-DOME) ───────────────────────────────────
 # Operates on ices_dome_clean.sqlite (built by 01_harmonise.R). Removes chemistry
@@ -26,6 +27,7 @@ method    <- dbReadTable(con, "method")      |> as_tibble()
 event     <- dbReadTable(con, "event")       |> as_tibble()
 subsample <- dbReadTable(con, "subsample")   |> as_tibble()
 m         <- dbReadTable(con, "measurement") |> as_tibble()
+site      <- dbReadTable(con, "site")        |> as_tibble()
 
 # This step consumes the QC flag columns and collapses rows (one-way). The clean
 # steps run in sequence on a fresh DB: 01_harmonise -> 02_clean -> 03_annotate.
@@ -35,6 +37,16 @@ if (!"range_flag" %in% names(m)) {
   stop("measurement carries no QC flags -- it looks already cleaned. ",
        "Re-run 01_harmonise.R to rebuild the clean DB before 02_clean.R.")
 }
+
+# ── 0. Remove out-of-scope sites (area_flag = 'outside_europe') and cascade ──
+# Consume the slim area_flag: drop sites outside Europe (e.g. a corrupt Vannmiljø
+# coordinate in the Gulf of Guinea) and their linked event / subsample /
+# measurement rows, then drop the area_flag column. No-op where nothing is flagged.
+pr <- consume_area_flag(site, event, subsample, m)
+site <- pr$site; event <- pr$event; subsample <- pr$subsample; m <- pr$measurement
+if (pr$n_sites)
+  cat(sprintf("removed %d outside_europe site(s): %d events, %d subsamples, %d measurements\n",
+              pr$n_sites, pr$n_events, pr$n_subsamples, pr$n_measurements))
 
 # ── 1. Standardise analytical uncertainty to mg/kg (value_uncrt) ─────────────
 # ICES uncrt + metcu: '%' = percent (relative), 'SD' = 1 sigma (absolute),
@@ -119,6 +131,12 @@ comp <- comp |>
 measurement <- bind_rows(collapsed, comp)  # bind_rows fills absent columns with NA
 
 dbWriteTable(con, "measurement", measurement, overwrite = TRUE)
+dbWriteTable(con, "site", site, overwrite = TRUE)          # area_flag consumed + dropped
+if (pr$n_sites) {                                          # cascade: rewrite the pruned subtree
+  dbWriteTable(con, "event", event, overwrite = TRUE)
+  dbWriteTable(con, "subsample", subsample, overwrite = TRUE)
+  dbExecute(con, "CREATE INDEX IF NOT EXISTS ix_subsample_ev ON subsample(event_id)")
+}
 invisible(dbExecute(con, "CREATE UNIQUE INDEX IF NOT EXISTS ix_measurement_pk ON measurement(measurement_id)"))
 invisible(dbExecute(con, "CREATE INDEX IF NOT EXISTS ix_measurement_ss ON measurement(subsample_id)"))
 

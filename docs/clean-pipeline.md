@@ -38,13 +38,16 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
   (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
 - **site** — a common column set: `site_id`, `latitude`, `longitude`, `depth`,
-  `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`,
-  `area_flag`. `depth` is the station / water depth (m; distinct from the sediment
-  core depth in `subsample.depth_from`/`depth_to`) and is present for every source
-  (Mareano native; the others populated by the upstream geocoding / bathymetry
-  tools). `site_id` and the coordinates are stable; the other attributes are
-  regenerated upstream. `standardise_site()` (`R/clean/_shared/site_meta.R`)
-  guarantees the column set and order.
+  `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`. `depth`
+  is the station / water depth (m; distinct from the sediment core depth in
+  `subsample.depth_from`/`depth_to`) and is present for every source (Mareano
+  native; the others populated by the upstream geocoding / bathymetry tools).
+  `site_id` and the coordinates are stable; the other attributes are regenerated
+  upstream. `standardise_site()` (Harmonise) guarantees the column set/order and
+  keeps the slim `area_flag`; the Clean step then consumes it via
+  `consume_area_flag()` (`R/clean/_shared/site_meta.R`): sites flagged
+  `outside_europe` and their linked event/subsample/measurement rows are removed
+  (cascade), and the `area_flag` column is dropped, so the final `site` has no flag.
 - **measurement** — chemistry only (`target` / `reference` / `organic`); no
   `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
   ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
@@ -111,6 +114,9 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
   - `weight_basis = 'wet'`
   - `src_flag IS NOT NULL` (all source-specific QC failures)
   - (grain-size `gs_corr = 'invalid'` is handled in the grain_size table build)
+- **Remove out-of-scope sites** — sites flagged `area_flag = 'outside_europe'` and
+  their linked event/subsample/measurement rows (cascade); the `area_flag` column
+  is then dropped (`consume_area_flag()`).
 - **Duplicates** (`dup_flag = 'duplicate'`) — keep one row.
 - **Technical replicates** (`dup_flag = 'technical_replicate'`) — collapse each
   group to one row: `value_std` = mean, `value_sd` = SD, `n_rep` = count.
