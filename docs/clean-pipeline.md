@@ -27,8 +27,9 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
 
 - **element** — the name column is renamed `element → name`; chemistry rows carry a
   uniform canonical Title-Case `name` and a `cas` number, identical across sources;
-  grain-size composition rows keep their source label with `cas` NULL. Columns:
-  `symbol`, `name`, `category`, `cas`.
+  grain-size composition names follow ICES-DOME where the symbol is shared (Mareano's
+  named bins and Vannmiljø's `_`-forms keep their own label), all with `cas` NULL.
+  Columns: `symbol`, `name`, `category`, `cas`.
 - **measurement** — chemistry only (`target` / `reference` / `organic`); no
   `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
   ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
@@ -66,7 +67,9 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
   (`R/clean/_shared/element_meta.R`), so all sources read identical values. CAS is
   taken from Vannmiljø's `cas_no` where available (AL FE CO CU MN MO SE ZN), iodine
   added from the registry; organic carbon (CORG/TOC63) has no CAS (NULL). Grain-size
-  composition keeps its source label (CAS NULL).
+  composition names follow ICES-DOME for shared symbols via the same lookup (so e.g.
+  Vannmiljø `GSMF2` matches ICES); symbols ICES does not use keep their source label.
+  Composition CAS is NULL.
 - **Units → ICES names**, original value kept. e.g. `µg/g`→`ug/g`, strip the
   Vannmiljø `dw` / `C` suffixes (`mg/kg dw`→`mg/kg`, `g/kg C`→`g/kg`). `value_std`
   is already mg/kg; add `unit_std` even though constant.
