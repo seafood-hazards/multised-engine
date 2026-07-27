@@ -339,7 +339,7 @@ It adds two columns to `measurement`:
 | `value_std_corr` | REAL | corrected standardised value; equals `value_std` everywhere except renormalised grain-size fractions (a drop-in "best" `value_std` for any row, chemistry included) |
 | `gs_corr`        | TEXT | `renorm` = rescaled by the per-curve factor; `invalid` = grain-size value reviewed and confirmed unreliable (removal candidate, `value_std_corr` nulled); `suspect` = auto-flagged implausible/uncorrectable curve (currently none); NULL = untouched |
 
-Many international grain-size curves are internally consistent (a monotone
+Many grain-size curves (chiefly ICES-DOME and MUDAB) are internally consistent (a monotone
 cumulative distribution) but scaled wrong: within one sample every code is inflated
 by the same factor, so `value_std` runs to thousands of "percent" (e.g. every code
 ≈13,481 instead of ≈100).
@@ -458,7 +458,7 @@ temporary `qc_fines` table plus an unconditional correlated-subquery `UPDATE`
 (subsamples absent from `qc_fines` reset to NULL on re-run).
 
 Bin-summing was assessed for the remaining uncovered samples. It pays off only
-for Vannmiljø (the clean clay+silt sum above); the international `GS>a<b` bins are
+for Vannmiljø (the clean clay+silt sum above); the ICES-DOME / MUDAB `GS>a<b` bins are
 too sparse and incomplete to help (median partition total ~72 %, no `<20µm` clay
 bin, and a 60µm rather than 63µm boundary). The one bin-based route for
 ICES-DOME / MUDAB, `GSMF20` (<20) + `GS>20<60`, reaches only `<60µm` (~138

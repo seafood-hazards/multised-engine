@@ -11,8 +11,8 @@ progressively quality-control the result.
 | `mareano`   | Mareano    | Norway / IMR cruises                   |
 | `vannmiljo` | Vannmiljø  | Norway                                 |
 | `ices-dome` | ICES-DOME  | International; rich sediment-composition data |
-| `mudab`     | MUDAB      | International                          |
-| `4demon`    | 4Demon     | International                          |
+| `mudab`     | MUDAB      | Germany (national)                     |
+| `4demon`    | 4Demon     | Belgium (national; Baltic/North Sea)   |
 
 ## Pipeline generations
 
@@ -147,7 +147,7 @@ so its `src_flag` holds a comma-joined token set: `suspect`/`invalid` (`vflag`
 flagged. `vflag = 2` (below detection) is not folded — it duplicates `below_loq`.
 Step 14 is a **grain-size correction** (source-specific; ICES-DOME, MUDAB,
 Vannmiljø): it adds `value_std_corr` + `gs_corr` to `measurement`. Many
-international grain-size curves are internally consistent (a monotone cumulative
+grain-size curves (chiefly ICES-DOME and MUDAB) are internally consistent (a monotone cumulative
 distribution) but scaled wrong, so `value_std` runs to thousands of "percent". For
 ICES-DOME/MUDAB it renormalises each `(subsample, matrix)` cumulative curve so its
 coarsest cutoff (the total, ≈<2mm) reads 100% — applied only where the curve is

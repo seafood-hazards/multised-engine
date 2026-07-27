@@ -20,8 +20,8 @@ sources_tbl <- tribble(
   "Mareano",    "Norway / IMR",     "Norwegian cruise data.",
   "Vannmiljø",  "Norway",           "Norwegian environmental monitoring.",
   "ICES-DOME",  "International",     "Rich sediment-composition data.",
-  "MUDAB",      "International",     "German marine environmental database.",
-  "4Demon",     "International",     "Compiled historical Baltic/North Sea data."
+  "MUDAB",      "Germany",           "German marine environmental database.",
+  "4Demon",     "Belgium",           "Compiled historical Baltic/North Sea data (Belgian)."
 )
 
 kable(sources_tbl)

@@ -101,7 +101,7 @@ whole-sample fines and need no such caveat.
 
 ## 2. Correcting noisy grain-size curves
 
-Much of the international grain-size data is noisy: many curves are internally
+Much of the grain-size data outside Mareano is noisy: many curves are internally
 consistent (a monotone cumulative distribution) but scaled wrong, so a value that
 should sit near 100 % is reported as thousands of percent, with every code in the
 sample inflated by the same factor. A separate correction step handles this before
@@ -148,7 +148,7 @@ kfmt(cov)
 
 Coverage is partial by design: a subsample contributes only if it has a usable
 `<63 µm` measurement. Implausible values (a cumulative mass fraction outside
-0 to 100 %, about 1 % of the international grain-size rows) are left out rather
+0 to 100 %, about 1 % of the grain-size rows) are left out rather
 than corrected here.
 
 The `fines_basis` breakdown shows which route each value came from:
