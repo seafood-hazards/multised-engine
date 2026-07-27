@@ -1,13 +1,18 @@
 ---
 title: "Database Downloads"
-subtitle: Download links for the five slim SQLite databases
+subtitle: Download links for the slim and clean SQLite databases
 ---
 
-Each source's slim database is published as an asset on the GitHub release of its
-pilot repository. All five share the common [DB Schema (Slim)](./db-schema-slim.qmd):
-the same seven tables, differing only in a few source-specific columns.
+Each source has two published SQLite databases: the **slim** database (reshaped
+into the common schema and annotated with quality-control flags) and the **clean**
+database (the QC-passed end product). The slim databases are released on each
+source's pilot repository; the clean databases are released here on the
+multised-slim repository.
 
-## Available databases
+## Slim databases
+
+All five share the common [DB Schema (Slim)](./db-schema-slim.qmd): the same seven
+tables, differing only in a few source-specific columns.
 
 | Source | File | Download |
 |:-------|:-----|:---------|
@@ -19,8 +24,24 @@ the same seven tables, differing only in a few source-specific columns.
 
 : Slim databases {.striped .hover tbl-colwidths="[25,45,30]"}
 
+## Clean databases
+
+The clean databases apply the slim flags: uncertain rows removed, units
+harmonised, grain-size split into its own tables. See how they are built under
+[Clean Databases](./clean-overview.qmd) and the [DB Schema (Clean)](./db-schema-clean.qmd).
+
+| Source | File | Download |
+|:-------|:-----|:---------|
+| Mareano | `mareano_clean.sqlite` | [Download](https://github.com/seafood-hazards/multised-slim/releases/download/v0.1.0/mareano_clean.sqlite) |
+| Vannmiljø | `vannmiljo_clean.sqlite` | [Download](https://github.com/seafood-hazards/multised-slim/releases/download/v0.1.0/vannmiljo_clean.sqlite) |
+| ICES-DOME | `ices_dome_clean.sqlite` | [Download](https://github.com/seafood-hazards/multised-slim/releases/download/v0.1.0/ices_dome_clean.sqlite) |
+| MUDAB | `mudab_clean.sqlite` | [Download](https://github.com/seafood-hazards/multised-slim/releases/download/v0.1.0/mudab_clean.sqlite) |
+| 4Demon | `4demon_clean.sqlite` | [Download](https://github.com/seafood-hazards/multised-slim/releases/download/v0.1.0/4demon_clean.sqlite) |
+
+: Clean databases {.striped .hover tbl-colwidths="[25,45,30]"}
+
 ::: {.callout-note}
-Each file is a self-contained SQLite database. See the
-[DB Schema (Slim)](./db-schema-slim.qmd) page for the table definitions and the
-per-source column comparison.
+Each file is a self-contained SQLite database. See the schema pages
+([Slim](./db-schema-slim.qmd), [Clean](./db-schema-clean.qmd)) for the table
+definitions and the per-source column comparison.
 :::
