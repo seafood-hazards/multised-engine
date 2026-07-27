@@ -21,6 +21,8 @@ website:
         menu:
           - text: "DB Schema (Slim)"
             href: db-schema-slim.qmd
+          - text: "DB Schema (Clean)"
+            href: db-schema-clean.qmd
           - text: "Database Downloads"
             href: database-downloads.qmd
       - text: "Flagging"
@@ -33,13 +35,13 @@ website:
             href: flagging-common.qmd
           - text: "Source Specific"
             href: flagging-source-specific.qmd
-      - text: "Grain size"
+      - text: "Grain Size"
         menu:
           - text: "Sample Fraction (matrix)"
             href: grain-size-fraction.qmd
           - text: "Fines (<63 µm)"
             href: grain-size-fines.qmd
-      - text: "Clean databases"
+      - text: "Clean Databases"
         menu:
           - text: "Overview"
             href: clean-overview.qmd
@@ -47,10 +49,10 @@ website:
             href: clean-harmonisation.qmd
           - text: "Cleaning"
             href: clean-cleaning.qmd
-          - text: "Grain-size tables"
+          - text: "Grain-size Tables"
             href: clean-grain-size.qmd
-          - text: "Clean schema"
-            href: db-schema-clean.qmd
+          - text: "Cleaning Summary"
+            href: clean-cleaning-summary.qmd
 
 format:
   html:

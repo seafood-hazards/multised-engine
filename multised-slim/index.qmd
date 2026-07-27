@@ -53,15 +53,41 @@ until the final merge:
 
 ## What this site covers
 
-The slim stage is still in progress (more flagging columns will be added), but
-the database design is settled. The **DB Design** section is available now:
+The slim schema, the quality-control flagging, and the construction of the clean
+databases are all documented here, grouped in the navigation bar:
+
+**DB Design**
 
 - [DB Schema (Slim)](./db-schema-slim.qmd): the common seven-table schema, the
   entity-relationship diagram, and a per-source column comparison showing which
   columns are shared and which are source-specific.
+- [DB Schema (Clean)](./db-schema-clean.qmd): the clean database table layout.
 - [Database Downloads](./database-downloads.qmd): download links for the five
   slim SQLite databases.
 
-Pages summarising the quality-control and marking results (invalid values,
-duplicates, below-LOQ, grain-size availability, and more) will follow as that
-work is finalised.
+**Flagging** (the quality-control and marking work)
+
+- [Class Summary](./class-summary.qmd): the measurand categories (target,
+  reference, organic, composition) that later steps read.
+- [Unit Conversion & Range Check](./flagging-conversion-range.qmd): the
+  standardised value/unit and the per-element plausible-range flag.
+- [Common Flags](./flagging-common.qmd): the flags shared by every source
+  (invalid values, duplicates, below-LOQ, multi-layer, weight basis, and more).
+- [Source Specific](./flagging-source-specific.qmd): each source's native
+  leftover flags that the common flags do not cover.
+
+**Grain Size**
+
+- [Sample Fraction (matrix)](./grain-size-fraction.qmd): whether each sample is a
+  whole (bulk) sediment or a sieved fraction.
+- [Fines (<63 µm)](./grain-size-fines.qmd): deriving the clay + silt fines
+  fraction, including the noisy-curve correction.
+
+**Clean Databases** (how the QC-passed end product is built)
+
+- [Overview](./clean-overview.qmd): the three-step clean stage and what the
+  cleaning removed.
+- [Harmonisation](./clean-harmonisation.qmd), [Cleaning](./clean-cleaning.qmd),
+  and [Grain-size Tables](./clean-grain-size.qmd): the individual steps.
+- [Cleaning Summary](./clean-cleaning-summary.qmd): chemistry counts before and
+  after cleaning, overall and per element.

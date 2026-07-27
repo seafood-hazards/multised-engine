@@ -56,23 +56,12 @@ tribble(
 
 ## What the cleaning removed
 
-Chemistry measurements before (slim) and after (clean) the cleaning step. The
-drop is the combined effect of removing failed-QC rows (out of range, invalid,
-below limit, wet weight, source-specific QC) and collapsing duplicates and
-technical replicates into one value each.
-
-```{r}
-chem_slim <- "SELECT COUNT(*) FROM measurement m JOIN element e ON m.symbol=e.symbol
-              WHERE e.category IN ('target','reference','organic')"
-srcs |>
-  rowwise() |>
-  mutate(`Chemistry (slim)`  = scal(stem, "slim",  chem_slim),
-         `Chemistry (clean)` = scal(stem, "clean", "SELECT COUNT(*) FROM measurement")) |>
-  ungroup() |>
-  mutate(`% retained` = round(100 * `Chemistry (clean)` / `Chemistry (slim)`)) |>
-  select(-stem) |>
-  kfmt()
-```
+Chemistry measurements before (slim) and after (clean) the cleaning step, both
+overall and per element, are summarised on the
+[Cleaning Summary](clean-cleaning-summary.qmd) page. The drop is the combined
+effect of removing failed-QC rows (out of range, invalid, below limit, wet weight,
+source-specific QC) and collapsing duplicates and technical replicates into one
+value each.
 
 ## Clean database tables
 
