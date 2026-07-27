@@ -17,7 +17,7 @@ library(tidyverse)
 #                         *statistics* (GSMEA/GSMED/...) are excluded.
 #
 # `measurement` then keeps chemistry only (target/reference/organic). Labels kept
-# elsewhere: element.category, subsample supporting-data flags, event.multi_flag.
+# elsewhere: element.category, subsample supporting-data flags, event.n_layers.
 # Fines columns move off `subsample` into `grain_size`. One-way; guarded.
 
 clean_path    <- "./data/db/ices_dome_clean.sqlite"

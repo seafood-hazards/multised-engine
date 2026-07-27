@@ -57,8 +57,13 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   wanted). `method_id` retained.
 - **method** — `symbol`, `method` (ICES code), `lab`, `lod`, `loq`, and their
   unit. Mareano keeps its single `lld` as `lod`; 4Demon has none (null).
-- **event** — `date` (derived from `datetime` where needed), `year`,
-  `sampling_tool` (ICES), `site_id`, `dataset_id`. `datetime` / `time` dropped.
+- **event** — columns `event_id`, `dataset_id`, `site_id`, `year`, `date`,
+  `sampling_tool`, `n_layers`. `date` is derived from `datetime` where needed
+  (`datetime` / `time` dropped). `sampling_tool` is remapped from the raw gear codes
+  to short descriptive names via a shared lookup (`R/clean/_shared/event_meta.R`;
+  e.g. `VV`/`19B` -> van Veen grab, `BC` -> box corer, unlisted / missing ->
+  unknown). `multi_flag` is dropped (equals `n_layers > 1`) and ICES-DOME's
+  `tool_description` is folded into the name.
 - **subsample** — `depth_from` / `depth_to` in **cm**; supporting-data flags
   (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`).
 - **grain_size** (new, one row per subsample with usable grain-size, summary):
