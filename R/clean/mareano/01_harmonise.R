@@ -1,6 +1,7 @@
 library(DBI)
 library(RSQLite)
 library(tidyverse)
+source("R/clean/_shared/element_meta.R")  # element_meta + apply_element_meta()
 
 # ── Clean stage, Step 1: Harmonise (Mareano) ─────────────────────────────────
 # Reads the slim DB and writes ./data/db/mareano_clean.sqlite in a uniform format.
@@ -84,7 +85,7 @@ limit_unit <- measurement |>
 method <- method |> left_join(limit_unit, by = "method_id")
 
 # ── 6. Column selection (drop already-folded raw columns) ────────────────────
-element   <- element   |> select(any_of(c("symbol", "element", "category")))
+element   <- apply_element_meta(element)  # rename element->name, add canonical name + cas
 measurement <- measurement |> select(any_of(c(
   "measurement_id", "subsample_id", "symbol", "value", "unit",
   "value_std", "unit_std", "value_std_corr", "gs_corr", "matrix", "fraction_range",

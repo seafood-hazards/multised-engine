@@ -25,6 +25,10 @@ is dropped from `measurement`; the `<63 µm` label is kept as **both** numeric
 Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
 `measurement`, `method`) plus a new **`grain_size`**. Key changes vs slim:
 
+- **element** — the name column is renamed `element → name`; chemistry rows carry a
+  uniform canonical Title-Case `name` and a `cas` number, identical across sources;
+  grain-size composition rows keep their source label with `cas` NULL. Columns:
+  `symbol`, `name`, `category`, `cas`.
 - **measurement** — chemistry only (`target` / `reference` / `organic`); no
   `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
   ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
@@ -57,6 +61,12 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
 - **Symbols → ICES canonical.** Targets (`CO CU I MN MO SE ZN`) and normalisers
   (`FE AL`) are identity after case-folding (`Fe`→`FE`). Organic carbon:
   `TOC → CORG`, `TOC63` kept as-is. A small per-source symbol map does this.
+- **Element names + CAS.** The `element` name column becomes `name`; each chemistry
+  symbol gets one canonical Title-Case name and CAS number from a shared lookup
+  (`R/clean/_shared/element_meta.R`), so all sources read identical values. CAS is
+  taken from Vannmiljø's `cas_no` where available (AL FE CO CU MN MO SE ZN), iodine
+  added from the registry; organic carbon (CORG/TOC63) has no CAS (NULL). Grain-size
+  composition keeps its source label (CAS NULL).
 - **Units → ICES names**, original value kept. e.g. `µg/g`→`ug/g`, strip the
   Vannmiljø `dw` / `C` suffixes (`mg/kg dw`→`mg/kg`, `g/kg C`→`g/kg`). `value_std`
   is already mg/kg; add `unit_std` even though constant.
