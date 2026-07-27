@@ -208,11 +208,32 @@ Full step specs are in [docs/slim-pipeline.md](docs/slim-pipeline.md).
   widened into a single `df_slim` join table from which each output table is
   cut with `distinct()` + `row_number()` surrogate keys.
 - Scripts are organised with `# ── N. Title ─────` section headers.
-- **No em-dashes in the Quarto site pages** (`multised-*/*.qmd`): use commas,
-  colons, or parentheses instead.
 - Sites are keyed on latitude/longitude **rounded to 3 decimal places**.
 - The `sedimenter` DESCRIPTION/NAMESPACE make this a package skeleton, but the
   code is a script pipeline, not an exported-function package.
+
+## Websites
+
+Two Quarto sites present the pipeline, each published to GitHub Pages:
+
+- **multised-slim** documents how the slim schema, the QC flagging, and the clean
+  databases are built. **Its source lives in a sibling repository at
+  `../multised-slim`** (its own git repo, `seafood-hazards/multised-slim`), *not*
+  inside this project, so there is one source of truth (do not re-create a copy
+  under `sedimenter/`). Its pages read the SQLite DBs from their own `data/db/`
+  (`db_dir <- "data/db"`); to render against the live pipeline output, link that
+  directory to this project's DB area:
+  `ln -s "$(pwd)/data/db" ../multised-slim/data/db`, then `quarto render` there.
+  The clean databases are published as release assets on that repo (e.g.
+  `<source>_clean.sqlite` on `v0.1.0`); the slim databases on each pilot repo's
+  release.
+- **multised-clean** (`multised-clean/`, in this repo) presents analyses performed
+  *on* the clean databases (Fe/Al normalisation, grain-size, cross-source merge,
+  background/pristine definition). Currently a landing placeholder; it may be
+  moved to its own sibling repo the same way once it has content.
+
+**No em-dashes in the Quarto site pages** (`multised-clean/*.qmd` here, and the
+pages in `../multised-slim`): use commas, colons, or parentheses instead.
 
 ## Target elements
 
