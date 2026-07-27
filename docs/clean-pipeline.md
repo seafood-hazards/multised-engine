@@ -37,6 +37,14 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   ICES-DOME's multi-nation `country`/`institute` lists are de-duplicated and sorted
   (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
   (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
+- **site** — a common column set: `site_id`, `latitude`, `longitude`, `depth`,
+  `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`,
+  `area_flag`. `depth` is the station / water depth (m; distinct from the sediment
+  core depth in `subsample.depth_from`/`depth_to`) and is present for every source
+  (Mareano native; the others populated by the upstream geocoding / bathymetry
+  tools). `site_id` and the coordinates are stable; the other attributes are
+  regenerated upstream. `standardise_site()` (`R/clean/_shared/site_meta.R`)
+  guarantees the column set and order.
 - **measurement** — chemistry only (`target` / `reference` / `organic`); no
   `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
   ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
