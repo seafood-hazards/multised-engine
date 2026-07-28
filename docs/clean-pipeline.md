@@ -13,22 +13,23 @@ Three ordered steps (rename freely; the parenthesised names are the originals):
 2. **Clean** (data cleaning) — remove flagged rows, collapse replicates.
 3. **Annotate** (labelling) — carry labels; split grain-size to its own table.
 
-Decisions locked so far: organic carbon `TOC → CORG`, `TOC63` kept separate and
-moved to its own `organic_carbon` table; Clean removes **all** `src_flag` rows;
-grain-size composition becomes a **separate table** (`grain_size_fraction`) and is
-dropped from `measurement`; sediment fraction is `frac_class` (`bulk`/`sieved`) +
-`sieve_um` on `measurement`, summarised (`bulk`/`sieved`/`mixed`) onto `subsample`;
-the `<63 µm` mud content is kept as numeric `fines_lt63` on `subsample`.
+Decisions locked so far: organic carbon `TOC → CORG`, `TOC63` kept separate (all
+chemistry stays in one `measurement` table, distinguished by `element.category`);
+Clean removes **all** `src_flag` rows; grain-size composition becomes a **separate
+table** (`grain_size_fraction`) and is dropped from `measurement`; sediment fraction
+is `frac_class` (`bulk`/`sieved`) + `sieve_um` per row on `measurement` (with the
+raw `matrix` kept), summarised over the **targets** (`bulk`/`sieved`/`mixed`) onto
+`subsample` as `target_frac_class` / `target_sieve_um`; the `<63 µm` mud content is
+kept as numeric `fines_lt63` on `subsample`.
 
 ---
 
 ## Target clean schema
 
 Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
-`measurement`, `method`) plus two new: **`organic_carbon`** (CORG/TOC\* split out
-of `measurement`) and **`grain_size_fraction`** (the grain-size detail; its
-summary is folded onto `subsample`). 4Demon has neither (no organic carbon, no
-grain-size). Key changes vs slim:
+`measurement`, `method`) plus one new: **`grain_size_fraction`** (the grain-size
+detail; its summary is folded onto `subsample`). 4Demon has no grain-size, so it
+lacks that table. Key changes vs slim:
 
 - **element** — the name column is renamed `element → name`; chemistry rows carry a
   uniform canonical Title-Case `name` and a `cas` number, identical across sources;
@@ -53,20 +54,19 @@ grain-size). Key changes vs slim:
   `consume_area_flag()` (`R/clean/_shared/site_meta.R`): sites flagged
   `outside_europe` and their linked event/subsample/measurement rows are removed
   (cascade), and the `area_flag` column is dropped, so the final `site` has no flag.
-- **measurement** — the **7 target elements + Fe/Al normalisers** only. Organic
-  carbon moves to `organic_carbon`; grain-size composition to `grain_size_fraction`.
-  Columns: `symbol` (ICES), `value` + `unit` (original value, ICES-named unit),
-  `value_std` + `unit_std` (mg/kg), and for collapsed technical replicates
-  `value_sd` + `n_rep`; measurement uncertainty `value_uncrt` (mg/kg, from ICES
-  `uncrt`/`metcu` and MUDAB `method.uncertainty`); the sediment fraction as
-  **`frac_class`** (`bulk` / `sieved`) + **`sieve_um`** (fine cutoff in µm, e.g.
-  63/20; NULL for bulk), derived from the ICES `matrix` (`_shared/fraction_meta.R`)
-  which is then dropped; `method_id` retained. bulk/sieved is per-measurement
-  because it varies within a subsample (a subsample's metals and organic carbon are
+- **measurement** — all chemistry (`target` / `reference` / `organic`); grain-size
+  composition splits to `grain_size_fraction`. Columns: `symbol` (ICES), `value` +
+  `unit` (original value, ICES-named unit), `value_std` + `unit_std` (mg/kg), and
+  for collapsed technical replicates `value_sd` + `n_rep`; measurement uncertainty
+  `value_uncrt` (mg/kg, from ICES `uncrt`/`metcu` and MUDAB `method.uncertainty`);
+  the sediment fraction as the raw `matrix` (kept as provenance) plus its
+  user-facing **`frac_class`** (`bulk` / `sieved`) + **`sieve_um`** (fine cutoff in
+  µm, e.g. 63/20; NULL for bulk), derived via `_shared/fraction_meta.R`; `method_id`
+  retained. bulk/sieved is per-measurement because it varies within a subsample (a
+  subsample's metals and its organic carbon, and even different target metals, are
   often on different fractions). The slim marking columns are consumed by Clean.
-- **organic_carbon** — CORG / TOC / TOC63 rows moved out of `measurement` (they are
-  supplementary, not a main analyte, and are what most often sit on a different
-  fraction than the metals). Same column set as `measurement`.
+  Organic carbon (CORG / TOC\*) stays here too, told apart by `element.category`;
+  it is not split into a separate table since the columns would be identical.
 - **method** — columns `method_id`, `symbol`, `method`, `method_description`,
   `lab`, `lab_name`, `lod`, `loq`, `limit_unit`. Grain-size (composition-symbol)
   methods are dropped (`grain_size_fraction` has no `method_id`, so nothing is
@@ -91,10 +91,12 @@ grain-size). Key changes vs slim:
 - **subsample** — a common 12-column layout across all sources
   (`_shared/subsample_meta.R`): `depth_from` / `depth_to` in **cm**; supporting-data
   flags (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`); a per-subsample
-  **fraction summary** `frac_class` (`bulk` / `sieved` / **`mixed`**) + `sieve_um`,
-  derived from the subsample's **target** measurements (`mixed` = its targets span
-  both bulk and sieved, ~4% of grain-bearing sources; NULL where no target
-  chemistry); and the grain-size mud content `fines_lt63` (% <63µm) + `fines_basis`
+  **fraction summary** `target_frac_class` (`bulk` / `sieved` / **`mixed`**) +
+  `target_sieve_um`, derived from the subsample's **target** measurements only
+  (`mixed` = its targets span both bulk and sieved, ~4% of grain-bearing sources;
+  NULL where no target chemistry; named apart from the measurement columns so the
+  tables can be joined without a clash); and the grain-size mud content `fines_lt63`
+  (% <63µm) + `fines_basis`
   (from slim step 15). This fixes 4Demon's `org_exist`/`comp_exist` order.
 - **grain_size_fraction** (new, one row per grain-size mass-fraction measurement,
   detail): `symbol`, `matrix`, size bounds `lo_um`/`hi_um`, `value_pct` (the
@@ -168,18 +170,17 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 
 - **Labels kept**: measurement class (`category`), supporting-data availability
   (`fe/al/org/comp_exist`), multi-layer (`multi_flag`).
-- **Sediment fraction** (`_shared/fraction_meta.R`) — the ICES `matrix` becomes
+- **Sediment fraction** (`_shared/fraction_meta.R`) — the ICES `matrix` gains
   `frac_class` (`bulk` / `sieved`) + `sieve_um` (fine cutoff µm; NULL for bulk) on
   each measurement (bulk = `SEDtot` or a `>= 1000 µm` cutoff; no matrix, i.e.
-  Mareano/Vannmiljø, taken as bulk), then `matrix` is dropped. Because bulk/sieved
-  varies between the measurements of one subsample (metals vs organic carbon, and
-  even target-vs-target), it is authoritative on `measurement`, and summarised onto
-  `subsample` as `frac_class` `bulk`/`sieved`/**`mixed`** (+ `sieve_um`) from the
-  **target** rows only — `mixed` where a subsample's targets span both (584 ICES,
-  88 MUDAB, 10 4Demon), NULL where it has no target chemistry.
-- **Split organic carbon** into `organic_carbon` (CORG/TOC\*), leaving `measurement`
-  as targets + Fe/Al. Supplementary analyte; also the main source of within-sample
-  fraction mixing.
+  Mareano/Vannmiljø, taken as bulk); `matrix` is kept as provenance. Because
+  bulk/sieved varies between the measurements of one subsample (metals vs organic
+  carbon, and even target-vs-target), it is authoritative per-row on `measurement`,
+  and summarised onto `subsample` as `target_frac_class` `bulk`/`sieved`/**`mixed`**
+  (+ `target_sieve_um`) from the **target** rows only — `mixed` where a subsample's
+  targets span both (584 ICES, 88 MUDAB, 10 4Demon), NULL where it has no target
+  chemistry. Summarising over targets only means the reference/organic rows sharing
+  `measurement` do not affect it.
 - **grain-size fines on `subsample`**: `fines_lt63` (% <63µm mud content) +
   `fines_basis`, kept from slim step 15 (no separate grain-size summary table).
 - **grain_size_fraction** detail table (the genuine one-to-many, kept separate):
@@ -190,8 +191,8 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 
 **Status:** built and verified for **all five sources** (`R/clean/<source>/`). Every
 source now runs steps 01-03 (4Demon's 03 does the fraction annotation only — no
-organic/grain-size). Counts reconcile: e.g. ICES `measurement` 59,488 + `organic_carbon`
-10,231 = 69,719 (old chemistry).
+grain-size). Chemistry counts are unchanged by the annotation: `measurement` holds
+all chemistry (e.g. ICES 69,719; MUDAB 30,744).
 
 Per-source specifics settled during the rollout:
 
