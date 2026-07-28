@@ -7,6 +7,7 @@ source("R/clean/_shared/site_meta.R")     # SITE_COLS + standardise_site()
 source("R/clean/_shared/event_meta.R")    # tool_names + standardise_event()
 source("R/clean/_shared/method_meta.R")   # standardise_method()
 source("R/clean/_shared/matrix_meta.R")   # standardise_matrix()
+source("R/clean/_shared/subsample_meta.R")# SUBSAMPLE_COLS + standardise_subsample()
 
 # ── Clean stage, Step 1: Harmonise (MUDAB) ───────────────────────────────────
 # Reads the slim DB and writes ./data/db/mudab_clean.sqlite in a uniform format.
@@ -92,6 +93,7 @@ element   <- apply_element_meta(element)  # rename element->name, add canonical 
 dataset   <- standardise_dataset(mutate(dataset, country = "Germany")) # uniform cols; MUDAB is German-operated
 site      <- standardise_site(site)       # uniform columns (adds depth where absent)
 event     <- standardise_event(event)     # short tool names + drop multi_flag / tool_description
+subsample <- standardise_subsample(subsample) # common column set + order (grain cols NULL where absent)
 method    <- standardise_method(method, element) # ICES vocab, drop grain-size methods, lod/loq -> mg/kg
 measurement <- measurement |> select(any_of(c(
   "measurement_id", "subsample_id", "symbol", "value", "unit",

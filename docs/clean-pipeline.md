@@ -13,17 +13,22 @@ Three ordered steps (rename freely; the parenthesised names are the originals):
 2. **Clean** (data cleaning) — remove flagged rows, collapse replicates.
 3. **Annotate** (labelling) — carry labels; split grain-size to its own table.
 
-Decisions locked so far: organic carbon `TOC → CORG`, `TOC63` kept separate;
-Clean removes **all** `src_flag` rows; grain-size becomes a **separate table** and
-is dropped from `measurement`; the `<63 µm` label is kept as **both** numeric
-`fines_lt63` and a boolean `is_fine`.
+Decisions locked so far: organic carbon `TOC → CORG`, `TOC63` kept separate and
+moved to its own `organic_carbon` table; Clean removes **all** `src_flag` rows;
+grain-size composition becomes a **separate table** (`grain_size_fraction`) and is
+dropped from `measurement`; sediment fraction is `frac_class` (`bulk`/`sieved`) +
+`sieve_um` on `measurement`, summarised (`bulk`/`sieved`/`mixed`) onto `subsample`;
+the `<63 µm` mud content is kept as numeric `fines_lt63` on `subsample`.
 
 ---
 
 ## Target clean schema
 
 Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
-`measurement`, `method`) plus a new **`grain_size`**. Key changes vs slim:
+`measurement`, `method`) plus two new: **`organic_carbon`** (CORG/TOC\* split out
+of `measurement`) and **`grain_size_fraction`** (the grain-size detail; its
+summary is folded onto `subsample`). 4Demon has neither (no organic carbon, no
+grain-size). Key changes vs slim:
 
 - **element** — the name column is renamed `element → name`; chemistry rows carry a
   uniform canonical Title-Case `name` and a `cas` number, identical across sources;
@@ -48,13 +53,20 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   `consume_area_flag()` (`R/clean/_shared/site_meta.R`): sites flagged
   `outside_europe` and their linked event/subsample/measurement rows are removed
   (cascade), and the `area_flag` column is dropped, so the final `site` has no flag.
-- **measurement** — chemistry only (`target` / `reference` / `organic`); no
-  `composition` rows. Columns: `symbol` (ICES), `value` + `unit` (original value,
-  ICES-named unit), `value_std` + `unit_std` (mg/kg), and for collapsed technical
-  replicates `value_sd` + `n_rep`; measurement uncertainty `value_uncrt` (mg/kg,
-  from ICES `uncrt`/`metcu` and MUDAB `method.uncertainty`). The slim marking
-  columns are consumed by Clean and not carried forward (except where a label is
-  wanted). `method_id` retained.
+- **measurement** — the **7 target elements + Fe/Al normalisers** only. Organic
+  carbon moves to `organic_carbon`; grain-size composition to `grain_size_fraction`.
+  Columns: `symbol` (ICES), `value` + `unit` (original value, ICES-named unit),
+  `value_std` + `unit_std` (mg/kg), and for collapsed technical replicates
+  `value_sd` + `n_rep`; measurement uncertainty `value_uncrt` (mg/kg, from ICES
+  `uncrt`/`metcu` and MUDAB `method.uncertainty`); the sediment fraction as
+  **`frac_class`** (`bulk` / `sieved`) + **`sieve_um`** (fine cutoff in µm, e.g.
+  63/20; NULL for bulk), derived from the ICES `matrix` (`_shared/fraction_meta.R`)
+  which is then dropped; `method_id` retained. bulk/sieved is per-measurement
+  because it varies within a subsample (a subsample's metals and organic carbon are
+  often on different fractions). The slim marking columns are consumed by Clean.
+- **organic_carbon** — CORG / TOC / TOC63 rows moved out of `measurement` (they are
+  supplementary, not a main analyte, and are what most often sit on a different
+  fraction than the metals). Same column set as `measurement`.
 - **method** — columns `method_id`, `symbol`, `method`, `method_description`,
   `lab`, `lab_name`, `lod`, `loq`, `limit_unit`. Grain-size (composition-symbol)
   methods are dropped (`grain_size_fraction` has no `method_id`, so nothing is
@@ -76,16 +88,19 @@ Seven tables carried over (`element`, `dataset`, `site`, `event`, `subsample`,
   e.g. `VV`/`19B` -> van Veen grab, `BC` -> box corer, unlisted / missing ->
   unknown). `multi_flag` is dropped (equals `n_layers > 1`) and ICES-DOME's
   `tool_description` is folded into the name.
-- **subsample** — `depth_from` / `depth_to` in **cm**; supporting-data flags
-  (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`).
-- **grain_size** (new, one row per subsample with usable grain-size, summary):
-  `frac_class` (`sieved` / `bulk`; `unknown` dropped), `fines_lt63` (%),
-  `is_fine` (0/1 at a threshold), `fines_basis`.
+- **subsample** — a common 12-column layout across all sources
+  (`_shared/subsample_meta.R`): `depth_from` / `depth_to` in **cm**; supporting-data
+  flags (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`); a per-subsample
+  **fraction summary** `frac_class` (`bulk` / `sieved` / **`mixed`**) + `sieve_um`,
+  derived from the subsample's **target** measurements (`mixed` = its targets span
+  both bulk and sieved, ~4% of grain-bearing sources; NULL where no target
+  chemistry); and the grain-size mud content `fines_lt63` (% <63µm) + `fines_basis`
+  (from slim step 15). This fixes 4Demon's `org_exist`/`comp_exist` order.
 - **grain_size_fraction** (new, one row per grain-size mass-fraction measurement,
   detail): `symbol`, `matrix`, size bounds `lo_um`/`hi_um`, `value_pct` (the
   corrected %); grain-size statistics (GSMEA/GSMED/...) and `gs_corr='invalid'`
-  rows excluded. The multi-valued fractions are normalised out of the per-subsample
-  summary rather than crammed into one table.
+  rows excluded. The multi-valued fractions are normalised into their own table
+  rather than crammed onto the subsample.
 
 ---
 
@@ -137,7 +152,7 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
   - `below_loq = 1` OR `below_loq_num = 1` (below detection/quantification)
   - `weight_basis = 'wet'`
   - `src_flag IS NOT NULL` (all source-specific QC failures)
-  - (grain-size `gs_corr = 'invalid'` is handled in the grain_size table build)
+  - (grain-size `gs_corr = 'invalid'` is handled in the Annotate step)
 - **Remove out-of-scope sites** — sites flagged `area_flag = 'outside_europe'` and
   their linked event/subsample/measurement rows (cascade); the `area_flag` column
   is then dropped (`consume_area_flag()`).
@@ -151,34 +166,42 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 
 ## 3. Annotate (labelling)
 
-- **Labels kept**: measurement class (`category`, now only target/reference/
-  organic since grain-size moved out), supporting-data availability
+- **Labels kept**: measurement class (`category`), supporting-data availability
   (`fe/al/org/comp_exist`), multi-layer (`multi_flag`).
-- **grain_size** summary table (per subsample, from slim `fines_lt63` /
-  `fines_basis` and the `matrix` sample-fraction work):
-  - `frac_class` = `sieved` / `bulk` (bulk = whole `SEDtot` or a `>= 1000 µm`
-    coarse sieve); **drop the row if unknown**.
-  - `fines_lt63` (%) numeric, plus `is_fine` (0/1) at a threshold (provisional
-    `>= 50 %` mud).
-- **grain_size_fraction** detail table: the individual grain-size fractions moved
-  out of `measurement` (corrected `value_pct`, parsed `lo_um`/`hi_um`; statistics
-  and `invalid` rows excluded), restricted to the subsamples the summary kept.
-- **Drop `composition` rows from `measurement`**; `comp_exist` then means "has a
-  `grain_size` row". Fines columns move off `subsample` into `grain_size`.
+- **Sediment fraction** (`_shared/fraction_meta.R`) — the ICES `matrix` becomes
+  `frac_class` (`bulk` / `sieved`) + `sieve_um` (fine cutoff µm; NULL for bulk) on
+  each measurement (bulk = `SEDtot` or a `>= 1000 µm` cutoff; no matrix, i.e.
+  Mareano/Vannmiljø, taken as bulk), then `matrix` is dropped. Because bulk/sieved
+  varies between the measurements of one subsample (metals vs organic carbon, and
+  even target-vs-target), it is authoritative on `measurement`, and summarised onto
+  `subsample` as `frac_class` `bulk`/`sieved`/**`mixed`** (+ `sieve_um`) from the
+  **target** rows only — `mixed` where a subsample's targets span both (584 ICES,
+  88 MUDAB, 10 4Demon), NULL where it has no target chemistry.
+- **Split organic carbon** into `organic_carbon` (CORG/TOC\*), leaving `measurement`
+  as targets + Fe/Al. Supplementary analyte; also the main source of within-sample
+  fraction mixing.
+- **grain-size fines on `subsample`**: `fines_lt63` (% <63µm mud content) +
+  `fines_basis`, kept from slim step 15 (no separate grain-size summary table).
+- **grain_size_fraction** detail table (the genuine one-to-many, kept separate):
+  the individual grain-size fractions moved out of `measurement` (corrected
+  `value_pct`, parsed `lo_um`/`hi_um`; statistics and `invalid` rows excluded).
+- **`comp_exist`** on `subsample` flags grain-size availability; grain-size
+  composition no longer sits in `measurement`.
 
-**Status:** built and verified for **all five sources** (`R/clean/<source>/`).
-ICES-DOME / MUDAB / Mareano / Vannmiljø run steps 01-03; 4Demon runs 01-02 (no
-grain-size). `is_fine` threshold = 50 % everywhere.
+**Status:** built and verified for **all five sources** (`R/clean/<source>/`). Every
+source now runs steps 01-03 (4Demon's 03 does the fraction annotation only — no
+organic/grain-size). Counts reconcile: e.g. ICES `measurement` 59,488 + `organic_carbon`
+10,231 = 69,719 (old chemistry).
 
 Per-source specifics settled during the rollout:
 
-| source    | depth unit | grain-size sieved/bulk | notes |
-|-----------|------------|------------------------|-------|
-| ICES-DOME | metres (×100) | from `matrix` | reference vocabulary |
-| MUDAB     | cm (×1)    | from `matrix` (`PK_default` -> unknown, dropped) | `time` dropped; no `src_flag` |
-| Mareano   | cm (×1)    | all `bulk` (confirmed) | named bins Clay/Silt/Sand/Gravel; `lld`->`lod`; TOC->CORG |
+| source    | depth unit | sediment fraction | notes |
+|-----------|------------|-------------------|-------|
+| ICES-DOME | metres (×100) | from `matrix` (SED\* → bulk/sieved + sieve_um) | reference vocabulary |
+| MUDAB     | cm (×1)    | from `matrix` (`PK_default` → NULL → bulk) | `time` dropped; no `src_flag` |
+| Mareano   | cm (×1)    | all `bulk` (confirmed; no `matrix`) | named bins Clay/Silt/Sand/Gravel; `lld`->`lod`; TOC->CORG |
 | Vannmiljø | cm (×1)    | all `bulk` (assumed; no `matrix`) | `date` from `datetime`; `dw`/`C` unit suffix stripped; 221 corrupt depths (>300 cm or inverted) nulled; own GSMF code vocabulary; `gs_corr='invalid'` fractions excluded |
-| 4Demon    | cm (×1)    | none | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
+| 4Demon    | cm (×1)    | from `matrix` (FS/US → sieved/bulk) | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
 
 Cross-source portability handled in code: `col_or_false` removal predicate (absent
 `src_flag`), `matrix` NA-guard, and `intersect(c("method","lab"))` grouping (absent
@@ -188,14 +211,16 @@ Cross-source portability handled in code: `col_or_false` removal predicate (abse
 
 ## Open items (still provisional, easily changed)
 
-- `is_fine` **threshold** = `50 %` mud, provisional (one constant per Step-3 script).
-- Vannmiljø **bulk assumption** (no `matrix`, so grain-size taken as whole-sample)
-  and its **depth-null threshold** (`> 300 cm` or inverted -> NA, 221 rows).
+- **bulk/sieved threshold** = `< 1000 µm` cutoff is sieved (so `<2mm`/`<1mm` are
+  bulk); the middle cutoffs (`SED500`/`SED90`) are rare. Mareano/Vannmiljø no-matrix
+  → bulk (assumed; Vannmiljø whole-sample treatment, Mareano confirmed grabs).
+- Vannmiljø **depth-null threshold** (`> 300 cm` or inverted -> NA, 221 rows).
 - **Uncertainty**: only ICES-DOME populates `value_uncrt` (per-measurement
   `uncrt`/`metcu`); MUDAB `method.uncertainty` and any cross-replicate propagation
   rule beyond mean-of-1sigma are not yet used.
 - `sampling_tool` / `method` are carried as-is; a proper **ICES mapping** is
   best-effort and not built (Vannmiljø tool is ISO standards, unmapped).
-- Whether `comp_exist` stays on `subsample` or is inferred from `grain_size`.
+- Whether `comp_exist` stays on `subsample` or is inferred from a
+  `grain_size_fraction` row existing for the subsample.
 - Next generation (per [plan.md](plan.md)): the single clean-results website, then
   the cross-source **merge**.
