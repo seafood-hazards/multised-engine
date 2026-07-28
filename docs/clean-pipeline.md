@@ -119,6 +119,13 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
   standards (`NS-EN ISO 5667-19*`) that do not map to ICES gear** → residual
   `unknown`. Mapping tables built incrementally. OPEN ITEM.
 - **LOD / LOQ** kept with units on `method` (Mareano `lld`→`lod`; 4Demon null).
+- **`measurement.matrix` → ICES `SED<µm>` vocabulary** (the sediment fraction the
+  chemistry was measured on). ICES-DOME and MUDAB already use it (`SEDtot`,
+  `SED2000`, `SED1000`, `SED500`, `SED90`, `SED63`, `SED62`, `SED20`); **4Demon**
+  is remapped (`FS` fine <63 µm → `SED63`, `US` unsieved/bulk → `SEDtot`) and
+  **MUDAB**'s stray `PK_default` sentinel (matrix unrecorded, 6 rows) → NULL.
+  Mareano / Vannmiljø have no matrix. Shared helper `_shared/matrix_meta.R`
+  (`matrix_canon` + `standardise_matrix()`).
 
 ## 2. Clean (removal + replicate aggregation)
 

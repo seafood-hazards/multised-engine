@@ -6,6 +6,7 @@ source("R/clean/_shared/dataset_meta.R")  # dataset_meta + standardise_dataset()
 source("R/clean/_shared/site_meta.R")     # SITE_COLS + standardise_site()
 source("R/clean/_shared/event_meta.R")    # tool_names + standardise_event()
 source("R/clean/_shared/method_meta.R")   # standardise_method()
+source("R/clean/_shared/matrix_meta.R")   # standardise_matrix()
 
 # ── Clean stage, Step 1: Harmonise (ICES-DOME) ───────────────────────────────
 # Reads the slim DB and writes ./data/db/ices_dome_clean.sqlite in a uniform
@@ -99,6 +100,7 @@ measurement <- measurement |> select(any_of(c(
   "uncrt", "metcu", "method_id",
   "invalid_flag", "dup_flag", "below_loq", "below_loq_num",
   "range_flag", "weight_basis", "src_flag")))
+measurement <- standardise_matrix(measurement)  # matrix -> ICES SED* vocab (identity; already ICES)
 
 # ── 7. Write clean DB ────────────────────────────────────────────────────────
 if (file.exists(clean_path)) invisible(file.remove(clean_path))
