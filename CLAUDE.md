@@ -227,13 +227,18 @@ Two Quarto sites present the pipeline, each published to GitHub Pages:
   `ln -s "$(pwd)/data/db" ../multised-slim/data/db`. That repo's `README.md` has the
   full build / publish / reproduce details (CI workflow, DB download, release-tag
   bump).
-- **multised-clean** (`multised-clean/`, in this repo) presents analyses performed
-  *on* the clean databases (Fe/Al normalisation, grain-size, cross-source merge,
-  background/pristine definition). Currently a landing placeholder; it may be
-  moved to its own sibling repo the same way once it has content.
+- **multised-clean** presents analyses performed *on* the clean databases (Fe/Al
+  normalisation, grain-size, cross-source merge, background/pristine definition).
+  **Its source lives in a sibling repository at `../multised-clean`**
+  (`takayasaito/multised-clean`, gitflow: `main`/`develop`), *not* inside this
+  project. Its analysis pages read the per-source outputs written by
+  `R/analysis/*` to `data/analysis/` (gitignored); render locally by symlinking the
+  data area: `ln -s "$(pwd)/data" ../multised-clean/data`. Publishing (GitHub Pages
+  on push to `main`) is deferred until the analysis outputs are uploaded to a
+  release and a pre-render download is added.
 
-**No em-dashes in the Quarto site pages** (`multised-clean/*.qmd` here, and the
-pages in `../multised-slim`): use commas, colons, or parentheses instead.
+**No em-dashes in the Quarto site pages** (the pages in `../multised-clean` and
+`../multised-slim`): use commas, colons, or parentheses instead.
 
 ## Target elements
 
