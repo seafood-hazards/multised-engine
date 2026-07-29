@@ -104,7 +104,9 @@ lacks that table. Key changes vs slim:
   (% <63µm) + `fines_basis`
   (from slim step 15). This fixes 4Demon's `org_exist`/`comp_exist` order.
 - **grain_size_fraction** (new, one row per grain-size mass-fraction measurement,
-  detail): `symbol`, `matrix`, size bounds `lo_um`/`hi_um`, `value_pct` (the
+  detail): surrogate PK `gsf_id` (row number, unique index `ix_gsf_pk`, since the
+  natural `subsample_id`+`symbol`+`matrix` is not unique), `subsample_id`, `symbol`,
+  `matrix`, size bounds `lo_um`/`hi_um`, `value_pct` (the
   corrected %); grain-size statistics (GSMEA/GSMED/...) and `gs_corr='invalid'`
   rows excluded. The multi-valued fractions are normalised into their own table
   rather than crammed onto the subsample.

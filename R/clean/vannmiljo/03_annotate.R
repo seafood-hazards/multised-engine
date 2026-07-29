@@ -81,11 +81,13 @@ subsample <- attach_subsample_fraction(subsample, measurement, element) |>
 # ── 3. Write back ─────────────────────────────────
 dbWriteTable(con, "measurement",         measurement, overwrite = TRUE)
 dbWriteTable(con, "subsample",           subsample,   overwrite = TRUE)
+fraction <- fraction |> mutate(gsf_id = row_number(), .before = 1)  # surrogate PK
 dbWriteTable(con, "grain_size_fraction", fraction,    overwrite = TRUE)
 invisible(dbExecute(con, "DROP TABLE IF EXISTS grain_size"))      # folded onto subsample
 invisible(dbExecute(con, "DROP TABLE IF EXISTS organic_carbon"))  # merged back into measurement
 for (ix in c("CREATE UNIQUE INDEX IF NOT EXISTS ix_meas_pk ON measurement(measurement_id)",
-             "CREATE INDEX        IF NOT EXISTS ix_gsf_ss  ON grain_size_fraction(subsample_id)"))
+             "CREATE INDEX        IF NOT EXISTS ix_gsf_ss  ON grain_size_fraction(subsample_id)",
+             "CREATE UNIQUE INDEX IF NOT EXISTS ix_gsf_pk  ON grain_size_fraction(gsf_id)"))
   invisible(dbExecute(con, ix))
 
 # ── 4. Verify ─────────────────────────────────
