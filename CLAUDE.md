@@ -218,15 +218,15 @@ Two Quarto sites present the pipeline, each published to GitHub Pages:
 
 - **multised-slim** documents how the slim schema, the QC flagging, and the clean
   databases are built. **Its source lives in a sibling repository at
-  `../multised-slim`** (its own git repo, `seafood-hazards/multised-slim`), *not*
-  inside this project, so there is one source of truth (do not re-create a copy
-  under `sedimenter/`). Its pages read the SQLite DBs from their own `data/db/`
-  (`db_dir <- "data/db"`); to render against the live pipeline output, link that
-  directory to this project's DB area:
-  `ln -s "$(pwd)/data/db" ../multised-slim/data/db`, then `quarto render` there.
-  The clean databases are published as release assets on that repo (e.g.
-  `<source>_clean.sqlite` on `v0.1.0`); the slim databases on each pilot repo's
-  release.
+  `../multised-slim`** (`seafood-hazards/multised-slim`), *not* inside this project
+  (one source of truth; do not re-create a copy under `sedimenter/`). A GitHub
+  Action builds and publishes it to GitHub Pages on every push to `main`; the
+  flagged slim and clean databases its pages read are pulled from that repo's
+  release (`v0.1.0`) at render time (a pre-render script), not committed. To render
+  locally against the live pipeline output instead, symlink the DB area first:
+  `ln -s "$(pwd)/data/db" ../multised-slim/data/db`. That repo's `README.md` has the
+  full build / publish / reproduce details (CI workflow, DB download, release-tag
+  bump).
 - **multised-clean** (`multised-clean/`, in this repo) presents analyses performed
   *on* the clean databases (Fe/Al normalisation, grain-size, cross-source merge,
   background/pristine definition). Currently a landing placeholder; it may be
