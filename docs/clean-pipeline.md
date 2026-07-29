@@ -88,8 +88,13 @@ lacks that table. Key changes vs slim:
   e.g. `VV`/`19B` -> van Veen grab, `BC` -> box corer, unlisted / missing ->
   unknown). `multi_flag` is dropped (equals `n_layers > 1`) and ICES-DOME's
   `tool_description` is folded into the name.
-- **subsample** — a common 12-column layout across all sources
-  (`_shared/subsample_meta.R`): `depth_from` / `depth_to` in **cm**; supporting-data
+- **subsample** — a common 13-column layout across all sources
+  (`_shared/subsample_meta.R`): `depth_from` / `depth_to` in **cm** plus a
+  `depth_flag` (`implausible` where the source's reported depth was out of range
+  or inverted and was removed, else NULL — only Vannmiljø sets it, so a NULL
+  `depth_from`/`depth_to` elsewhere means the source never recorded one; the row is
+  kept either way so a user can spot depth-less rows and drop them if they need
+  depth); supporting-data
   flags (`fe_exist`, `al_exist`, `org_exist`, `comp_exist`); a per-subsample
   **fraction summary** `target_frac_class` (`bulk` / `sieved` / **`mixed`**) +
   `target_sieve_um`, derived from the subsample's **target** measurements only

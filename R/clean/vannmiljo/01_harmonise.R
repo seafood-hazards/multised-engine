@@ -67,13 +67,16 @@ method      <- method      |> mutate(symbol = harmonise_symbol(symbol))
 # ── 3. Depth -> cm (+ clean the corrupt tail) ────────────────────────────────
 # Vannmiljo depths are cm but a small tail is corrupt: point depths of thousands
 # (up to 42,600) and inverted intervals (depth_from > depth_to). Values beyond a
-# plausible core length, or inverted, are set to NA (row kept, depth unknown).
+# plausible core length, or inverted, are set to NA and marked depth_flag =
+# 'implausible' (row kept, depth unknown but the chemistry retained, so a user can
+# spot and drop these if their analysis needs depth).
 n_bad <- with(subsample,
   sum(depth_to > DEPTH_MAX_CM | depth_from > depth_to | depth_from < 0, na.rm = TRUE))
 subsample <- subsample |>
   mutate(depth_from = depth_from * DEPTH_TO_CM,
          depth_to   = depth_to   * DEPTH_TO_CM,
          bad_depth  = coalesce(depth_to > DEPTH_MAX_CM | depth_from > depth_to | depth_from < 0, FALSE),
+         depth_flag = if_else(bad_depth, "implausible", NA_character_),
          depth_from = if_else(bad_depth, NA_real_, depth_from),
          depth_to   = if_else(bad_depth, NA_real_, depth_to)) |>
   select(-bad_depth)
