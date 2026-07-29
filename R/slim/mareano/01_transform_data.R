@@ -36,7 +36,7 @@ df_base_cruise <- df_cruise %>%
 # ── 2. Reference elements ────────────────────────────────────────────────────
 df_ref_parameter <- df_parameter %>%
   filter(element %in% c("Iron", "Aluminium") |
-           symbol %in% c("Clay", "Silt", "Sand", "Gravel"))
+           symbol %in% c("Clay", "Silt", "Sand", "Gravel", "TOC"))
 
 df_ref_sediment <- df_sediment %>%
   inner_join(df_ref_parameter %>% distinct(parameter), by = "parameter") %>%

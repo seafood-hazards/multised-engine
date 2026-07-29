@@ -1,0 +1,24 @@
+project:
+  type: website
+  render:
+    - "*.qmd"
+
+website:
+  title: "multised (clean analyses)"
+  navbar:
+    search: true
+    left:
+      - text: "Home"
+        href: index.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    df-print: kable
+
+execute:
+  echo: false
+  warning: false
+  message: false

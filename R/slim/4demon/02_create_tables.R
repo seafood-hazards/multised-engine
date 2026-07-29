@@ -1,5 +1,5 @@
 # ── 11. Create target database and schema ────────────────────────────────────
-con <- dbConnect(RSQLite::SQLite(), "./data/db/ices_dome_slim.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/4demon_slim.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 for (tbl in c("measurement", "subsample", "method", "event",

@@ -1,0 +1,32 @@
+---
+title: "multised (clean analyses)"
+subtitle: "Analyses on the QC-passed marine-sediment databases"
+---
+
+The **clean** databases are the QC-passed, uniformly formatted end product of the
+**multised** slim phase: five per-source databases of harmonised trace-element
+chemistry, with grain-size in its own tables. How they are built (harmonisation,
+cleaning, and the grain-size split) is documented on the
+[slim site](https://seafood-hazards.github.io/multised-slim/), under **Clean
+databases**.
+
+This site presents the **analyses performed on** those clean databases. Planned
+work (see the project roadmap):
+
+```{r}
+library(tibble)
+library(knitr)
+
+tribble(
+  ~Analysis,                        ~Status,
+  "Iron / aluminium normalisation", "planned",
+  "Grain-size distribution analysis","planned",
+  "Cross-source merge into one database","planned",
+  "Background and pristine sediment definition","planned"
+) |> kable()
+```
+
+::: {.callout-note}
+Results will be added here as each analysis is completed. The pages read the clean
+databases live at render time.
+:::

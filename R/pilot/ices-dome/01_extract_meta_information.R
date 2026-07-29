@@ -21,7 +21,7 @@ all_data <- read_csv(data_file) |>
          RLABO = ifelse(RLABO == "LNUG", "LUNG", RLABO),
          ALABO = ifelse(ALABO == "LNUG", "LUNG", ALABO)) |>
   filter(Longitude >= -30 & Longitude <= 30) %>%
-  filter(PARGROUP %in% c("B-BIO", "I-MAJ", "I-MET", "P-PHY"))
+  filter(PARGROUP %in% c("B-BIO", "I-MAJ", "I-MET", "P-PHY", "O-MAJ"))
 
 # ------------------------------
 # Read code data

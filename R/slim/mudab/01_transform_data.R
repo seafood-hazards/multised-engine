@@ -42,7 +42,7 @@ df_base_analysis_method <- df_analysis_method %>%
 
 # ── 2. Reference elements ────────────────────────────────────────────────────
 df_ref_parameter <- df_parameter %>%
-  filter(parameter %in% c("FE", "AL"))
+  filter(parameter %in% c("FE", "AL", "CORG"))
 
 df_ref_sediment <- df_sediment %>%
   inner_join(df_ref_parameter %>% distinct(parameter)) %>%
@@ -68,8 +68,9 @@ df_ref_analysis_method <- df_analysis_method %>%
 
 # ── SED ──────────────────────────────────────────
 df_sed_parameter <- df_parameter %>%
-  filter(parameter_group == "P-PHY" &
-           parameter != "LOIGN")
+  filter((parameter_group == "P-PHY" &
+           parameter != "LOIGN") |
+           parameter %in% c("CORG"))
 
 df_sed_sediment <- df_sediment %>%
   inner_join(df_sed_parameter %>% distinct(parameter), by = "parameter")
