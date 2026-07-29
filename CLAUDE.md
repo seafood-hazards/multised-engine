@@ -230,7 +230,7 @@ Two Quarto sites present the pipeline, each published to GitHub Pages:
 - **multised-clean** presents analyses performed *on* the clean databases (Fe/Al
   normalisation, grain-size, cross-source merge, background/pristine definition).
   **Its source lives in a sibling repository at `../multised-clean`**
-  (`takayasaito/multised-clean`, gitflow: `main`/`develop`), *not* inside this
+  (`seafood-hazards/multised-clean`, gitflow: `main`/`develop`), *not* inside this
   project. Its analysis pages read the per-source outputs written by
   `R/analysis/*` to `data/analysis/` (gitignored); render locally by symlinking the
   data area: `ln -s "$(pwd)/data" ../multised-clean/data`. Publishing (GitHub Pages
