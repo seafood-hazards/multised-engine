@@ -1,7 +1,7 @@
 # Merge pipeline — plan & spec (draft)
 
 The fourth generation. The five per-source clean DBs (`<source>_clean.sqlite`) are
-combined into **one** cross-source database, `data/db/merged.sqlite`, with
+combined into **one** cross-source database, `data/db/multised_merged.sqlite`, with
 cross-source duplicates removed. Built by a new `R/merge/` script tree.
 
 ## Principles
@@ -35,7 +35,7 @@ cross-source duplicates removed. Built by a new `R/merge/` script tree.
 
 Read all five clean DBs; prefix every `*_id` column (PK and FK) with the source
 code; add a `source` column. Bind each table across sources into
-`data/db/merged.sqlite`. `element` is a shared dimension: collapsed to the distinct
+`data/db/multised_merged.sqlite`. `element` is a shared dimension: collapsed to the distinct
 `(symbol, name, category, cas)` set (no source, no prefix). `grain_size_fraction` is
 unioned from the four sources that have it (4Demon has none).
 
@@ -66,7 +66,7 @@ re-hosted copies, not reprocessed values.
 
 Renumber every key to a clean contiguous integer, rebuild the foreign keys, and keep
 `source` plus the original per-source id (`src_*_id`) as provenance columns. Drop rows
-orphaned by the dedup. Write the final `merged.sqlite`.
+orphaned by the dedup. Write the final `multised_merged.sqlite`.
 
 ## Open items
 

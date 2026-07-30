@@ -7,7 +7,7 @@ library(tidyverse)
 # code so keys from different sources cannot mix. Adds a `source` column and the
 # harmonised sieve-cutoff columns. No deduplication yet (that is 02_dedup.R).
 #
-# Output -> data/db/merged.sqlite (prefixed keys; pre-dedup).
+# Output -> data/db/multised_merged.sqlite (prefixed keys; pre-dedup).
 
 # code = key prefix, stem = clean DB file, pref = source preference (1 = highest).
 SOURCES <- tribble(
@@ -18,7 +18,7 @@ SOURCES <- tribble(
   "Vannmiljø",  "vannmiljo",  "van",  4L,
   "ICES-DOME",  "ices_dome",  "ice",  5L)
 
-out_db <- "data/db/merged.sqlite"
+out_db <- "data/db/multised_merged.sqlite"
 
 # every table and which of its columns are keys to prefix (element is the shared
 # vocabulary: no keys prefixed, no source column).
@@ -78,7 +78,7 @@ merged$measurement <- merged$measurement |>
          sieve_class  = if_else(!is.na(sieve_um_std),
                                 paste0("<", sieve_um_std, "um"), NA_character_))
 
-# ── 4. Write merged.sqlite ───────────────────────────────────────────────────
+# ── 4. Write the merged DB ───────────────────────────────────────────────────
 dir.create(dirname(out_db), showWarnings = FALSE, recursive = TRUE)
 con <- dbConnect(SQLite(), out_db)
 for (tbl in names(merged)) {
@@ -88,7 +88,7 @@ for (tbl in names(merged)) {
 dbDisconnect(con)
 
 # ── 5. Console summary ───────────────────────────────────────────────────────
-cat("merged.sqlite (pre-dedup) written\n")
+cat("multised_merged.sqlite (pre-dedup) written\n")
 for (tbl in names(merged))
   cat(sprintf("  %-20s %7d rows\n", tbl, nrow(merged[[tbl]])))
 cat("measurement by source:\n")

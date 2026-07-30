@@ -14,9 +14,9 @@ library(tidyverse)
 # 03_finalise.R removes the flagged rows and cascades.
 #
 # Adds to `measurement`: dup_flag (1 = superseded duplicate, else NULL) and
-# dup_superseded_by (the winning source). Reads/writes data/db/merged.sqlite.
+# dup_superseded_by (the winning source). Reads/writes data/db/multised_merged.sqlite.
 
-db <- "data/db/merged.sqlite"
+db <- "data/db/multised_merged.sqlite"
 PREF <- c(Mareano = 1L, `4Demon` = 2L, MUDAB = 3L, `Vannmiljø` = 4L, `ICES-DOME` = 5L)
 TOL  <- 0.01   # 1% relative value match
 
@@ -56,6 +56,14 @@ dated <- ctx |>
 flagged <- dated |>
   filter(dup) |>
   transmute(measurement_id, dup_flag = 1L, dup_superseded_by = winner_source)
+
+# dedup detail for the website (lost once 03_finalise removes the flagged rows)
+dir.create("data/analysis/merge", recursive = TRUE, showWarnings = FALSE)
+dated |>
+  filter(dup) |>
+  count(winner_source, loser_source = source, symbol, frac_class, name = "n") |>
+  arrange(desc(n)) |>
+  write_csv("data/analysis/merge/merge_dedup.csv")
 
 # ── 3. Write dup_flag / dup_superseded_by back onto measurement ──────────────
 meas_out <- meas |>

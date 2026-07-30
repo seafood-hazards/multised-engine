@@ -7,9 +7,9 @@ library(tidyverse)
 # then renumber every source-prefixed key to a clean contiguous integer while
 # keeping the source and the original prefixed id as provenance.
 #
-# Reads/writes data/db/merged.sqlite. element stays keyed on its shared `symbol`.
+# Reads/writes data/db/multised_merged.sqlite. element stays keyed on its shared `symbol`.
 
-db <- "data/db/merged.sqlite"
+db <- "data/db/multised_merged.sqlite"
 
 con <- dbConnect(SQLite(), db)
 tbls <- c("element", "dataset", "site", "event", "subsample",
@@ -91,7 +91,7 @@ for (tbl in tbls) {
 dbDisconnect(con)
 
 # ── 4. Console summary ───────────────────────────────────────────────────────
-cat("merged.sqlite finalised\n")
+cat("multised_merged.sqlite finalised\n")
 for (tbl in tbls) cat(sprintf("  %-20s %7d rows\n", tbl, nrow(d[[tbl]])))
 cat("measurement by source:\n")
 d$measurement |> count(source) |> as.data.frame() |> print(row.names = FALSE)
