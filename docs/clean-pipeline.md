@@ -44,10 +44,14 @@ lacks that table. Key changes vs slim:
   (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
   (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
 - **site** — a common column set: `site_id`, `latitude`, `longitude`, `depth`,
-  `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`. `depth`
+  `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`,
+  `dist_to_aquaculture`. `depth`
   is the station / water depth (m; distinct from the sediment core depth in
   `subsample.depth_from`/`depth_to`) and is present for every source (Mareano
   native; the others populated by the upstream geocoding / bathymetry tools).
+  `dist_to_aquaculture` (km to the nearest Norwegian farm) is added by the
+  aquaculture step (see below), populated only for sites in Norway
+  (`country_code = 'NOR'`) and NULL elsewhere.
   `site_id` and the coordinates are stable; the other attributes are regenerated
   upstream. `standardise_site()` (Harmonise) guarantees the column set/order and
   keeps the slim `area_flag`; the Clean step then consumes it via
@@ -214,6 +218,34 @@ Per-source specifics settled during the rollout:
 Cross-source portability handled in code: `col_or_false` removal predicate (absent
 `src_flag`), `matrix` NA-guard, and `intersect(c("method","lab"))` grouping (absent
 `lab` in Vannmiljø / 4Demon).
+
+---
+
+## Aquaculture (Norway reference) — `R/aquaculture/`
+
+A standalone reference DB of Norwegian marine aquaculture sites, and a distance
+column it adds to every clean `site` table. Norway-only for now (no international
+aquaculture data yet).
+
+- **`01_build_aquaculture.R`** — parses the two Fiskeridirektoratet ("Yggdrasil")
+  exports under `data/raw/yggdrasil/` (`Lokaliteter.csv` active, `Slettete
+  lokaliteter.csv` closed), and writes `data/db/aquaculture_no.sqlite` (table
+  `aquaculture`, one row per site, `aqua_id` PK). Both files' `x,y` are ETRS89 /
+  UTM 33N (**EPSG:25833**) — the active file also carries lat/lon, which validates
+  the CRS (round-trip residual 56 m = its 3-dp rounding), so lat/lon is derived from
+  `x,y` for both files uniformly. Norwegian descriptors + species are translated to
+  English (proper names kept; common commercial species via a fixed dictionary, rare
+  ones pass through). Kept water types: salt (`SALTVANN`/`SALT`), brackish
+  (`BRAKKVANN`), mixed (`FERSKVANN/SALTVANN`); pure freshwater dropped. Columns:
+  `loknr`, `name`, `latitude`, `longitude`, `start_year`, `end_year`, `active`
+  (1/0), `water_type`, `capacity` + `capacity_unit` (cleared/permitted, the field in
+  both files), `capacity_tonnes` (mass units only: TN as-is, KG/1000; else NULL),
+  `fish_types`, `placement` (sea/land), `county`, `municipality`. Result: 3,743 sites
+  (1,554 active, 2,189 closed).
+- **`02_site_distance.R`** — adds `dist_to_aquaculture` (km, great-circle, `sf`) to
+  each clean `site`, the nearest farm over **all** aquaculture rows (active or
+  closed). Computed only for `country_code = 'NOR'` sites (from the geo-enrich step);
+  others NULL. Idempotent (resets + recomputes).
 
 ---
 

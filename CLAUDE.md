@@ -24,7 +24,25 @@ The data moves through three generations. Each is one SQLite DB **per source**.
 2. **slim** (`R/slim/<source>/`) — reshape each pilot DB into a shared 7-table
    schema (`./data/db/<source>_slim.sqlite`), then flag quality/duplicate/etc.
    and derive a standardised value. **All twelve steps done** (see below).
-3. **clean** — the final, QC-passed DB built by applying the slim flags. *Not started.*
+3. **clean** (`R/clean/<source>/`) — the final, QC-passed DB
+   (`./data/db/<source>_clean.sqlite`) built by applying the slim flags (01
+   harmonise, 02 clean, 03 annotate; shared helpers in `R/clean/_shared/`). **Done
+   for all five sources.** Sites are geo-enriched (`R/clean/geo_enrich.R`: depth,
+   country, dist_to_coast, municipality, sea_name) — see
+   [docs/clean-pipeline.md](docs/clean-pipeline.md).
+
+Two things sit alongside the per-source clean DBs:
+
+- **aquaculture** (`R/aquaculture/`) — a standalone Norway-only reference DB
+  (`./data/db/aquaculture_no.sqlite`) of marine aquaculture sites built from the
+  Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`), and a
+  `dist_to_aquaculture` column it adds to every clean `site` (Norway sites only).
+  See [docs/clean-pipeline.md](docs/clean-pipeline.md).
+- **analysis** (`R/analysis/<module>/01_clean_*.R`) — per-source analyses on the
+  clean DBs (grain size, Fe/Al normalisation, organic carbon, depth/coast, sampling
+  year), writing outputs to `data/analysis/` (gitignored) for the multised-clean
+  site. The `clean_` filename token leaves room for a later `01_merged_*.R` when the
+  same analyses run on the merged database.
 
 ## Slim schema (7 tables)
 
@@ -227,13 +245,23 @@ Two Quarto sites present the pipeline, each published to GitHub Pages:
   `ln -s "$(pwd)/data/db" ../multised-slim/data/db`. That repo's `README.md` has the
   full build / publish / reproduce details (CI workflow, DB download, release-tag
   bump).
-- **multised-clean** (`multised-clean/`, in this repo) presents analyses performed
-  *on* the clean databases (Fe/Al normalisation, grain-size, cross-source merge,
-  background/pristine definition). Currently a landing placeholder; it may be
-  moved to its own sibling repo the same way once it has content.
+- **multised-clean** presents analyses performed *on* the clean databases (grain
+  size, Fe/Al normalisation, organic carbon, depth/coast, sampling year, a summary,
+  and the Aquaculture pages), plus the site-locations and aquaculture documentation.
+  **Its source lives in a sibling repository at `../multised-clean`**
+  (`seafood-hazards/multised-clean`, gitflow: `main`/`develop`), *not* inside this
+  project. Its pages read the per-source analysis outputs written by
+  `R/analysis/*` to `data/analysis/` plus the clean and `aquaculture_no.sqlite`
+  databases from `data/db/` (both gitignored); render locally by symlinking the data
+  area: `ln -s "$(pwd)/data" ../multised-clean/data`. It publishes to GitHub Pages on
+  push to `main` via a CI pre-render that downloads the DBs + analysis CSVs from the
+  `v0.1.0` release. **Adding a page that reads a new output means uploading that
+  asset to the release before pushing `main`, or the CI download fails** (the local
+  symlink is skip-if-exists, so a local render hides this). `_scripts/download-data.R`
+  lists the manifest.
 
-**No em-dashes in the Quarto site pages** (`multised-clean/*.qmd` here, and the
-pages in `../multised-slim`): use commas, colons, or parentheses instead.
+**No em-dashes in the Quarto site pages** (the pages in `../multised-clean` and
+`../multised-slim`): use commas, colons, or parentheses instead.
 
 ## Target elements
 
