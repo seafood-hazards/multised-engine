@@ -263,12 +263,22 @@ Three Quarto sites present the pipeline, each published to GitHub Pages:
   (`multised_merged.sqlite`, all five sources combined with cross-source duplicates
   removed) and the paired `aquaculture_no.sqlite` reference. **Its source lives in a
   sibling repository at `../multised-merged`** (`seafood-hazards/multised-merged`,
-  gitflow: `main`/`develop`), *not* inside this project. Currently only static DB
-  Design (schema) pages exist, so it needs **no** pre-render download; it publishes to
-  GitHub Pages on push to `main`. When a page starts reading `multised_merged.sqlite`,
-  add a pre-render download + release asset (as on multised-clean). The merge build
-  steps (union / dedup / finalise) and the aquaculture build are documented on
-  multised-clean; the merge pipeline itself is `R/merge/` here (`docs/merge-pipeline.md`).
+  gitflow: `main`/`develop`), *not* inside this project. It has static **DB Design**
+  (schema) pages plus an **Explore** menu of interactive viewers and maps (Merged /
+  Aquaculture Tables, and the Element / Location / Grain Size / Aquaculture maps).
+  Unlike the slim/clean sites, the Explore pages run **client-side**: the SQLite
+  databases load in the browser via WebAssembly (sql.js + stratum-sqlite, committed
+  under `libs/sqljs/`) and are queried with Observable JS, **not** R at render.
+  `download_resources.R` (pre-render) downloads the two DBs (from the repo's `v0.1.0`
+  release) and the libs; `header.html` sets the in-browser DB paths; a page includes
+  `_db-setup.qmd` (opens the merged DB as `db`) or `_db-setup-aqua.qmd` (aquaculture
+  as `db_aqua`). **One DB per page** — opening both on one page fails (why the
+  aquaculture sites have their own map). It publishes on push to `main`; the two DBs
+  must be on the `v0.1.0` release for CI's pre-render. Two OJS gotchas: object
+  literals assigned to a name need parens (`X = ({...})`), and non-ASCII (µ) in OJS
+  string literals can break the parser (use `um`). The merge pipeline is `R/merge/`
+  here (`docs/merge-pipeline.md`); the merge build steps are documented on
+  multised-clean.
 
 **No em-dashes in the Quarto site pages** (the pages in `../multised-clean`,
 `../multised-slim`, and `../multised-merged`): use commas, colons, or parentheses
