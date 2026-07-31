@@ -288,7 +288,11 @@ Three Quarto sites present the pipeline, each published to GitHub Pages:
   `_db-setup.qmd` (opens the merged DB as `db`) or `_db-setup-aqua.qmd` (aquaculture
   as `db_aqua`). **One DB per page** — opening both on one page fails (why the
   aquaculture sites have their own map). It publishes on push to `main`; the two DBs
-  must be on the `v0.1.0` release for CI's pre-render. Two OJS gotchas: object
+  must be on the `v0.1.0` release for CI's pre-render. **stratum-sqlite caches the DB
+  in the browser keyed by the `cacheKey` in `_db-setup*.qmd`; whenever a DB's
+  *content* changes (e.g. a new column, re-uploaded to the same `v0.1.0` asset), bump
+  that `cacheKey` (e.g. to the new site version) or returning browsers keep serving
+  the stale cached copy and queries hit "no such column".** Two OJS gotchas: object
   literals assigned to a name need parens (`X = ({...})`), and non-ASCII (µ) in OJS
   string literals can break the parser (use `um`). The merge pipeline is `R/merge/`
   here (`docs/merge-pipeline.md`): 01 union → 02 dedup → 03 finalise →
