@@ -42,7 +42,16 @@ Two things sit alongside the per-source clean DBs:
   clean DBs (grain size, Fe/Al normalisation, organic carbon, depth/coast, sampling
   year), writing outputs to `data/analysis/` (gitignored) for the multised-clean
   site. The `clean_` filename token leaves room for a later `01_merged_*.R` when the
-  same analyses run on the merged database.
+  same analyses run on the merged database. Analyses on the **merged** DB use the
+  `01_merged_*` token instead and feed the multised-merged site: `merged_summary/`
+  (`01_merged_data_summary.R`) reads `multised_merged.sqlite` and writes three tidy
+  count CSVs (`merged_coverage_fraction`, `merged_bulk_factors`, `merged_layering`)
+  classifying every target/reference/organic measurement by fraction
+  (bulk/sieved63/sieved20), covariate availability (grain size / Fe / Al / organic
+  carbon, bulk-only, from the subsample exist flags), and layering (single vs
+  multi-layer/core, `event.n_layers`); the multised-merged **Data Categories** page
+  reads them from the release. Uploading a new merged-analysis CSV means adding it
+  to that repo's release before pushing `main` (as for the clean site).
 
 ## Slim schema (7 tables)
 
