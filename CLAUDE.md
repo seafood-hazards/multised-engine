@@ -52,6 +52,11 @@ Two things sit alongside the per-source clean DBs:
   multi-layer/core, `event.n_layers`); the multised-merged **Data Categories** page
   reads them from the release. Uploading a new merged-analysis CSV means adding it
   to that repo's release before pushing `main` (as for the clean site).
+  `outlier_review/` (`01_merged_outlier_review.R`) is a **review prototype** (not a
+  site input) that settled the distributional `outlier_flag` rule now applied by the
+  merge step `04_mark_outliers.R` (see below): it writes candidate/summary CSVs +
+  distribution plots to `data/analysis/outlier_review/` for eyeballing before the
+  rule was locked.
 
 ## Slim schema (7 tables)
 
@@ -286,7 +291,11 @@ Three Quarto sites present the pipeline, each published to GitHub Pages:
   must be on the `v0.1.0` release for CI's pre-render. Two OJS gotchas: object
   literals assigned to a name need parens (`X = ({...})`), and non-ASCII (µ) in OJS
   string literals can break the parser (use `um`). The merge pipeline is `R/merge/`
-  here (`docs/merge-pipeline.md`); the merge build steps are documented on
+  here (`docs/merge-pipeline.md`): 01 union → 02 dedup → 03 finalise →
+  04 mark_outliers (adds a soft distributional `outlier_flag` `high`/`low`/NULL to
+  the merged `measurement`, dual criterion `|z|>4 AND |oom|>1` per element×fraction
+  on `log10(value_std)`, chemistry only, a review-not-delete marker complementing
+  the physical `range_flag`) → 05 summary. The merge build steps are documented on
   multised-clean.
 
 **No em-dashes in the Quarto site pages** (the pages in `../multised-clean`,
