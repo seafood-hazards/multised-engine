@@ -295,8 +295,11 @@ Three Quarto sites present the pipeline, each published to GitHub Pages:
   04 mark_outliers (adds a soft distributional `outlier_flag` `high`/`low`/NULL to
   the merged `measurement`, dual criterion `|z|>4 AND |oom|>1` per element×fraction
   on `log10(value_std)`, chemistry only, a review-not-delete marker complementing
-  the physical `range_flag`) → 05 summary. The merge build steps are documented on
-  multised-clean.
+  the physical `range_flag`; also writes `merge_outlier_*` CSVs) → 05 summary. The
+  merge **build** steps (union/dedup/finalise/retention) are documented on
+  multised-clean; the outlier-flagging **analysis** on the merged DB is a page on
+  multised-merged (Analyses → Outlier Flagging), reading the `merge_outlier_*` CSVs
+  from that repo's release (like Data Categories).
 
 **No em-dashes in the Quarto site pages** (the pages in `../multised-clean`,
 `../multised-slim`, and `../multised-merged`): use commas, colons, or parentheses

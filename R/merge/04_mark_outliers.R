@@ -36,7 +36,8 @@ library(tidyverse)
 # Reads/writes data/db/multised_merged.sqlite. Idempotent and re-runnable.
 #
 # Also writes website summary CSVs -> data/analysis/merge/ (gitignored), read by
-# the multised-clean "Outlier flagging" page (as 02_dedup writes merge_dedup.csv):
+# the multised-merged "Outlier Flagging" analysis page (as 02_dedup writes
+# merge_dedup.csv):
 #   merge_outlier_summary.csv   element x fraction: median, thresholds, hi/lo counts
 #   merge_outlier_hist.csv      binned log10(value_std) per element x fraction
 #   merge_outlier_examples.csv  the flagged rows with fold-vs-median + location
