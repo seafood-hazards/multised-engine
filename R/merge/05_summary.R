@@ -2,7 +2,7 @@ library(DBI)
 library(RSQLite)
 library(tidyverse)
 
-# ── Merge stage 4: summary outputs for the website ───────────────────────────
+# ── Merge stage 5: summary outputs for the website ───────────────────────────
 # Compares the final multised_merged.sqlite against the five clean DBs, so the merge pages
 # can show what each source contributed and how much survived deduplication.
 #

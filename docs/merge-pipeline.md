@@ -25,11 +25,13 @@ cross-source duplicates removed. Built by a new `R/merge/` script tree.
 
 ## Steps (`R/merge/`, run in order)
 
-| # | File            | Purpose                                             |
-|---|-----------------|-----------------------------------------------------|
-| 1 | `01_union.R`    | prefix keys, add `source`, union the 8 tables       |
-| 2 | `02_dedup.R`    | remove cross-source duplicates by the preference    |
-| 3 | `03_finalise.R` | renumber keys to integers, keep provenance          |
+| # | File                 | Purpose                                             |
+|---|----------------------|-----------------------------------------------------|
+| 1 | `01_union.R`         | prefix keys, add `source`, union the 8 tables       |
+| 2 | `02_dedup.R`         | remove cross-source duplicates by the preference    |
+| 3 | `03_finalise.R`      | renumber keys to integers, keep provenance          |
+| 4 | `04_mark_outliers.R` | add `outlier_flag` (distributional outliers)        |
+| 5 | `05_summary.R`       | retention / stage-total CSVs for the website        |
 
 ### 1. Union
 
@@ -67,6 +69,34 @@ re-hosted copies, not reprocessed values.
 Renumber every key to a clean contiguous integer, rebuild the foreign keys, and keep
 `source` plus the original per-source id (`src_*_id`) as provenance columns. Drop rows
 orphaned by the dedup. Write the final `multised_merged.sqlite`.
+
+### 4. Mark outliers
+
+Add a soft `outlier_flag` (`high` / `low` / NULL) to `measurement`: a data-driven
+marker for values sitting implausibly far from their element's distribution, most of
+which are registration errors (decimal shifts, unit swaps) rather than real chemistry.
+It is a **review/removal candidate, not a deletion** (genuine extremes, e.g. a
+contaminated fjord, survive for a human to judge), and complements the physical
+`range_flag` carried up from slim (which, being deliberately generous, misses an
+in-range 10x shift).
+
+Computed on the pooled merged distribution, per **element x fraction** (`bulk` /
+`sieved63` / `sieved20`; fraction must be split, sieved medians run 1.5-3x bulk), on
+`log10(value_std)`, chemistry only (grain-size composition is bounded 0-100% and left
+NULL). A **dual criterion** flags a value only when it is BOTH a statistical outlier
+(`|z| > 4`, `z = (log - median)/MAD`) AND at least **one order of magnitude** from the
+group median (`|log10(value/median)| > 1`). The order-of-magnitude floor targets
+registration errors and spares narrow real tails (e.g. Se) that a MAD-only rule
+over-flags; the effective boundary is `median +/- max(4 * MAD, 1 oom)`. Groups below
+100 rows are left NULL (robust stats unreliable, e.g. Iodine) and rely on `range_flag`.
+Region is not stratified (regional spread ~2x is trivial next to the 10-1000x errors
+this targets). The rule was settled in `R/analysis/outlier_review/`; on the current
+data it flags 658 rows (388 high, 270 low, 0.34%). Idempotent and re-runnable.
+
+### 5. Summary
+
+Reporting only (no DB change): compare the final DB against the five clean DBs and
+write the per-source retention and stage-total CSVs the website reads.
 
 ## Open items
 
