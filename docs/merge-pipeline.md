@@ -50,19 +50,40 @@ let like-cutoff sieved data be compared and keep different cutoffs apart.
 ### 2. Deduplicate
 
 A cross-source duplicate is the **same reading reported by more than one source**.
-Two measurements are duplicates when they share:
+Two **rules** run, both flagging the lower-preference copy (never deleting; finalise
+removes the flagged rows and cascades). Within any duplicate group the row from the
+highest-preference source is kept and the rest dropped.
+
+**Rule 1, value-cluster (general).** Two measurements are duplicates when they share:
 
 - rounded **location** (latitude/longitude to 3 dp),
-- **exact sampling date** (rows with no date are never deduped, kept as-is),
+- **sampling year** (rows with no year are never deduped, kept as-is),
 - **depth layer** (`depth_from`, `depth_to`),
 - **element** (`symbol`) and **track** (`frac_class`, plus `sieve_um_std` for sieved),
 - and a **near-equal standardised value** (`value_std` within **1%** relative).
 
-Within each such group the row from the highest-preference source is kept and the
-rest are dropped (cascading to any now-orphaned subsample/event/site is handled in
-finalise). Bulk vs sieved never collide because `frac_class` is in the key. The
-near-exact (1%) value match keeps genuinely different samples apart; it targets
-re-hosted copies, not reprocessed values.
+Year (not exact sampling date) is the time key: a re-hosting source often rewrites
+the date field, so exact date splits copies that are plainly the same reading. The
+strict **1% value** gate is what keeps genuinely different samples apart, so
+loosening the date to year is safe. In practice, at 1% this fires almost only on real
+re-hosting overlaps: chiefly **ICES-DOME copies of MUDAB's German OSPAR monitoring**
+(MUDAB, the national source, winning; ICES-DOME, the aggregator, dropped), verified by
+the overlap concentrating in matching ICES-programme / MUDAB-lab dataset pairs
+(`review_year_overlap.R`). It is inert across the rest of the data.
+
+**Rule 2, provenance (Vannmiljø's re-hosted Mareano).** Vannmiljø carries a dataset
+literally named *"Kartlegging av miljøgifter i sedimenter - MAREANO"*: re-hosted
+Mareano data. Re-hosting nudged the value past 1%, so even the year-based rule 1
+misses most of it. A Vannmiljø row from that dataset is a duplicate when native
+Mareano has the same rounded location + year + element + track within **5%**; the
+looser tolerance is justified because the provenance is known from the dataset name.
+Vannmiljø-MAREANO rows with **no** native Mareano match are **kept** (native Mareano
+spans ~2003-2021 while the re-hosted copy runs 1999-2024, so ~385 of 1,054 are the
+only copy we hold); `review_mareano_dedup.R` justifies the split row by row.
+
+Bulk vs sieved never collide because `frac_class` is in both keys. Both rules target
+re-hosted copies, not reprocessed values. Counts: rule 1 flags ~20,174 (mostly
+ICES-DOME superseded by MUDAB), rule 2 flags 656 (Vannmiljø superseded by Mareano).
 
 ### 3. Finalise
 
