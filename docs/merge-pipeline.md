@@ -82,8 +82,10 @@ spans ~2003-2021 while the re-hosted copy runs 1999-2024, so ~385 of 1,054 are t
 only copy we hold); `review_mareano_dedup.R` justifies the split row by row.
 
 Bulk vs sieved never collide because `frac_class` is in both keys. Both rules target
-re-hosted copies, not reprocessed values. Counts: rule 1 flags ~20,174 (mostly
-ICES-DOME superseded by MUDAB), rule 2 flags 656 (Vannmiljø superseded by Mareano).
+re-hosted copies, not reprocessed values. Counts on the current data: rule 1 flags
+**20,174** (mostly ICES-DOME superseded by MUDAB); rule 2 identifies **656** Vannmiljø
+rows superseded by Mareano, but because rule 1's year key already catches most of them
+within 1%, rule 2 adds only **13** net; **20,187** distinct duplicates in total.
 
 ### 3. Finalise
 
@@ -112,12 +114,15 @@ over-flags; the effective boundary is `median +/- max(4 * MAD, 1 oom)`. Groups b
 100 rows are left NULL (robust stats unreliable, e.g. Iodine) and rely on `range_flag`.
 Region is not stratified (regional spread ~2x is trivial next to the 10-1000x errors
 this targets). The rule was settled in `R/analysis/outlier_review/`; on the current
-data it flags 658 rows (388 high, 270 low, 0.34%). Idempotent and re-runnable.
+data it flags 653 rows (381 high, 272 low, 0.34%). Idempotent and re-runnable.
 
 ### 5. Summary
 
 Reporting only (no DB change): compare the final DB against the five clean DBs and
-write the per-source retention and stage-total CSVs the website reads.
+write the per-source retention and stage-total CSVs the website reads. The final DB
+holds **190,844** measurements from the 211,031-row union (20,187 cross-source
+duplicates removed, **90.4%** retained); ICES-DOME, the aggregator, retains the least
+(72%), the national sources nearly all of theirs.
 
 ## Open items
 
