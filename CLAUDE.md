@@ -295,7 +295,14 @@ Three Quarto sites present the pipeline, each published to GitHub Pages:
   the stale cached copy and queries hit "no such column".** Two OJS gotchas: object
   literals assigned to a name need parens (`X = ({...})`), and non-ASCII (µ) in OJS
   string literals can break the parser (use `um`). The merge pipeline is `R/merge/`
-  here (`docs/merge-pipeline.md`): 01 union → 02 dedup → 03 finalise →
+  here (`docs/merge-pipeline.md`): 01 union → 02 dedup (two rules, both flag the
+  lower-preference copy: rule 1 value-cluster on location 3dp + **sampling year** +
+  depth + element + track + value within **1%** — year not exact date, since
+  re-hosting rewrites the date field, so it catches ICES-DOME copies of MUDAB's
+  German OSPAR data; rule 2 provenance, drops Vannmiljø's re-hosted Mareano dataset
+  "…- MAREANO" where native Mareano matches on location+year+element+track within
+  **5%**, keeping the ~385/1054 rows native Mareano lacks; `review_year_overlap.R` /
+  `review_mareano_dedup.R` are the review prototypes) → 03 finalise →
   04 mark_outliers (adds a soft distributional `outlier_flag` `high`/`low`/NULL to
   the merged `measurement`, dual criterion `|z|>4 AND |oom|>1` per element×fraction
   on `log10(value_std)`, chemistry only, a review-not-delete marker complementing

@@ -50,19 +50,42 @@ let like-cutoff sieved data be compared and keep different cutoffs apart.
 ### 2. Deduplicate
 
 A cross-source duplicate is the **same reading reported by more than one source**.
-Two measurements are duplicates when they share:
+Two **rules** run, both flagging the lower-preference copy (never deleting; finalise
+removes the flagged rows and cascades). Within any duplicate group the row from the
+highest-preference source is kept and the rest dropped.
+
+**Rule 1, value-cluster (general).** Two measurements are duplicates when they share:
 
 - rounded **location** (latitude/longitude to 3 dp),
-- **exact sampling date** (rows with no date are never deduped, kept as-is),
+- **sampling year** (rows with no year are never deduped, kept as-is),
 - **depth layer** (`depth_from`, `depth_to`),
 - **element** (`symbol`) and **track** (`frac_class`, plus `sieve_um_std` for sieved),
 - and a **near-equal standardised value** (`value_std` within **1%** relative).
 
-Within each such group the row from the highest-preference source is kept and the
-rest are dropped (cascading to any now-orphaned subsample/event/site is handled in
-finalise). Bulk vs sieved never collide because `frac_class` is in the key. The
-near-exact (1%) value match keeps genuinely different samples apart; it targets
-re-hosted copies, not reprocessed values.
+Year (not exact sampling date) is the time key: a re-hosting source often rewrites
+the date field, so exact date splits copies that are plainly the same reading. The
+strict **1% value** gate is what keeps genuinely different samples apart, so
+loosening the date to year is safe. In practice, at 1% this fires almost only on real
+re-hosting overlaps: chiefly **ICES-DOME copies of MUDAB's German OSPAR monitoring**
+(MUDAB, the national source, winning; ICES-DOME, the aggregator, dropped), verified by
+the overlap concentrating in matching ICES-programme / MUDAB-lab dataset pairs
+(`review_year_overlap.R`). It is inert across the rest of the data.
+
+**Rule 2, provenance (Vannmiljø's re-hosted Mareano).** Vannmiljø carries a dataset
+literally named *"Kartlegging av miljøgifter i sedimenter - MAREANO"*: re-hosted
+Mareano data. Re-hosting nudged the value past 1%, so even the year-based rule 1
+misses most of it. A Vannmiljø row from that dataset is a duplicate when native
+Mareano has the same rounded location + year + element + track within **5%**; the
+looser tolerance is justified because the provenance is known from the dataset name.
+Vannmiljø-MAREANO rows with **no** native Mareano match are **kept** (native Mareano
+spans ~2003-2021 while the re-hosted copy runs 1999-2024, so ~385 of 1,054 are the
+only copy we hold); `review_mareano_dedup.R` justifies the split row by row.
+
+Bulk vs sieved never collide because `frac_class` is in both keys. Both rules target
+re-hosted copies, not reprocessed values. Counts on the current data: rule 1 flags
+**20,174** (mostly ICES-DOME superseded by MUDAB); rule 2 identifies **656** Vannmiljø
+rows superseded by Mareano, but because rule 1's year key already catches most of them
+within 1%, rule 2 adds only **13** net; **20,187** distinct duplicates in total.
 
 ### 3. Finalise
 
@@ -91,12 +114,15 @@ over-flags; the effective boundary is `median +/- max(4 * MAD, 1 oom)`. Groups b
 100 rows are left NULL (robust stats unreliable, e.g. Iodine) and rely on `range_flag`.
 Region is not stratified (regional spread ~2x is trivial next to the 10-1000x errors
 this targets). The rule was settled in `R/analysis/outlier_review/`; on the current
-data it flags 658 rows (388 high, 270 low, 0.34%). Idempotent and re-runnable.
+data it flags 653 rows (381 high, 272 low, 0.34%). Idempotent and re-runnable.
 
 ### 5. Summary
 
 Reporting only (no DB change): compare the final DB against the five clean DBs and
-write the per-source retention and stage-total CSVs the website reads.
+write the per-source retention and stage-total CSVs the website reads. The final DB
+holds **190,844** measurements from the 211,031-row union (20,187 cross-source
+duplicates removed, **90.4%** retained); ICES-DOME, the aggregator, retains the least
+(72%), the national sources nearly all of theirs.
 
 ## Open items
 
