@@ -104,10 +104,22 @@ and the analysis normalises by whatever method it chooses.
 | 5 | `05_repeat_sites.R`     | add `site.repeat_group` + `n_years` from the sampling years |
 | 6 | `06_summary.R`          | row-count / retention / sanity CSVs for the creation pages  |
 
-Phase 1 is the structural refactor above. **Deferred to a later phase** (facts that
-need a curated lookup, easy to add once the pristine analyses need them):
-`extraction_class` (strong/mild/weak, from `method` text) and an `accredited` flag
-(from `lab`/source). Left out of the first cut so it ships clean.
+Phase 1 is the structural refactor above.
+
+**Phase 2, `extraction_class` / `accredited`: blocked pending source-level data, not
+derivable from what the pipeline holds** (checked 2026-08-02). `extraction_class`
+(strong/mild/weak acid digestion) is a property of the sample-prep digestion, but the
+`method` table records only the analytical *technique* (ICP-MS, AAS, XRF, NAA, ...):
+**0 of 949 method rows mention any digestion acid, and no digestion/extraction column
+exists in any of the five pilot DBs**, so it was never parsed from the sources, not
+merely dropped. Getting it means going back to the original raw source files/APIs to
+see if a sample-prep field is there, and for the aggregators (ICES-DOME) and most
+monitoring databases it is likely not recorded at all, so it would be partial at best.
+`accredited` is the same kind of gap: accreditation status is not a data field, it
+needs an external curated list of accredited labs. Both are **left for now** until (and
+if) the pristine analyses need them and the source data can be revisited. (Technique
+alone does tell XRF/NAA apart as non-destructive total methods, but that is a different
+axis from EFSA's acid-strength classes.)
 
 ## Websites
 
