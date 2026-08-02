@@ -9,13 +9,14 @@ library(tidyverse)
 #
 #   - carry the dimensions over (element TRIMMED to the 7 targets; dataset; method
 #     filtered to methods the kept target rows use; event; site; subsample),
-#   - SPLIT the target measurements into two fact tables, bulk_measurement and
-#     sieved_measurement (the never-pool rule made structural; frac_class is encoded
-#     by the table, so the column is dropped and the sieve_* columns live only on the
-#     sieved side),
+#   - keep the 7 TARGET measurements as a single `measurement` table with a
+#     frac_class column (bulk/sieved never pool, enforced by the column, as in the
+#     clean/merged generations), and DROP three redundant columns: unit_std (constant
+#     mg/kg), matrix (raw grain-size fraction code, unused now grain size is gone) and
+#     sieve_um (superseded by the harmonised sieve_um_std),
 #   - DROP grain_size_fraction (every analysis used the derived fines_lt63).
 #
-# FE / AL / CORG are NOT carried into the fact tables here; step 02 reshapes them into
+# FE / AL / CORG are NOT carried into the fact table here; step 02 reshapes them into
 # the slim `normaliser` table and step 03 writes the ratios. This step creates
 # data/db/multised_refined.sqlite fresh.
 
@@ -50,29 +51,27 @@ df_event     <- event
 df_site      <- site        # aqua_id / repeat_group / n_years added in steps 04-05
 df_subsample <- subsample   # physical properties; already carries fines_lt63
 
-# ── 3. Split the target fact table into bulk / sieved ────────────────────────
-common_cols <- c("measurement_id", "subsample_id", "symbol",
-                 "value", "unit", "value_std", "unit_std",
-                 "value_sd", "n_rep", "value_uncrt", "matrix",
-                 "method_id", "source", "src_measurement_id", "outlier_flag")
-sieve_cols  <- c("sieve_um", "sieve_um_std", "sieve_class")
+# ── 3. Build the single target `measurement` table (drop redundant columns) ──
+# frac_class kept as a column; unit_std / matrix / sieve_um dropped; sieve_um_std /
+# sieve_class kept (NULL for bulk). Ratios are added in step 03.
+keep_cols <- c("measurement_id", "subsample_id", "symbol",
+               "value", "unit", "value_std",
+               "value_sd", "n_rep", "value_uncrt",
+               "frac_class", "sieve_um_std", "sieve_class",
+               "method_id", "source", "src_measurement_id", "outlier_flag")
 
-df_bulk <- target_meas |>
-  filter(frac_class == "bulk") |>
-  select(all_of(common_cols))
-
-df_sieved <- target_meas |>
-  filter(frac_class == "sieved") |>
-  select(all_of(c(common_cols, sieve_cols)))
+df_measurement <- target_meas |>
+  filter(frac_class %in% c("bulk", "sieved")) |>
+  select(all_of(keep_cols))
 
 dropped <- target_meas |> filter(!frac_class %in% c("bulk", "sieved"))
 
 # ── 4. Write the refined DB (fresh) ──────────────────────────────────────────
-if (file.exists(out_db)) file.remove(out_db)
+if (file.exists(out_db)) invisible(file.remove(out_db))
 outcon <- dbConnect(SQLite(), out_db)
 writes <- list(element = df_element, dataset = df_dataset, method = df_method,
                event = df_event, site = df_site, subsample = df_subsample,
-               bulk_measurement = df_bulk, sieved_measurement = df_sieved)
+               measurement = df_measurement)
 for (nm in names(writes))
   dbWriteTable(outcon, nm, as.data.frame(writes[[nm]]), overwrite = TRUE)
 dbDisconnect(outcon)
@@ -84,11 +83,12 @@ cat(sprintf("  element   %6d (was %d; targets only)\n", nrow(df_element), nrow(e
 cat(sprintf("  method    %6d (was %d; used by targets)\n", nrow(df_method), nrow(method)))
 cat(sprintf("  dataset   %6d   event %d   site %d   subsample %d\n",
             nrow(df_dataset), nrow(df_event), nrow(df_site), nrow(df_subsample)))
-cat("\nfact tables (targets only):\n")
-cat(sprintf("  bulk_measurement   %6d\n", nrow(df_bulk)))
-cat(sprintf("  sieved_measurement %6d\n", nrow(df_sieved)))
-cat(sprintf("  total              %6d  (merged target rows: %d)\n",
-            nrow(df_bulk) + nrow(df_sieved), nrow(target_meas)))
+cat("\nmeasurement (targets only, single table):\n")
+cat(sprintf("  total  %6d  (merged target rows: %d)\n", nrow(df_measurement), nrow(target_meas)))
+cat(sprintf("  bulk %d, sieved %d\n",
+            sum(df_measurement$frac_class == "bulk"),
+            sum(df_measurement$frac_class == "sieved")))
+cat(sprintf("  columns: %d (dropped unit_std, matrix, sieve_um)\n", ncol(df_measurement)))
 if (nrow(dropped) > 0)
   cat(sprintf("  WARNING: %d target rows with frac_class not in bulk/sieved were dropped\n",
               nrow(dropped)))

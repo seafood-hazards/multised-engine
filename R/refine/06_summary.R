@@ -30,9 +30,7 @@ tables <- tribble(
   "event",               "carried",
   "site",                "carried + aqua_id, repeat_group, n_years",
   "subsample",           "carried (physical; fines_lt63 kept)",
-  "measurement",         "split into bulk/sieved (targets); FE/AL/CORG to normaliser",
-  "bulk_measurement",    "new: target rows, bulk, + ratios",
-  "sieved_measurement",  "new: target rows, sieved, + ratios",
+  "measurement",         "targets only; +frac_class +ratios; FE/AL/CORG to normaliser; dropped unit_std/matrix/sieve_um",
   "normaliser",          "new: FE/AL/CORG wide, (subsample x fraction)",
   "aquaculture",         "new: imported reference",
   "grain_size_fraction", "dropped (derived fines_lt63 kept on subsample)")
@@ -51,7 +49,7 @@ recon <- msym |>
                            TRUE                ~ symbol)) |>
   count(group, name = "rows") |>
   mutate(destination = case_when(
-    group == "targets"    ~ "bulk_measurement + sieved_measurement",
+    group == "targets"    ~ "measurement (bulk + sieved)",
     group == "FE/AL/CORG" ~ "normaliser (reshaped)",
     group == "TOC63"      ~ "dropped (fines-normalised organic, not whole-sample CORG)",
     TRUE                  ~ "dropped")) |>
@@ -59,8 +57,9 @@ recon <- msym |>
 
 # ── 3. Coverage of the baked derived fields ──────────────────────────────────
 norm <- as_tibble(dbReadTable(rcon, "normaliser"))
-bulk <- as_tibble(dbReadTable(rcon, "bulk_measurement"))
-siev <- as_tibble(dbReadTable(rcon, "sieved_measurement"))
+meas_r <- as_tibble(dbReadTable(rcon, "measurement"))
+bulk <- meas_r |> filter(frac_class == "bulk")
+siev <- meas_r |> filter(frac_class == "sieved")
 site <- as_tibble(dbReadTable(rcon, "site"))
 
 cov_row <- function(scope, field, present, total)
@@ -74,12 +73,12 @@ coverage <- bind_rows(
   cov_row("normaliser sieved", "fe",   sum(norm$frac_class=="sieved" & !is.na(norm$fe)),   sum(norm$frac_class=="sieved")),
   cov_row("normaliser sieved", "al",   sum(norm$frac_class=="sieved" & !is.na(norm$al)),   sum(norm$frac_class=="sieved")),
   cov_row("normaliser sieved", "corg", sum(norm$frac_class=="sieved" & !is.na(norm$corg)), sum(norm$frac_class=="sieved")),
-  cov_row("bulk_measurement",   "ratio_fe",   sum(!is.na(bulk$ratio_fe)),   nrow(bulk)),
-  cov_row("bulk_measurement",   "ratio_al",   sum(!is.na(bulk$ratio_al)),   nrow(bulk)),
-  cov_row("bulk_measurement",   "ratio_corg", sum(!is.na(bulk$ratio_corg)), nrow(bulk)),
-  cov_row("sieved_measurement", "ratio_fe",   sum(!is.na(siev$ratio_fe)),   nrow(siev)),
-  cov_row("sieved_measurement", "ratio_al",   sum(!is.na(siev$ratio_al)),   nrow(siev)),
-  cov_row("sieved_measurement", "ratio_corg", sum(!is.na(siev$ratio_corg)), nrow(siev)),
+  cov_row("measurement bulk",   "ratio_fe",   sum(!is.na(bulk$ratio_fe)),   nrow(bulk)),
+  cov_row("measurement bulk",   "ratio_al",   sum(!is.na(bulk$ratio_al)),   nrow(bulk)),
+  cov_row("measurement bulk",   "ratio_corg", sum(!is.na(bulk$ratio_corg)), nrow(bulk)),
+  cov_row("measurement sieved", "ratio_fe",   sum(!is.na(siev$ratio_fe)),   nrow(siev)),
+  cov_row("measurement sieved", "ratio_al",   sum(!is.na(siev$ratio_al)),   nrow(siev)),
+  cov_row("measurement sieved", "ratio_corg", sum(!is.na(siev$ratio_corg)), nrow(siev)),
   cov_row("site", "aqua_id",           sum(!is.na(site$aqua_id)),  nrow(site)),
   cov_row("site", "repeat n_years>=3", sum(site$n_years >= 3),     nrow(site)))
 

@@ -37,13 +37,16 @@ not recompute them.
 
 ## Principles
 
-- **Bulk and sieved are separate tables.** `measurement` splits into
-  `bulk_measurement` and `sieved_measurement`. The never-pool rule becomes structural,
-  and the sieve columns live only on the sieved table. (~3,939 subsamples carry both
-  fractions, so the split is real, not cosmetic.)
-- **Fact tables hold only the 7 targets.** FE / AL / CORG stop being measurement rows;
-  they become a compact normaliser carrier (below). `grain_size_fraction` is dropped
-  (every analysis used the derived `fines_lt63`, never the raw curve).
+- **One `measurement` table with a `frac_class` column.** Bulk and sieved never pool,
+  enforced by the column (as in the clean/merged generations). Splitting into two
+  tables was tried and reverted: a target reading has identical attributes in both
+  fractions, so the split earned only the two sieve columns (NULL for bulk) at the cost
+  of a UNION on every cross-fraction query.
+- **`measurement` holds only the 7 targets**, and drops three redundant columns:
+  `unit_std` (constant mg/kg), `matrix` (raw grain-size fraction code, unused now grain
+  size is gone) and `sieve_um` (superseded by the harmonised `sieve_um_std`). FE / AL /
+  CORG stop being measurement rows; they become a compact normaliser carrier (below).
+  `grain_size_fraction` is dropped (every analysis used the derived `fines_lt63`).
 - **Normalisers live at (subsample, fraction) grain.** A normaliser is *not* unique per
   subsample (a subsample can hold both bulk and sieved chemistry), so a single
   subsample-level value would be ambiguous. See the `normaliser` table.
@@ -79,21 +82,22 @@ the standardised unit). Where a (subsample, fraction) has >1 method row for a
 normaliser (FE 4.6%, AL/CORG 0.2%), the values are **mean-collapsed** (as the analyses
 did). This *is* the "remove FE/AL/CORG from measurement" step, done without loss.
 
-**`bulk_measurement`** / **`sieved_measurement`** — one row per (subsample, target
-element): `value_std`, `unit_std`, `ratio_fe`, `ratio_al`, `ratio_corg` (target /
-normaliser at the same subsample+fraction), `method_id`, `below_loq`, `outlier_flag`,
-raw `value`/`unit` + `src_measurement_id` for provenance. `sieved_measurement` also
-carries `sieve_um_std`, `sieve_class`. **No `ratio_fines`**: grain size was used as a
-covariate/correction, not a divide-by-fines normaliser, so the reusable primitive is
-`fines_lt63` on `subsample` and the analysis normalises by whatever method it chooses.
+**`measurement`** — one row per (subsample, target element): `frac_class`
+(`bulk`/`sieved`), `value_std`, `ratio_fe`, `ratio_al`, `ratio_corg` (target /
+normaliser at the same subsample+fraction), `sieve_um_std` / `sieve_class` (NULL for
+bulk), `method_id`, `outlier_flag`, raw `value`/`unit` + `src_measurement_id` for
+provenance. **No `ratio_fines`**: grain size was used as a covariate/correction, not a
+divide-by-fines normaliser, so the reusable primitive is `fines_lt63` on `subsample`
+and the analysis normalises by whatever method it chooses.
 
-**Dropped:** `grain_size_fraction`; FE/AL/CORG as measurement rows.
+**Dropped:** `grain_size_fraction`; FE/AL/CORG as measurement rows; and the redundant
+`unit_std` / `matrix` / `sieve_um` columns.
 
 ## Steps (`R/refine/`, run in order)
 
 | # | File                    | Purpose                                                    |
 |---|-------------------------|------------------------------------------------------------|
-| 1 | `01_restructure.R`      | carry dimensions; split targets into bulk/sieved fact tables; drop `grain_size_fraction` |
+| 1 | `01_restructure.R`      | carry dimensions; keep targets as one `measurement` (frac_class); drop `unit_std`/`matrix`/`sieve_um` and `grain_size_fraction` |
 | 2 | `02_normaliser.R`       | build `normaliser` (subsample×fraction, wide, mean-collapsed) from FE/AL/CORG rows |
 | 3 | `03_ratios.R`           | compute `ratio_fe`/`ratio_al`/`ratio_corg` on the fact tables from `normaliser` |
 | 4 | `04_aquaculture.R`      | import `aquaculture` table; add `site.aqua_id`             |
@@ -114,6 +118,9 @@ need a curated lookup, easy to add once the pristine analyses need them):
 
 ## Resolved decisions
 
+- **`measurement` structure**: single table with `frac_class` (the split was reverted;
+  it earned only the sieve columns). Dropped `unit_std` / `matrix` / `sieve_um`; kept
+  raw `value` / `unit`. **Decided.**
 - **`normaliser` storage**: slim (subsample×fraction) table. **Decided.**
 - **`ratio_fines`**: not baked; `fines_lt63` primitive only. **Decided.**
 - **`element` trimming**: reduced to the 7 targets. **Decided.**
