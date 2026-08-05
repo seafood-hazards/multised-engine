@@ -11,7 +11,7 @@ seastamp_enrich(
   lat_col = "latitude",
   geo_dir = "data/geoenrich",
   work_dir = file.path(tempdir(), "seastamp"),
-  region = "global",
+  region = "auto",
   verbose = TRUE
 )
 }
@@ -24,13 +24,17 @@ seastamp_enrich(
 
 \item{work_dir}{Scratch directory for the intermediate TSVs.}
 
-\item{region}{seastamp's projection region. \strong{\code{"global"} is the default here
-deliberately}: it reproduces the values already stored in the databases.
-seastamp 0.12.0 changed its own default to \code{"auto"}, which derives the
-projection from the points and is more accurate (the old whole-globe default
-was around 8\% out on a Norwegian survey), but switching changes every
-\code{dist_to_coast} in the pipeline, so it is an explicit choice rather than a
-silent one.}
+\item{region}{seastamp's projection region, \code{"auto"} by default: the
+projection is derived from the points themselves, which is seastamp 0.12.0's
+own default and the accurate choice.
+
+Pass \code{region = "global"} to reproduce the values stored by the pre-0.9.0
+\code{geoenrich} builds. Measured difference between the two over the 27,015
+clean sites: \code{dist_to_coast} moves on every row (median 4.8-11.3\% by
+source, largest single shift 93 km), \code{municipality} is reassigned for 1,884
+sites and \code{country} for 283, while \code{depth} is unchanged everywhere and
+\code{sea_name} changes for 2 sites. \code{depth} does not project, so it cannot
+depend on this.}
 
 \item{verbose}{Print progress.}
 }

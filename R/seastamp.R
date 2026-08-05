@@ -57,13 +57,17 @@ seastamp_data <- function(geo_dir = "data/geoenrich") {
 #' @param id_col,lon_col,lat_col Column names in `points`.
 #' @param geo_dir Directory holding the reference datasets.
 #' @param work_dir Scratch directory for the intermediate TSVs.
-#' @param region seastamp's projection region. **`"global"` is the default here
-#'   deliberately**: it reproduces the values already stored in the databases.
-#'   seastamp 0.12.0 changed its own default to `"auto"`, which derives the
-#'   projection from the points and is more accurate (the old whole-globe default
-#'   was around 8% out on a Norwegian survey), but switching changes every
-#'   `dist_to_coast` in the pipeline, so it is an explicit choice rather than a
-#'   silent one.
+#' @param region seastamp's projection region, `"auto"` by default: the
+#'   projection is derived from the points themselves, which is seastamp 0.12.0's
+#'   own default and the accurate choice.
+#'
+#'   Pass `region = "global"` to reproduce the values stored by the pre-0.9.0
+#'   `geoenrich` builds. Measured difference between the two over the 27,015
+#'   clean sites: `dist_to_coast` moves on every row (median 4.8-11.3% by
+#'   source, largest single shift 93 km), `municipality` is reassigned for 1,884
+#'   sites and `country` for 283, while `depth` is unchanged everywhere and
+#'   `sea_name` changes for 2 sites. `depth` does not project, so it cannot
+#'   depend on this.
 #' @param verbose Print progress.
 #'
 #' @return A data frame with the id column plus `depth`, `country`,
@@ -85,7 +89,7 @@ seastamp_enrich <- function(points,
                             lat_col  = "latitude",
                             geo_dir  = "data/geoenrich",
                             work_dir = file.path(tempdir(), "seastamp"),
-                            region   = "global",
+                            region   = "auto",
                             verbose  = TRUE) {
   stopifnot(is.data.frame(points))
   missing <- setdiff(c(id_col, lon_col, lat_col), names(points))

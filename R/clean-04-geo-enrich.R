@@ -12,7 +12,7 @@
 
 clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
                              geo_dir = "data/geoenrich",
-                             region = "global", verbose = TRUE) {
+                             region = "auto", verbose = TRUE) {
   check_source(source)
 
   con <- multised_con(clean_db_path(source, db_dir))
