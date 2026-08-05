@@ -205,7 +205,11 @@ clean_step_table <- function() {
     ~step, ~name,        ~fun,
     1L,  "harmonise",  "clean_harmonise",
     2L,  "clean",      "clean_clean",
-    3L,  "annotate",   "clean_annotate"
+    3L,  "annotate",   "clean_annotate",
+    # Step 4 shells out to the external seastamp CLI and needs its reference
+    # datasets, so it is the one clean step that can fail for environmental
+    # reasons; skip it with steps = 1:3 if the tool is not installed.
+    4L,  "geo_enrich", "clean_geo_enrich"
   )
 }
 
@@ -216,7 +220,7 @@ create_db_clean <- function(source, steps, db_dir, verbose) {
     steps <- as.integer(steps)
     unknown <- setdiff(steps, applicable$step)
     if (length(unknown)) {
-      stop("The clean generation has steps 1-3; got ",
+      stop("The clean generation has steps 1-4; got ",
            paste(unknown, collapse = ", "), ".", call. = FALSE)
     }
     applicable <- applicable[applicable$step %in% steps, ]

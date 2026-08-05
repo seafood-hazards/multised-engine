@@ -4,6 +4,7 @@ export(create_db)
 export(multised_analysis_dir)
 export(multised_db_dir)
 export(multised_sources)
+export(seastamp_enrich)
 export(slim_steps)
 import(dplyr)
 importFrom(DBI,

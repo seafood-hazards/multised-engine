@@ -62,10 +62,10 @@ test_that("the merge source preference order is the documented one", {
 })
 
 test_that("the clean generation runs three steps in sequence", {
-  expect_equal(clean_step_table()$step, 1:3)
-  expect_equal(clean_step_table()$name, c("harmonise", "clean", "annotate"))
-  # clean has no step 4; asking for one is an error, not a silent no-op
-  expect_error(create_db("clean", "mareano", steps = 4), "steps 1-3")
+  expect_equal(clean_step_table()$step, 1:4)
+  expect_equal(clean_step_table()$name, c("harmonise", "clean", "annotate", "geo_enrich"))
+  # clean has no step 5; asking for one is an error, not a silent no-op
+  expect_error(create_db("clean", "mareano", steps = 5), "steps 1-4")
 })
 
 test_that("every clean step function exists", {

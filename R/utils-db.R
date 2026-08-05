@@ -54,3 +54,16 @@ clean_db_path <- function(source, db_dir = multised_db_dir()) {
 
 # NULL-coalescing helper, as in rlang.
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+# Guard for a Suggests package a single step needs, so a plain install can run
+# everything else. Names the step so the message says what to skip.
+require_suggested <- function(pkgs, what) {
+  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing)) {
+    stop(what, " needs the suggested package(s): ",
+         paste(missing, collapse = ", "),
+         ".\nInstall them, or skip that step with the `steps` argument.",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}

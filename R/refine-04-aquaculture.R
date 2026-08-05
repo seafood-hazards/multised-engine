@@ -12,14 +12,14 @@
 # cross-checked against the stored dist_to_aquaculture to confirm it is the same
 # site.
 #
-# `sf` is a Suggests package, so this step is guarded like the pilot geo step.
+# `sf` is a Suggests package, so this step is guarded.
 
 aquaculture_db_path <- function(db_dir = multised_db_dir()) {
   file.path(db_dir, "aquaculture_no.sqlite")
 }
 
 refine_aquaculture <- function(db_dir = multised_db_dir(), verbose = TRUE) {
-  pilot_geo_require("sf")
+  require_suggested("sf", "The refined aquaculture step")
 
   refined_db <- refined_db_path(db_dir)
   aqua_db    <- aquaculture_db_path(db_dir)
