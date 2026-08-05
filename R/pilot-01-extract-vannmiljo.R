@@ -76,16 +76,16 @@ vannmiljo_translations <- function() {
     particle = tibble::tribble(
       ~param_id,       ~param_name,
       "TS",            "Total Solids (Dry Matter)",
-      "GSMF2_63",      "Particle fraction 2 - 63 µm",
-      "GSMF_2000",     "Particle fraction > 2000 µm",
-      "GSMF125_250",   "Particle fraction 125 - 250 µm",
-      "GSMF1000_2000", "Particle fraction 1000 - 2000 µm",
-      "GSMF250_500",   "Particle fraction 250 - 500 µm",
-      "GSMF63_125",    "Particle fraction 63 - 125 µm",
-      "GSMF500_1000",  "Particle fraction 500 - 1000 µm",
-      "GSMF_63",       "Particle fraction > 63 µm",
-      "GSMF2",         "Particle fraction < 2 µm",
-      "FINS",          "Fines < 63 µm",
+      "GSMF2_63",      "Particle fraction 2 - 63 \u00b5m",
+      "GSMF_2000",     "Particle fraction > 2000 \u00b5m",
+      "GSMF125_250",   "Particle fraction 125 - 250 \u00b5m",
+      "GSMF1000_2000", "Particle fraction 1000 - 2000 \u00b5m",
+      "GSMF250_500",   "Particle fraction 250 - 500 \u00b5m",
+      "GSMF63_125",    "Particle fraction 63 - 125 \u00b5m",
+      "GSMF500_1000",  "Particle fraction 500 - 1000 \u00b5m",
+      "GSMF_63",       "Particle fraction > 63 \u00b5m",
+      "GSMF2",         "Particle fraction < 2 \u00b5m",
+      "FINS",          "Fines < 63 \u00b5m",
       "T-GR",          "Total Residue on Ignition (Ash)"
     )
   )
@@ -100,7 +100,7 @@ vannmiljo_units <- function() {
     "g/kg C t.v.", "g/kg C dw",
     "g/kg P t.v.", "g/kg P dw",
     "mg/kg t.v.", "mg/kg dw",
-    "µg/kg t.v.", "µg/kg dw",
+    "\u00b5g/kg t.v.", "\u00b5g/kg dw",
   )
 }
 
