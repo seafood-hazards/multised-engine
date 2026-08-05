@@ -22,7 +22,7 @@
 #'   str_match str_starts str_split str_sub fixed regex
 #' @importFrom readr read_tsv write_tsv read_csv write_csv
 #' @importFrom purrr map map_chr map_dbl map_lgl map_int keep discard
-#' @importFrom rlang .data
+#' @importFrom rlang .data :=
 #' @importFrom stats median quantile sd setNames
 #' @importFrom utils head tail
 NULL

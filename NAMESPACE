@@ -40,7 +40,10 @@ importFrom(readr,
   write_csv,
   write_tsv
 )
-importFrom(rlang,.data)
+importFrom(rlang,
+  ":=",
+  .data
+)
 importFrom(stats,
   median,
   quantile,
