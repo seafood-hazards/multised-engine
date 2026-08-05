@@ -62,7 +62,43 @@ check_source <- function(source) {
 }
 
 # Column names used unquoted by dplyr inside the pipeline bodies. They are not
-# undefined globals, but R CMD check cannot tell, so declare them here.
+# undefined globals, but R CMD check cannot tell, so declare them here. The list
+# is generated from the check output; regenerate it when a step is added.
 utils::globalVariables(c(
-  "sym", "symbol", "category", "n"
+  "accreditation", "activity_id", "activity_name", "analysis", "analysis_id",
+  "analysis_method_id", "analytical_laboratory",
+  "analytical_laboratory_description", "anchor", "basis", "below_lld",
+  "below_loq", "below_loq_num", "cas_no", "cas_number", "category",
+  "category_code", "code", "code_name", "core_id", "corrected_value",
+  "country", "country_code", "cruise_id", "cruise_type", "data_col",
+  "data_qualifier", "dataset_code", "dataset_group", "dataset_id",
+  "dataset_name", "date_orig", "dcflag", "dde", "ddn", "denom", "depth",
+  "depth_from", "depth_range", "depth_to", "description", "det_limit_flag",
+  "dist_to_coast", "dup_flag", "element", "est_country", "event_id",
+  "expanded_uncertainty_pct", "filtered", "fines_lt63", "flag", "frac",
+  "fraction_range_um", "gear_code", "group_code", "gs_corr", "GSMF2",
+  "GSMF2_63", "institute", "internal_qa_detection_limit",
+  "internal_qa_quantification_limit", "invalid_gs", "is_chem", "is_lld",
+  "lab", "lab_name", "labo", "lat", "lat_r", "latitude",
+  "layer_lower_boundary", "layer_upper_boundary", "limit", "limit_flag",
+  "lld", "lod", "lon", "lon_r", "longitude", "loq", "lower_depth",
+  "matrix_code", "max_value", "mbsl", "measured_value", "measurement_basis",
+  "measurement_date", "measurement_depth", "measurement_id",
+  "measurement_method_code", "measurement_time", "measurement_time_id",
+  "metcu", "method", "method_code", "method_description", "method_id",
+  "method1", "metoa", "monotone", "municipality", "n", "operator",
+  "organisation", "outlier_extreme_flag", "outlier_stdev_flag", "param",
+  "param_description", "param_id", "param_name", "parameter",
+  "parameter_group", "parameter_name", "prio", "project", "project_id",
+  "qflag", "range_check_flag", "range_flag", "raw_code", "region",
+  "responsible_institute", "sample_id", "sample_no", "sample_time",
+  "sample_timestamp", "sample_type", "sample_type_description",
+  "sampled_area", "sampling_method", "sampling_tool", "sea_name",
+  "sediment_composition", "sediment_content", "sediment_no", "site_code",
+  "site_id", "src_flag", "start", "start_year", "station_id",
+  "station_latitude", "station_longitude", "station_no", "subsample_id",
+  "survey_id", "survey_seq_no", "sym", "symbol", "t_out", "t_rng", "t_std",
+  "t_val", "type", "uncrt", "unit", "unit_std", "unit2", "upper_depth", "v",
+  "value", "value_analysis", "value_flag", "value_std", "value_std_corr",
+  "vflag", "weight_basis"
 ))

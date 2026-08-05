@@ -56,7 +56,7 @@ slim_transform_vannmiljo <- function(con_src) {
   # ── 3. Build dataset table ─────────────────────────────────────────────────
   df_dataset <- df_base_activity %>%
     distinct(dataset_code = activity_id, dataset_name = activity_name) %>%
-    mutate(source       = "Vannmiljø",
+    mutate(source       = "Vannmilj\u00f8",
            country      = "Norway",
            dataset_id   = row_number()) %>%
     select(dataset_id, source,

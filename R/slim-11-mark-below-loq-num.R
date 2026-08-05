@@ -23,7 +23,7 @@ slim_mark_below_loq_num <- function(source, db_dir = multised_db_dir(),
   canon_unit <- function(u) {
     u |> str_to_lower() |> str_trim() |>
       str_remove("\\s*(dw|ww|dry weight|wet weight)$") |> str_trim() |>
-      str_replace_all("µ|μ", "u")
+      str_replace_all("\u00b5|\u03bc", "u")
   }
 
   # ── 2. Add below_loq_num column (idempotent) ───────────────────────────────

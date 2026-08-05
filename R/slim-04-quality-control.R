@@ -47,7 +47,7 @@ slim_quality_control <- function(source, db_dir = multised_db_dir(),
       str_trim() |>
       str_remove("\\s*(dw|ww|dry weight|wet weight)$") |>
       str_trim() |>
-      str_replace_all("µ|μ", "u")   # micro sign / greek mu -> u
+      str_replace_all("\u00b5|\u03bc", "u")   # micro sign / greek mu -> u
   }
 
   # ── 2. Add flag columns (idempotent) ───────────────────────────────────────
