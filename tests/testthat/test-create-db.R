@@ -12,9 +12,31 @@ test_that("an unknown generation is rejected by match.arg", {
 
 test_that("generations that are not converted yet say so plainly", {
   # they must not silently do nothing
-  expect_error(create_db("merged"), "not available through create_db")
   expect_error(create_db("refined"), "not available through create_db")
   expect_error(create_db("pilot", "mareano"), "not available through create_db")
+})
+
+test_that("the merged generation runs five steps and takes no source", {
+  expect_equal(merge_step_table()$step, 1:5)
+  expect_equal(merge_step_table()$name,
+               c("union", "dedup", "finalise", "mark_outliers", "summary"))
+  expect_error(create_db("merged", source = "mareano"), "combines every source")
+  expect_error(create_db("merged", steps = 6), "steps 1-5")
+})
+
+test_that("every merged step function exists", {
+  for (fun in merge_step_table()$fun) {
+    expect_true(is.function(get(fun, envir = asNamespace("multised.engine"))),
+                info = fun)
+  }
+})
+
+test_that("the merge source preference order is the documented one", {
+  # Mareano > 4Demon > MUDAB > Vannmiljo > ICES-DOME
+  expect_equal(merge_sources()$Source[order(merge_sources()$pref)],
+               c("Mareano", "4Demon", "MUDAB", "Vannmiljø", "ICES-DOME"))
+  # element is the shared vocabulary: no keys prefixed
+  expect_length(merge_key_cols()$element, 0)
 })
 
 test_that("the clean generation runs three steps in sequence", {
