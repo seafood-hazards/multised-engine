@@ -28,6 +28,11 @@ written per module.
 Two modules need a suggested package, and say so if it is missing:
 `clustering` needs **cluster**, `outlier_review` needs **ggplot2**.
 
+The flat downloadable dataset is **not** an analysis module: it denormalises
+rather than computing, so it lives behind `export_data("refined")`. It still
+writes to `<out_dir>/download/`, the path the multised-refined pre-render
+expects. See [the export section](#export).
+
 ## Layout
 
 Package code is flat (R collates only top-level `R/*.R`):
@@ -91,7 +96,23 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_background_ef()`       | enrichment factor |
 | `background` | `analysis_refined_background_mixture()`  | distribution-mixture background |
 | `background` | `analysis_refined_pristine()`            | pristine-classification synthesis |
-| `download`   | `analysis_refined_dataset()`             | downloadable flat dataset export |
 
 The `background` module is a single ordered suite: each script builds on the
 previous one, and the six map onto the six background pages of multised-refined.
+
+## Export
+
+```r
+export_data(generation = "refined", source = NULL,
+            db_dir = multised_db_dir(),
+            out_dir = multised_analysis_dir(), verbose = TRUE)
+```
+
+| Generation | Function                   | Writes                                                          |
+|------------|----------------------------|-----------------------------------------------------------------|
+| `refined`  | `export_refined_dataset()` | `download/multised_refined_dataset.tsv.gz` + `refined_dataset_dictionary.csv` |
+
+One flat row per target measurement, plus a column dictionary that drives the
+Dataset Download page. Only the refined generation has an export; the five
+`R/pilot/<source>/07_create_data_frame.R` scripts are legacy per-source review
+dumps for the retired pilot sites and are not part of the interface.

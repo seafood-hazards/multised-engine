@@ -1,6 +1,6 @@
 test_that("the analysis registry resolves to real functions", {
   tbl <- analysis_module_table()
-  expect_equal(nrow(tbl), 26L)
+  expect_equal(nrow(tbl), 25L)
   expect_setequal(unique(tbl$generation), c("clean", "merged", "refined"))
   for (f in tbl$fun) {
     expect_true(exists(f, mode = "function"), info = f)
@@ -10,7 +10,7 @@ test_that("the analysis registry resolves to real functions", {
 test_that("each generation has the documented module count", {
   expect_equal(nrow(analysis_modules("clean")), 6L)
   expect_equal(nrow(analysis_modules("merged")), 13L)
-  expect_equal(nrow(analysis_modules("refined")), 7L)
+  expect_equal(nrow(analysis_modules("refined")), 6L)
 })
 
 test_that("background is the only multi-step module, and is ordered", {
@@ -19,6 +19,12 @@ test_that("background is the only multi-step module, and is ordered", {
   expect_equal(multi, "background")
   bg <- tbl[tbl$module == "background", ]
   expect_equal(bg$step, 1:6)
+})
+
+test_that("the flat export is not reachable as an analysis module", {
+  # it moved to export_data(); there must be exactly one public path to it
+  expect_false("download" %in% analysis_module_table()$module)
+  expect_error(analyze_data("refined", module = "download"), "no module")
 })
 
 test_that("a module name is validated against the generation", {
@@ -39,4 +45,12 @@ test_that("steps only make sense within one module", {
 test_that("an unknown generation is rejected by match.arg", {
   expect_error(analyze_data("pilot"), "'arg' should be one of")
   expect_error(analyze_data("slim"), "'arg' should be one of")
+})
+
+test_that("export_data validates its arguments", {
+  # with a single choice match.arg says "should be", not "should be one of"
+  expect_error(export_data("merged"), "'arg' should be")
+  expect_error(export_data("refined", source = "mareano"),
+               "covers every source")
+  expect_true(exists(export_table()$fun[1], mode = "function"))
 })

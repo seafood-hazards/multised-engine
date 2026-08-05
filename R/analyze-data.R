@@ -35,10 +35,12 @@ analysis_module_table <- function() {
     "refined", "background",      3L, "analysis_refined_background_pressure",
     "refined", "background",      4L, "analysis_refined_background_ef",
     "refined", "background",      5L, "analysis_refined_background_mixture",
-    "refined", "background",      6L, "analysis_refined_pristine",
-    "refined", "download",        1L, "analysis_refined_dataset"
+    "refined", "background",      6L, "analysis_refined_pristine"
   )
 }
+# The refined flat-dataset export used to sit here as a "download" module. It
+# denormalises rather than computing anything, so it moved to export_data();
+# see R/export-data.R. It is deliberately not reachable from both.
 
 #' Which analysis modules a generation has
 #'
@@ -65,6 +67,9 @@ analysis_modules <- function(generation = c("clean", "merged", "refined")) {
 #' it settled the outlier rule the merge stage now applies, and writes candidate
 #' CSVs and distribution plots for eyeballing. It is included in a full
 #' `"merged"` run, and needs the suggested package ggplot2.
+#'
+#' For the flat downloadable dataset, see [export_data()] - it denormalises
+#' rather than computing, so it is not an analysis module.
 #'
 #' @param generation Which database to read: `"clean"` (per source),
 #'   `"merged"` or `"refined"`.

@@ -1,8 +1,13 @@
-# ── Analysis, refined generation: download ───────────────────────────────
-# Converted from R/analysis/download/01_refined_dataset.R. The body is unchanged; only the
-# hardcoded paths and the console output are parameterised.
+# ── Export, refined generation: flat dataset ───────────────────────────────
+# Converted from R/analysis/download/01_refined_dataset.R. The body is unchanged;
+# only the hardcoded paths and the console output are parameterised.
+#
+# This denormalises rather than computing anything, so it is reached through
+# export_data("refined") rather than analyze_data(). The output directory stays
+# <out_dir>/download/ because multised-refined's CI pre-render downloads the
+# file from a release built off that path.
 
-analysis_refined_dataset <- function(db_dir = multised_db_dir(),
+export_refined_dataset <- function(db_dir = multised_db_dir(),
                                      out_dir = multised_analysis_dir(),
                                      verbose = TRUE) {
   # ── Analysis stage, downloadable flat dataset (REFINED database) ──────────────

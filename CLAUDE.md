@@ -56,7 +56,7 @@ Alongside the generations:
 
 ## Public interface
 
-Two entry points cover the whole project; everything else is internal.
+Three entry points cover the whole project; everything else is internal.
 
 ```r
 create_db(generation, source = NULL, steps = NULL,
@@ -65,14 +65,21 @@ create_db(generation, source = NULL, steps = NULL,
 analyze_data(generation, module = NULL, steps = NULL,
              db_dir = multised_db_dir(),
              out_dir = multised_analysis_dir(), verbose = TRUE)
+
+export_data(generation = "refined", source = NULL,
+            db_dir = multised_db_dir(),
+            out_dir = multised_analysis_dir(), verbose = TRUE)
 ```
 
 - `create_db()` covers **all five generations**. `source` is required for the
   per-source generations (pilot/slim/clean) and must be `NULL` for
   merged/refined.
-- `analyze_data()` covers **all 26 analyses** (6 clean, 13 merged, 7 refined);
+- `analyze_data()` covers **all 25 analyses** (6 clean, 13 merged, 6 refined);
   `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
   module for it. Most modules hold one analysis; `background` holds six.
+- `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
+  column dictionary. It computes nothing, which is why it is not an analysis
+  module; `refined` is the only generation with one.
 - `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
   `analyze_data()` `steps` selects within one module and so requires `module`
   (only `background` has more than one step).

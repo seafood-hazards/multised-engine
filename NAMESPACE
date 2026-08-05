@@ -3,6 +3,7 @@
 export(analysis_modules)
 export(analyze_data)
 export(create_db)
+export(export_data)
 export(multised_analysis_dir)
 export(multised_db_dir)
 export(multised_raw_dir)

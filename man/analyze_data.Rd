@@ -45,6 +45,9 @@ The \code{outlier_review} module is a review prototype rather than a site input:
 it settled the outlier rule the merge stage now applies, and writes candidate
 CSVs and distribution plots for eyeballing. It is included in a full
 \code{"merged"} run, and needs the suggested package ggplot2.
+
+For the flat downloadable dataset, see \code{\link[=export_data]{export_data()}} - it denormalises
+rather than computing, so it is not an analysis module.
 }
 \examples{
 \dontrun{
