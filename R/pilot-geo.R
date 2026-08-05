@@ -14,19 +14,25 @@
 # (clean_geo_enrich()), so routing pilot through the same tool makes the pilot
 # values agree with the ones that survive instead of disagreeing with them.
 #
-# The pilot column names differ slightly from the clean ones (`est_country`
-# rather than `country`), so they are mapped on the way back.
+# The pilot column names differ from the clean ones, and not uniformly: Mareano
+# and Vannmiljo call the nearest country `country`, while ICES-DOME, MUDAB and
+# 4Demon call it `est_country`. That is carried in the spec rather than assumed.
 
 # Which frame carries the stations for each source, and its coordinate columns.
 pilot_geo_spec <- function(source) {
   switch(
     source,
-    "mareano"   = list(frame = "df_core",    lon = "dde", lat = "ddn"),
-    "vannmiljo" = list(frame = "df_site",    lon = "lon", lat = "lat"),
-    "ices-dome" = list(frame = "df_site",    lon = "longitude", lat = "latitude"),
+    "mareano"   = list(frame = "df_core",    lon = "dde", lat = "ddn",
+                       country_col = "country"),
+    "vannmiljo" = list(frame = "df_site",    lon = "lon", lat = "lat",
+                       country_col = "country"),
+    "ices-dome" = list(frame = "df_site",    lon = "longitude", lat = "latitude",
+                       country_col = "est_country"),
     "mudab"     = list(frame = "df_survey",
-                       lon = "station_longitude", lat = "station_latitude"),
-    "4demon"    = list(frame = "df_station", lon = "longitude", lat = "latitude"),
+                       lon = "station_longitude", lat = "station_latitude",
+                       country_col = "est_country"),
+    "4demon"    = list(frame = "df_station", lon = "longitude", lat = "latitude",
+                       country_col = "est_country"),
     stop("No geo spec for source ", sQuote(source), call. = FALSE)
   )
 }
@@ -37,6 +43,7 @@ pilot_geo_spec <- function(source) {
 # (as the original scripts did) and the result is joined back on longitude /
 # latitude, so repeated stations at one position share a single lookup.
 pilot_geo_enrich <- function(df, lon_col, lat_col,
+                             country_col = "est_country",
                              geo_dir = "data/geoenrich",
                              region = "auto", verbose = TRUE) {
   pts <- df |>
@@ -48,15 +55,15 @@ pilot_geo_enrich <- function(df, lon_col, lat_col,
                          lon_col = lon_col, lat_col = lat_col,
                          geo_dir = geo_dir, region = region, verbose = verbose)
 
-  # pilot names the nearest country `est_country`; the rest match the clean names
+  # the nearest-country column is named per source; the rest match the clean names
   lookup <- pts |>
     left_join(enr, by = ".pt_id") |>
     select(all_of(c(lon_col, lat_col)),
-           dist_to_coast, est_country = "country", country_code,
+           dist_to_coast, !!country_col := .data$country, country_code,
            municipality, sea_name)
 
   out <- df |>
-    select(-any_of(c("dist_to_coast", "est_country", "country_code",
+    select(-any_of(c("dist_to_coast", "est_country", "country", "country_code",
                      "municipality", "sea_name"))) |>
     left_join(lookup, by = c(lon_col, lat_col))
 

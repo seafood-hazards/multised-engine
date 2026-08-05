@@ -283,7 +283,7 @@ create_db_slim <- function(source, steps, db_dir, verbose) {
 # Only 4Demon is converted so far; the other four still run as scripts. The step
 # numbers keep the original script numbering (1 parse, 4 geo, 5 write) so the
 # registry lines up with the files it replaces.
-PILOT_CONVERTED <- c("4demon")
+PILOT_CONVERTED <- c("4demon", "ices-dome", "vannmiljo")
 
 pilot_step_table <- function() {
   tibble::tribble(
@@ -297,7 +297,9 @@ pilot_step_table <- function() {
 pilot_extract <- function(source, raw_dir = multised_raw_dir(), verbose = TRUE) {
   switch(
     source,
-    "4demon" = pilot_extract_4demon(raw_dir = raw_dir, verbose = verbose),
+    "4demon"    = pilot_extract_4demon(raw_dir = raw_dir, verbose = verbose),
+    "ices-dome" = pilot_extract_ices_dome(raw_dir = raw_dir, verbose = verbose),
+    "vannmiljo" = pilot_extract_vannmiljo(raw_dir = raw_dir, verbose = verbose),
     stop("The pilot parser for ", sQuote(source), " is not converted yet.",
          call. = FALSE)
   )
@@ -339,6 +341,7 @@ create_db_pilot <- function(source, steps, db_dir, verbose,
     frame <- sub("^df_", "", spec$frame)
     msg(verbose, "\n== ", source, " pilot step 4: geo (seastamp) ==\n")
     tables[[frame]] <- pilot_geo_enrich(tables[[frame]], spec$lon, spec$lat,
+                                        country_col = spec$country_col,
                                         geo_dir = geo_dir, verbose = verbose)
   }
 

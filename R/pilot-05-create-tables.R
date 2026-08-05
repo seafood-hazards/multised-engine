@@ -8,6 +8,8 @@ pilot_schema <- function(source) {
   switch(
     source,
     "4demon"    = pilot_schema_4demon(),
+    "ices-dome" = pilot_schema_ices_dome(),
+    "vannmiljo" = pilot_schema_vannmiljo(),
     stop("The pilot schema for ", sQuote(source), " is not converted yet.",
          call. = FALSE)
   )
@@ -36,9 +38,13 @@ pilot_create_tables <- function(tables, source, db_dir = multised_db_dir(),
   for (tbl in schema$order) {
     dbExecute(con, schema$ddl[[tbl]])
   }
-  # Write in dependency order.
+  # Write in dependency order. Some extracts carry build-only columns (e.g. the
+  # ICES `row_count`) that the schema does not declare; drop them here.
   for (tbl in schema$order) {
-    dbWriteTable(con, tbl, as.data.frame(tables[[tbl]]), append = TRUE)
+    df <- tables[[tbl]]
+    drop <- schema$drop_cols[[tbl]]
+    if (!is.null(drop)) df <- df |> select(-any_of(drop))
+    dbWriteTable(con, tbl, as.data.frame(df), append = TRUE)
   }
 
   counts <- data.frame(
