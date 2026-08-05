@@ -4,12 +4,13 @@ library(readr)
 library(dplyr)
 
 # ── Clean stage, geo-enrichment of the site table ────────────────────────────
-# Recompute the location attributes of every site with the `geoenrich` CLI
-# (docs/geoenrich.md) and write them back into each <source>_clean.sqlite `site`
+# Recompute the location attributes of every site with the `seastamp` CLI
+# (https://github.com/AIQC-Hub/seastamp, formerly `geoenrich`) and write them
+# back into each <source>_clean.sqlite `site`
 # table, replacing depth / country / country_code / dist_to_coast / municipality /
 # sea_name with consistent, tool-derived values.
 #
-# Per source: export the site coordinates to TSV, chain the geoenrich modules
+# Per source: export the site coordinates to TSV, chain the seastamp modules
 # (coast -> depth -> sea -> place), read the enriched TSV back, and UPDATE the
 # six columns keyed on site_id. Re-run this after any clean rebuild (03), since a
 # rebuild regenerates the site table from slim.
@@ -25,9 +26,15 @@ library(dplyr)
 #   municipality   GISCO LAU (Europe only, so non-European sites may be NULL)
 
 # ── 0. Config ────────────────────────────────────────────────────────────────
-BIN <- Sys.which("geoenrich")
-if (BIN == "") BIN <- "/home/takaya/programs/geoenrich/geoenrich"
+# The tool was renamed geoenrich -> seastamp at 0.9.0 (commands, flags and output
+# columns unchanged). No fallback to the old `geoenrich` binary on purpose: it
+# stops at 0.8.0, whose default region differs, so silently running it would give
+# different distances rather than an error.
+BIN <- Sys.which("seastamp")
+if (BIN == "") BIN <- "/home/takaya/programs/seastamp/seastamp"
+if (!file.exists(BIN)) stop("seastamp not found; install it or set BIN")
 
+# Reference-data dir, still named geoenrich on disk (external storage).
 GEO       <- "data/geoenrich"
 COAST     <- file.path(GEO, "gshhg/gshhg-shp-2.3.7/GSHHS_shp/f")
 DEPTH     <- file.path(GEO, "gebco/GEBCO_2024_sub_ice_topo.nc")
@@ -43,7 +50,7 @@ sources <- c("mareano", "vannmiljo", "ices_dome", "mudab", "4demon")
 run <- function(args) {
   status <- system2(BIN, args, stdout = TRUE, stderr = TRUE)
   if (!is.null(attr(status, "status")) && attr(status, "status") != 0)
-    stop("geoenrich failed:\n", paste(status, collapse = "\n"))
+    stop(basename(BIN), " failed:\n", paste(status, collapse = "\n"))
   invisible(status)
 }
 

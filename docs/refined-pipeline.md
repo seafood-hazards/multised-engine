@@ -125,8 +125,9 @@ axis from EFSA's acid-strength classes.)
 
 - **DB-creation pages** (how the refined schema is built): on the existing
   **multised-merged** site.
-- **Analyses** on the refined DB (the pristine/background work): a **new** site,
-  `multised-refined`, to be created when those analyses are designed.
+- **Analyses** on the refined DB (the pristine/background work): the
+  `multised-refined` site (created and published). See
+  [websites.md](websites.md).
 
 ## Resolved decisions
 

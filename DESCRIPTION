@@ -1,16 +1,48 @@
-Package: sedimenter
+Package: multised.engine
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
+Title: Build and Analyse the MULTISED Marine Sediment Database
+Version: 0.2.0
 Authors@R: c(
-    person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
-    )
+    person("Takaya", "Saito", email = "takaya.saito@outlook.com",
+           role = c("aut", "cre", "cph")),
+    person("Institute of Marine Research", role = "fnd")
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Assembles a database of marine-sediment trace-element measurements
+    from five external sources (Mareano, Vannmiljoe, ICES-DOME, MUDAB and
+    4Demon), harmonises them into a common schema, and progressively
+    quality-controls the result through five database generations: pilot, slim,
+    clean, merged and refined. Also provides the analyses run on the finished
+    databases, covering grain size, iron and aluminium normalisation, organic
+    carbon, spatial and temporal coverage, outlier flagging, and pristine
+    background classification.
+License: MIT + file LICENSE
+URL: https://github.com/seafood-hazards/multised-engine
+BugReports: https://github.com/seafood-hazards/multised-engine/issues
+Depends:
+    R (>= 4.1)
+Imports:
+    DBI,
+    RSQLite,
+    dplyr,
+    purrr,
+    readr,
+    stringr,
+    tibble,
+    tidyr
+Suggests:
+    cluster,
+    cowplot,
+    ggplot2,
+    ggpubr,
+    giscoR,
+    leaflet,
+    readxl,
+    rnaturalearth,
+    rnaturalearthdata,
+    sf,
+    testthat (>= 3.0.0),
+    viridis
 Encoding: UTF-8
-LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
