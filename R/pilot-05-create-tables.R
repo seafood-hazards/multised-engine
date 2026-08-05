@@ -10,6 +10,7 @@ pilot_schema <- function(source) {
     "4demon"    = pilot_schema_4demon(),
     "ices-dome" = pilot_schema_ices_dome(),
     "vannmiljo" = pilot_schema_vannmiljo(),
+    "mudab"     = pilot_schema_mudab(),
     stop("The pilot schema for ", sQuote(source), " is not converted yet.",
          call. = FALSE)
   )

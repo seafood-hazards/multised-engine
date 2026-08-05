@@ -74,12 +74,14 @@ importFrom(tibble,
   tribble
 )
 importFrom(tidyr,
+  fill,
   pivot_longer,
   pivot_wider,
   replace_na,
   separate,
   separate_rows,
-  unite
+  unite,
+  unnest
 )
 importFrom(utils,
   head,

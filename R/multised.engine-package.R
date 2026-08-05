@@ -15,7 +15,7 @@
 #' @importFrom RSQLite SQLite
 #' @importFrom tibble tibble tribble as_tibble
 #' @importFrom tidyr pivot_longer pivot_wider replace_na separate separate_rows
-#'   unite
+#'   unite fill unnest
 #' @importFrom lubridate year
 #' @importFrom stringr str_to_upper str_to_lower str_trim str_remove
 #'   str_remove_all str_replace str_replace_all str_detect str_extract
