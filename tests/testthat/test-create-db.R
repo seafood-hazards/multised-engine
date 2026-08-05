@@ -10,9 +10,28 @@ test_that("an unknown generation is rejected by match.arg", {
   expect_error(create_db("gold"), "'arg' should be one of")
 })
 
-test_that("generations that are not converted yet say so plainly", {
-  # they must not silently do nothing
-  expect_error(create_db("pilot", "mareano"), "not available through create_db")
+test_that("unconverted pilot sources say so plainly", {
+  # 4Demon is converted; the other four must not silently do nothing
+  for (src in setdiff(multised_sources(), PILOT_CONVERTED)) {
+    expect_error(create_db("pilot", src), "not available through create_db",
+                 info = src)
+  }
+})
+
+test_that("the pilot registry keeps the original step numbering", {
+  # 1 parse, 4 geo, 5 write -- matching the scripts it replaces
+  expect_equal(pilot_step_table()$step, c(1L, 4L, 5L))
+  expect_equal(pilot_step_table()$name, c("extract", "geo", "write"))
+  # steps 4 and 5 consume what step 1 builds, so step 1 cannot be skipped
+  expect_error(create_db("pilot", "4demon", steps = 5),
+               "step 1 cannot be skipped")
+})
+
+test_that("each source has a pilot geo spec", {
+  for (src in multised_sources()) {
+    spec <- pilot_geo_spec(src)
+    expect_true(all(c("frame", "lon", "lat") %in% names(spec)), info = src)
+  }
 })
 
 test_that("the refined generation runs six steps and takes no source", {

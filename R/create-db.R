@@ -102,6 +102,7 @@ create_db <- function(generation = c("pilot", "slim", "clean",
 
   switch(
     generation,
+    pilot  = create_db_pilot(source, steps, db_dir, verbose),
     slim   = create_db_slim(source, steps, db_dir, verbose),
     clean  = create_db_clean(source, steps, db_dir, verbose),
     merged  = create_db_merged(steps, db_dir, verbose),
@@ -275,5 +276,77 @@ create_db_slim <- function(source, steps, db_dir, verbose) {
     out[[name]] <- fun(source, db_dir = db_dir, verbose = verbose)
   }
 
+  invisible(out)
+}
+
+# ── Pilot ────────────────────────────────────────────────────────────────────
+# Only 4Demon is converted so far; the other four still run as scripts. The step
+# numbers keep the original script numbering (1 parse, 4 geo, 5 write) so the
+# registry lines up with the files it replaces.
+PILOT_CONVERTED <- c("4demon")
+
+pilot_step_table <- function() {
+  tibble::tribble(
+    ~step, ~name,      ~fun,
+    1L,  "extract",  "pilot_extract",
+    4L,  "geo",      "pilot_geo",
+    5L,  "write",    "pilot_create_tables"
+  )
+}
+
+pilot_extract <- function(source, raw_dir = multised_raw_dir(), verbose = TRUE) {
+  switch(
+    source,
+    "4demon" = pilot_extract_4demon(raw_dir = raw_dir, verbose = verbose),
+    stop("The pilot parser for ", sQuote(source), " is not converted yet.",
+         call. = FALSE)
+  )
+}
+
+create_db_pilot <- function(source, steps, db_dir, verbose,
+                            raw_dir = multised_raw_dir(),
+                            geo_dir = "data/geoenrich") {
+  if (!source %in% PILOT_CONVERTED) {
+    stop("The pilot generation is not available through create_db() for ",
+         sQuote(source), " yet; only ", paste(sQuote(PILOT_CONVERTED), collapse = ", "),
+         " is. Run the scripts under R/pilot/", source,
+         "/ from the project root in the meantime.", call. = FALSE)
+  }
+
+  applicable <- pilot_step_table()
+  if (!is.null(steps)) {
+    steps <- as.integer(steps)
+    unknown <- setdiff(steps, applicable$step)
+    if (length(unknown)) {
+      stop("The pilot generation has steps ",
+           paste(applicable$step, collapse = ", "), "; got ",
+           paste(unknown, collapse = ", "), ".", call. = FALSE)
+    }
+    applicable <- applicable[applicable$step %in% steps, ]
+  }
+  # The parse feeds the geo step and the write, so it cannot be skipped when
+  # either of those runs.
+  if (nrow(applicable) && !1L %in% applicable$step) {
+    stop("Pilot steps 4 and 5 consume the frames step 1 builds, so step 1 ",
+         "cannot be skipped.", call. = FALSE)
+  }
+
+  msg(verbose, "\n== ", source, " pilot step 1: extract ==\n")
+  tables <- pilot_extract(source, raw_dir = raw_dir, verbose = verbose)
+
+  if (4L %in% applicable$step) {
+    spec <- pilot_geo_spec(source)
+    frame <- sub("^df_", "", spec$frame)
+    msg(verbose, "\n== ", source, " pilot step 4: geo (seastamp) ==\n")
+    tables[[frame]] <- pilot_geo_enrich(tables[[frame]], spec$lon, spec$lat,
+                                        geo_dir = geo_dir, verbose = verbose)
+  }
+
+  out <- list(extract = vapply(tables, nrow, numeric(1)))
+  if (5L %in% applicable$step) {
+    msg(verbose, "\n== ", source, " pilot step 5: write ==\n")
+    out$write <- pilot_create_tables(tables, source, db_dir = db_dir,
+                                     verbose = verbose)
+  }
   invisible(out)
 }

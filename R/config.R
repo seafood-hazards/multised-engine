@@ -19,7 +19,8 @@ multised_sources <- function() {
 #' Where the databases and analysis outputs live
 #'
 #' `multised_db_dir()` is the directory holding the SQLite databases, and
-#' `multised_analysis_dir()` the directory analysis outputs are written to. Both
+#' `multised_analysis_dir()` the directory analysis outputs are written to, and
+#' `multised_raw_dir()` the vendor files the pilot stage parses. All
 #' default to the layout used by the project itself and can be overridden
 #' globally with [options()], or per call via the `db_dir` argument of
 #' [create_db()].
@@ -40,6 +41,12 @@ multised_db_dir <- function() {
 #' @export
 multised_analysis_dir <- function() {
   getOption("multised.analysis_dir", "data/analysis")
+}
+
+#' @rdname multised_db_dir
+#' @export
+multised_raw_dir <- function() {
+  getOption("multised.raw_dir", "data/raw")
 }
 
 # Source key -> database filename stem. The keys keep the hyphen used throughout

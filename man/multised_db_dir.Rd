@@ -3,18 +3,22 @@
 \name{multised_db_dir}
 \alias{multised_db_dir}
 \alias{multised_analysis_dir}
+\alias{multised_raw_dir}
 \title{Where the databases and analysis outputs live}
 \usage{
 multised_db_dir()
 
 multised_analysis_dir()
+
+multised_raw_dir()
 }
 \value{
 A length-one character path.
 }
 \description{
 \code{multised_db_dir()} is the directory holding the SQLite databases, and
-\code{multised_analysis_dir()} the directory analysis outputs are written to. Both
+\code{multised_analysis_dir()} the directory analysis outputs are written to, and
+\code{multised_raw_dir()} the vendor files the pilot stage parses. All
 default to the layout used by the project itself and can be overridden
 globally with \code{\link[=options]{options()}}, or per call via the \code{db_dir} argument of
 \code{\link[=create_db]{create_db()}}.
