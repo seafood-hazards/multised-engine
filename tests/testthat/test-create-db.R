@@ -10,12 +10,18 @@ test_that("an unknown generation is rejected by match.arg", {
   expect_error(create_db("gold"), "'arg' should be one of")
 })
 
-test_that("unconverted pilot sources say so plainly", {
-  # 4Demon is converted; the other four must not silently do nothing
-  for (src in setdiff(multised_sources(), PILOT_CONVERTED)) {
-    expect_error(create_db("pilot", src), "not available through create_db",
-                 info = src)
-  }
+test_that("every source is converted for the pilot generation", {
+  expect_setequal(PILOT_CONVERTED, multised_sources())
+})
+
+test_that("an unconverted pilot source would say so plainly", {
+  # All five sources are converted, so this guards the dispatch itself: a source
+  # reaching the parser or schema without an entry must fail loudly rather than
+  # silently build nothing.
+  expect_error(pilot_extract("gold"), "not converted yet")
+  expect_error(pilot_schema("gold"), "not converted yet")
+  expect_error(create_db_pilot("gold", NULL, tempdir(), FALSE),
+               "not available through create_db")
 })
 
 test_that("the pilot registry keeps the original step numbering", {
