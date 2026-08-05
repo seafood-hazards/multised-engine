@@ -12,8 +12,30 @@ test_that("an unknown generation is rejected by match.arg", {
 
 test_that("generations that are not converted yet say so plainly", {
   # they must not silently do nothing
-  expect_error(create_db("refined"), "not available through create_db")
   expect_error(create_db("pilot", "mareano"), "not available through create_db")
+})
+
+test_that("the refined generation runs six steps and takes no source", {
+  expect_equal(refine_step_table()$step, 1:6)
+  expect_equal(refine_step_table()$name,
+               c("restructure", "normaliser", "ratios", "aquaculture",
+                 "repeat_sites", "summary"))
+  expect_error(create_db("refined", source = "mareano"), "combines every source")
+  expect_error(create_db("refined", steps = 7), "steps 1-6")
+})
+
+test_that("every refined step function exists", {
+  for (fun in refine_step_table()$fun) {
+    expect_true(is.function(get(fun, envir = asNamespace("multised.engine"))),
+                info = fun)
+  }
+})
+
+test_that("the refined mart keeps the 7 targets and the 3 normalisers", {
+  expect_setequal(REFINE_TARGETS, c("CO", "CU", "I", "MN", "MO", "SE", "ZN"))
+  expect_setequal(REFINE_NORMS, c("FE", "AL", "CORG"))
+  # the normalisers are deliberately NOT targets: they become normaliser columns
+  expect_length(intersect(REFINE_TARGETS, REFINE_NORMS), 0)
 })
 
 test_that("the merged generation runs five steps and takes no source", {

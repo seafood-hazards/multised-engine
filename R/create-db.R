@@ -104,11 +104,55 @@ create_db <- function(generation = c("pilot", "slim", "clean",
     generation,
     slim   = create_db_slim(source, steps, db_dir, verbose),
     clean  = create_db_clean(source, steps, db_dir, verbose),
-    merged = create_db_merged(steps, db_dir, verbose),
+    merged  = create_db_merged(steps, db_dir, verbose),
+    refined = create_db_refined(steps, db_dir, verbose),
     stop("The ", generation, " generation is not available through create_db() ",
-         "yet; \"slim\", \"clean\" and \"merged\" are. Run the scripts under R/",
-         generation, "/ from the project root in the meantime.", call. = FALSE)
+         "yet; \"slim\", \"clean\", \"merged\" and \"refined\" are. Run the ",
+         "scripts under R/", generation, "/ from the project root in the ",
+         "meantime.", call. = FALSE)
   )
+}
+
+# The refine step registry. Step 6 is reporting only and also writes CSVs.
+refine_step_table <- function() {
+  tibble::tribble(
+    ~step, ~name,           ~fun,                    ~writes_csv,
+    1L,  "restructure",   "refine_restructure",     FALSE,
+    2L,  "normaliser",    "refine_normaliser",      FALSE,
+    3L,  "ratios",        "refine_ratios",          FALSE,
+    4L,  "aquaculture",   "refine_aquaculture",     FALSE,
+    5L,  "repeat_sites",  "refine_repeat_sites",    FALSE,
+    6L,  "summary",       "refine_summary",         TRUE
+  )
+}
+
+create_db_refined <- function(steps, db_dir, verbose,
+                              analysis_dir = multised_analysis_dir()) {
+  applicable <- refine_step_table()
+
+  if (!is.null(steps)) {
+    steps <- as.integer(steps)
+    unknown <- setdiff(steps, applicable$step)
+    if (length(unknown)) {
+      stop("The refined generation has steps 1-6; got ",
+           paste(unknown, collapse = ", "), ".", call. = FALSE)
+    }
+    applicable <- applicable[applicable$step %in% steps, ]
+  }
+
+  out <- list()
+  for (i in seq_len(nrow(applicable))) {
+    step <- applicable$step[i]
+    name <- applicable$name[i]
+    fun  <- get(applicable$fun[i], mode = "function")
+    msg(verbose, "\n== refined step ", step, ": ", name, " ==\n")
+    out[[name]] <- if (applicable$writes_csv[i]) {
+      fun(db_dir = db_dir, analysis_dir = analysis_dir, verbose = verbose)
+    } else {
+      fun(db_dir = db_dir, verbose = verbose)
+    }
+  }
+  invisible(out)
 }
 
 # The merge step registry. Steps 2 and 4 also write analysis CSVs, so they take
