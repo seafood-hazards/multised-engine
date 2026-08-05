@@ -53,7 +53,7 @@ organic carbon, depth/coast, sampling year, a summary, the Aquaculture pages),
 plus site-locations and aquaculture documentation. Also carries the merge
 **build** pages (union / dedup / finalise / retention).
 
-Reads the per-source analysis outputs written by `R/analysis/*` to
+Reads the per-source analysis outputs written by `analyze_data("clean")` to
 `data/analysis/` plus the clean and `aquaculture_no.sqlite` databases.
 `_scripts/download-data.R` lists the release manifest. **Adding a page that reads
 a new output means uploading that asset to the release before pushing `main`, or

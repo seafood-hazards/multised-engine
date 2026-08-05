@@ -6,8 +6,9 @@ format. Still **one DB per source**; merging into a single cross-source DB is a
 later generation (see [plan.md](plan.md)). A single website summarises the clean
 results (replacing the per-source pilot sites).
 
-Built by a new `R/clean/<source>/` script tree, run in order, reading the slim DB.
-Three ordered steps (rename freely; the parenthesised names are the originals):
+Run with `create_db("clean", source)`; package code is `R/clean-*.R`, with the
+shared helpers in `R/clean-shared-*.R`. Reads the slim DB. Three ordered steps
+(the parenthesised names are the originals):
 
 1. **Harmonise** (data conversion) — uniform names, units, depths, tools.
 2. **Clean** (data cleaning) — remove flagged rows, collapse replicates.
@@ -42,7 +43,7 @@ lacks that table. Key changes vs slim:
   `institute_code`, `accessed` (retrieval date). Columns a source lacks are NULL;
   ICES-DOME's multi-nation `country`/`institute` lists are de-duplicated and sorted
   (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
-  (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
+  (`R/clean-shared-dataset-meta.R`) supplies `url` + `accessed`.
 - **site** — a common column set: `site_id`, `latitude`, `longitude`, `depth`,
   `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`,
   `dist_to_aquaculture`. `depth`
@@ -55,7 +56,7 @@ lacks that table. Key changes vs slim:
   `site_id` and the coordinates are stable; the other attributes are regenerated
   upstream. `standardise_site()` (Harmonise) guarantees the column set/order and
   keeps the slim `area_flag`; the Clean step then consumes it via
-  `consume_area_flag()` (`R/clean/_shared/site_meta.R`): sites flagged
+  `consume_area_flag()` (`R/clean-shared-site-meta.R`): sites flagged
   `outside_europe` and their linked event/subsample/measurement rows are removed
   (cascade), and the `area_flag` column is dropped, so the final `site` has no flag.
 - **measurement** — all chemistry (`target` / `reference` / `organic`); grain-size
@@ -81,14 +82,14 @@ lacks that table. Key changes vs slim:
   `unknown`), with `method_description` kept where present (ICES/MUDAB) or filled
   from the ICES wording. `lod` / `loq` are converted to mg/kg (`limit_unit` =
   `mg/kg`). `comment` (Mareano) and `uncertainty` (MUDAB, unused by Clean) are
-  dropped. Via `R/clean/_shared/method_meta.R`.
+  dropped. Via `R/clean-shared-method-meta.R`.
   - The 4Demon sieve fraction, previously encoded in the method code, moves to the
     `fraction_range` column and joins the replicate-collapse key (so `<63µm` and
     `<2000µm` values of the same element are not averaged together).
 - **event** — columns `event_id`, `dataset_id`, `site_id`, `year`, `date`,
   `sampling_tool`, `n_layers`. `date` is derived from `datetime` where needed
   (`datetime` / `time` dropped). `sampling_tool` is remapped from the raw gear codes
-  to short descriptive names via a shared lookup (`R/clean/_shared/event_meta.R`;
+  to short descriptive names via a shared lookup (`R/clean-shared-event-meta.R`;
   e.g. `VV`/`19B` -> van Veen grab, `BC` -> box corer, unlisted / missing ->
   unknown). `multi_flag` is dropped (equals `n_layers > 1`) and ICES-DOME's
   `tool_description` is folded into the name.
@@ -127,7 +128,7 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
   `TOC → CORG`, `TOC63` kept as-is. A small per-source symbol map does this.
 - **Element names + CAS.** The `element` name column becomes `name`; each chemistry
   symbol gets one canonical Title-Case name and CAS number from a shared lookup
-  (`R/clean/_shared/element_meta.R`), so all sources read identical values. CAS is
+  (`R/clean-shared-element-meta.R`), so all sources read identical values. CAS is
   taken from Vannmiljø's `cas_no` where available (AL FE CO CU MN MO SE ZN), iodine
   added from the registry; organic carbon (CORG/TOC63) has no CAS (NULL). Grain-size
   composition names follow ICES-DOME for shared symbols via the same lookup (so e.g.
@@ -200,7 +201,7 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **`comp_exist`** on `subsample` flags grain-size availability; grain-size
   composition no longer sits in `measurement`.
 
-**Status:** built and verified for **all five sources** (`R/clean/<source>/`). Every
+**Status:** built and verified for **all five sources**. Every
 source now runs steps 01-03 (4Demon's 03 does the fraction annotation only — no
 grain-size). Chemistry counts are unchanged by the annotation: `measurement` holds
 all chemistry (e.g. ICES 69,719; MUDAB 30,744).

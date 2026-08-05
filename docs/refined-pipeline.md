@@ -3,8 +3,9 @@
 The fifth generation, **`multised-refined`**. One database,
 `data/db/multised_refined.sqlite`, refactored **from** the merged database
 (`multised_merged.sqlite`) plus the aquaculture reference (`aquaculture_no.sqlite`)
-and the analysis outputs already produced on the merged DB. Built by a new `R/refine/`
-script tree.
+and the analysis outputs already produced on the merged DB.
+
+Run with `create_db("refined")` — no `source`. Package code is `R/refine-*.R`.
 
 It is an **analysis-ready mart** for the later "pristine / background sediment" work
 (identifying pristine sediments so aquaculture effects can be assessed). That work is
@@ -93,7 +94,7 @@ and the analysis normalises by whatever method it chooses.
 **Dropped:** `grain_size_fraction`; FE/AL/CORG as measurement rows; and the redundant
 `unit_std` / `matrix` / `sieve_um` columns.
 
-## Steps (`R/refine/`, run in order)
+## Steps (`R/refine-*.R`, run in order)
 
 | # | File                    | Purpose                                                    |
 |---|-------------------------|------------------------------------------------------------|

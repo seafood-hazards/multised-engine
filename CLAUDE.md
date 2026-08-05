@@ -20,18 +20,21 @@ Five generations. The first three are one SQLite DB **per source**; the last two
 are single cross-source DBs. Each has a spec doc under `docs/` — **read the
 relevant one before changing that stage.**
 
-| # | Gen       | Code                 | Output DB (`data/db/`)      | Spec                                             | Status |
+| # | Gen       | Package files        | Output DB (`data/db/`)      | Spec                                             | Status |
 |---|-----------|----------------------|-----------------------------|--------------------------------------------------|--------|
-| 1 | pilot     | `R/pilot/<source>/`  | `pilot_<source>.sqlite`     | (per source; table structure differs)            | done   |
-| 2 | slim      | `R/slim/<source>/`   | `<source>_slim.sqlite`      | [slim-pipeline.md](docs/slim-pipeline.md)        | done   |
-| 3 | clean     | `R/clean/<source>/`  | `<source>_clean.sqlite`     | [clean-pipeline.md](docs/clean-pipeline.md)      | done   |
-| 4 | merged    | `R/merge/`           | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |
-| 5 | refined   | `R/refine/`          | `multised_refined.sqlite`   | [refined-pipeline.md](docs/refined-pipeline.md)  | phase 1 done |
+| 1 | pilot     | `R/pilot-*.R`        | `pilot_<source>.sqlite`     | (per source; table structure differs)            | done   |
+| 2 | slim      | `R/slim-*.R`         | `<source>_slim.sqlite`      | [slim-pipeline.md](docs/slim-pipeline.md)        | done   |
+| 3 | clean     | `R/clean-*.R`        | `<source>_clean.sqlite`     | [clean-pipeline.md](docs/clean-pipeline.md)      | done   |
+| 4 | merged    | `R/merge-*.R`        | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |
+| 5 | refined   | `R/refine-*.R`       | `multised_refined.sqlite`   | [refined-pipeline.md](docs/refined-pipeline.md)  | phase 1 done |
+
+Run any of them with `create_db(gen, source)`; the original script tree is kept
+alongside (see **Public interface**).
 
 - **pilot → slim** parses raw source files, then reshapes into the shared 7-table
   schema and flags quality/duplicates/etc.
 - **clean** applies the slim flags (01 harmonise, 02 clean, 03 annotate; shared
-  helpers in `R/clean/_shared/`). Sites are geo-enriched by `R/clean/geo_enrich.R`
+  helpers in `R/clean-shared-*.R`). Sites are geo-enriched by `R/clean-04-geo-enrich.R`
   (depth, country, dist_to_coast, municipality, sea_name) using the external
   `seastamp` CLI.
 - **merged** unions all five clean DBs and removes cross-source duplicates.
@@ -44,39 +47,53 @@ Alongside the generations:
   Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`), plus the
   `dist_to_aquaculture` column it adds to every clean `site` (Norway only). See
   [clean-pipeline.md](docs/clean-pipeline.md).
-- **analysis** (`R/analysis/<module>/`) — read-only analyses on a finished DB,
-  writing CSVs to `data/analysis/` for the websites. Scripts are named
-  `<NN>_<generation>_<name>.R`, where the generation token (`clean` / `merged` /
-  `refined`) says which DB is read. See [analysis.md](docs/analysis.md).
+- **analysis** (`R/analysis-<generation>-<module>.R`) — read-only analyses on a
+  finished DB, writing CSVs to `data/analysis/<module>/` for the websites. The
+  generation token (`clean` / `merged` / `refined`) says which DB is read. Run
+  with `analyze_data()`. See [analysis.md](docs/analysis.md).
 - **websites** — four Quarto sites, each in a **sibling repo**, not in this
   project. See [websites.md](docs/websites.md).
 
 ## Public interface
 
-The pipeline is being wrapped in a small package API. **`create_db()` currently
-covers the slim generation only**; the other four still run as scripts.
+Two entry points cover the whole project; everything else is internal.
 
 ```r
 create_db(generation, source = NULL, steps = NULL,
           db_dir = multised_db_dir(), verbose = TRUE)
+
+analyze_data(generation, module = NULL, steps = NULL,
+             db_dir = multised_db_dir(),
+             out_dir = multised_analysis_dir(), verbose = TRUE)
 ```
 
-- `source` is required for the per-source generations (pilot/slim/clean) and must
-  be `NULL` for merged/refined.
-- `steps` re-runs a subset, e.g. `steps = 14:15`. Steps 1-2 are one unit.
-- `slim_steps(source)` returns the steps that apply to a source (the table below,
-  executable).
-- Paths: `db_dir` argument, or `options(multised.db_dir = )`.
+- `create_db()` covers **all five generations**. `source` is required for the
+  per-source generations (pilot/slim/clean) and must be `NULL` for
+  merged/refined.
+- `analyze_data()` covers **all 26 analyses** (6 clean, 13 merged, 7 refined);
+  `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
+  module for it. Most modules hold one analysis; `background` holds six.
+- `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
+  `analyze_data()` `steps` selects within one module and so requires `module`
+  (only `background` has more than one step).
+- Listing helpers: `slim_steps(source)`, `analysis_modules(generation)`,
+  `multised_sources()` — all executable versions of the tables below.
+- Paths: the `db_dir` / `out_dir` arguments, or the `multised.db_dir`,
+  `multised.analysis_dir` and `multised.raw_dir` options.
+
+Analyses never modify a pipeline DB, so re-running is always safe; each writes
+to `out_dir/<module>/`.
 
 **R collates only top-level `R/*.R`.** Package code therefore lives in flat files
 whose names encode the old tree (`R/slim-03-categorize.R`,
-`R/slim-01-transform-mudab.R`). Do not add subdirectories under `R/`.
+`R/slim-01-transform-mudab.R`, `R/analysis-merged-hotspots.R`). Do not add
+subdirectories under `R/`.
 
-The original scripts under `R/pilot/`, `R/slim/`, `R/clean/`, `R/merge/`,
-`R/refine/` and `R/analysis/` are **kept deliberately** so every generation can
-still be run and checked by hand; they are excluded from the package tarball via
-`.Rbuildignore` (`^R/.+/`). They will be deleted once each generation has been
-manually verified against the new interface.
+The original script trees (`R/pilot/`, `R/slim/`, `R/clean/`, `R/merge/`,
+`R/refine/`, `R/analysis/`) are **kept deliberately** until each generation has
+been validated by hand, and are excluded from the tarball via `.Rbuildignore`
+(`^R/.+/`). Each conversion was verified by rebuilding into a temp directory and
+diffing against the stored output.
 
 ## Slim schema (7 tables)
 

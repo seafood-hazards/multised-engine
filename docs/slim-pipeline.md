@@ -5,6 +5,17 @@ its per-source column differences, and (2) the behaviour of the
 marking steps 3–12, plus the source-specific steps 13 (`src_flag`), 14 (grain-size
 correction) and 15 (`fines_lt63`).
 
+## Running it
+
+```r
+create_db("slim", source)                 # every step that applies
+create_db("slim", "ices-dome", steps = 14:15)
+```
+
+`slim_steps(source)` returns the applicable steps. Steps 1-2 are one unit: the
+parse feeds the write, so requesting either runs both. Package code is
+`R/slim-*.R`.
+
 ## 1. Shared slim schema
 
 Seven tables, built by `02_create_tables.R` for every source. Common columns:

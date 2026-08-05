@@ -2,7 +2,10 @@
 
 The fourth generation. The five per-source clean DBs (`<source>_clean.sqlite`) are
 combined into **one** cross-source database, `data/db/multised_merged.sqlite`, with
-cross-source duplicates removed. Built by a new `R/merge/` script tree.
+cross-source duplicates removed.
+
+Run with `create_db("merged")` — no `source`, since it combines all five.
+Package code is `R/merge-*.R`.
 
 ## Principles
 
@@ -23,7 +26,7 @@ cross-source duplicates removed. Built by a new `R/merge/` script tree.
 - **Provenance kept.** Every row carries `source`; the final renumber keeps the
   source and the original per-source id for back-tracing.
 
-## Steps (`R/merge/`, run in order)
+## Steps (`R/merge-*.R`, run in order)
 
 | # | File                 | Purpose                                             |
 |---|----------------------|-----------------------------------------------------|
@@ -113,7 +116,7 @@ registration errors and spares narrow real tails (e.g. Se) that a MAD-only rule
 over-flags; the effective boundary is `median +/- max(4 * MAD, 1 oom)`. Groups below
 100 rows are left NULL (robust stats unreliable, e.g. Iodine) and rely on `range_flag`.
 Region is not stratified (regional spread ~2x is trivial next to the 10-1000x errors
-this targets). The rule was settled in `R/analysis/outlier_review/`; on the current
+this targets). The rule was settled by `analysis_merged_outlier_review()`; on the current
 data it flags 653 rows (381 high, 272 low, 0.34%). Idempotent and re-runnable.
 
 ### 5. Summary
