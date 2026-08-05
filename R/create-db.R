@@ -102,11 +102,48 @@ create_db <- function(generation = c("pilot", "slim", "clean",
 
   switch(
     generation,
-    slim = create_db_slim(source, steps, db_dir, verbose),
+    slim  = create_db_slim(source, steps, db_dir, verbose),
+    clean = create_db_clean(source, steps, db_dir, verbose),
     stop("The ", generation, " generation is not available through create_db() ",
-         "yet; only \"slim\" is. Run the scripts under R/", generation,
-         "/ from the project root in the meantime.", call. = FALSE)
+         "yet; only \"slim\" and \"clean\" are. Run the scripts under R/",
+         generation, "/ from the project root in the meantime.", call. = FALSE)
   )
+}
+
+# The clean step registry. Unlike slim's marking steps, these run in strict
+# sequence on a database step 1 rebuilds from scratch, so a subset only makes
+# sense when the earlier steps have already run.
+clean_step_table <- function() {
+  tibble::tribble(
+    ~step, ~name,        ~fun,
+    1L,  "harmonise",  "clean_harmonise",
+    2L,  "clean",      "clean_clean",
+    3L,  "annotate",   "clean_annotate"
+  )
+}
+
+create_db_clean <- function(source, steps, db_dir, verbose) {
+  applicable <- clean_step_table()
+
+  if (!is.null(steps)) {
+    steps <- as.integer(steps)
+    unknown <- setdiff(steps, applicable$step)
+    if (length(unknown)) {
+      stop("The clean generation has steps 1-3; got ",
+           paste(unknown, collapse = ", "), ".", call. = FALSE)
+    }
+    applicable <- applicable[applicable$step %in% steps, ]
+  }
+
+  out <- list()
+  for (i in seq_len(nrow(applicable))) {
+    step <- applicable$step[i]
+    name <- applicable$name[i]
+    fun  <- get(applicable$fun[i], mode = "function")
+    msg(verbose, "\n== ", source, " clean step ", step, ": ", name, " ==\n")
+    out[[name]] <- fun(source, db_dir = db_dir, verbose = verbose)
+  }
+  invisible(out)
 }
 
 create_db_slim <- function(source, steps, db_dir, verbose) {
