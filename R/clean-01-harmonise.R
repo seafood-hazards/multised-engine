@@ -44,7 +44,7 @@ harmonise_symbol <- function(sym) {
 harmonise_unit <- function(u, suffix = "\\s*(dw|ww)\\b.*$") {
   u |>
     str_trim() |>
-    str_replace_all("µ|μ", "u") |>          # micro sign / greek mu -> u
+    str_replace_all("\u00b5|\u03bc", "u") |>          # micro sign / greek mu -> u
     str_remove(regex(suffix, ignore_case = TRUE)) |>  # drop the weight-basis suffix
     str_trim()
 }

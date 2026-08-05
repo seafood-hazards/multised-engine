@@ -60,7 +60,7 @@ method_desc <- c(
 .canon_unit <- function(u) {
   u <- tolower(trimws(u))
   u <- sub("\\s*(dw|ww)$", "", u)
-  gsub("µ|μ", "u", u)
+  gsub("\u00b5|\u03bc", "u", u)
 }
 
 standardise_method <- function(method, element) {

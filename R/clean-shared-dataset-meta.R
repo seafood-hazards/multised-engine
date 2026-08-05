@@ -14,7 +14,7 @@
 dataset_meta <- tibble::tribble(
   ~source,     ~url,                                                    ~accessed,
   "Mareano",   "https://mareano.no",                                    "2026-02-04",
-  "Vannmiljø", "https://vannmiljo.miljodirektoratet.no",                "2026-03-24",
+  "Vannmilj\u00f8", "https://vannmiljo.miljodirektoratet.no",                "2026-03-24",
   "ICES-DOME", "https://www.ices.dk/data/data-portals/Pages/DOME.aspx", "2026-04-13",
   "MUDAB",     "https://www.mudab.de",                                  "2026-04-29",
   "4Demon",    "https://www.vliz.be/projects/4demon",                   "2026-05-05"

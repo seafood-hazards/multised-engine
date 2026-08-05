@@ -71,7 +71,7 @@ clean_clean <- function(source, db_dir = multised_db_dir(), verbose = TRUE) {
     "mg/kg", 1e6, "ug/g", 1e6, "ppm", 1e6,
     "ug/kg", 1e9, "ng/g", 1e9, "ppb", 1e9)
   canon_unit <- function(u) u |> str_to_lower() |> str_trim() |>
-    str_remove("\\s*(dw|ww)$") |> str_replace_all("µ|μ", "u")
+    str_remove("\\s*(dw|ww)$") |> str_replace_all("\u00b5|\u03bc", "u")
 
   has_uncrt <- all(c("uncrt", "metcu") %in% names(m))
   m <- m |> left_join(element |> select(symbol, category), by = "symbol")
