@@ -4,3 +4,17 @@
 ^\.Rproj\.user$
 ^\.positai$
 ^\.claude$
+# renv's .Rprofile must not ship: it activates a library that does not exist on
+# the installing machine and breaks `remotes::install_github()`.
+^\.Rprofile$
+# `data` is a symlink to external storage holding many GB of SQLite databases,
+# and `data/` is a reserved directory in an R package. Never build it in.
+^data$
+^docs$
+^CLAUDE\.md$
+^LICENSE\.md$
+^\.github$
+^\.gitignore$
+^\.project$
+^\.idea$
+^\.Rhistory$
