@@ -47,3 +47,10 @@ msg <- function(verbose, ...) {
   if (isTRUE(verbose)) cat(..., sep = "")
   invisible(NULL)
 }
+
+clean_db_path <- function(source, db_dir = multised_db_dir()) {
+  file.path(db_dir, paste0(source_stem(source), "_clean.sqlite"))
+}
+
+# NULL-coalescing helper, as in rlang.
+`%||%` <- function(x, y) if (is.null(x)) y else x
