@@ -14,10 +14,12 @@
 #'   dbRemoveTable dbBegin dbCommit dbRollback
 #' @importFrom RSQLite SQLite
 #' @importFrom tibble tibble tribble as_tibble
-#' @importFrom tidyr pivot_longer pivot_wider replace_na
+#' @importFrom tidyr pivot_longer pivot_wider replace_na separate separate_rows
+#'   unite
+#' @importFrom lubridate year
 #' @importFrom stringr str_to_upper str_to_lower str_trim str_remove
 #'   str_remove_all str_replace str_replace_all str_detect str_extract
-#'   str_match str_starts str_split fixed regex
+#'   str_match str_starts str_split str_sub fixed regex
 #' @importFrom readr read_tsv write_tsv read_csv write_csv
 #' @importFrom purrr map map_chr map_dbl map_lgl map_int keep discard
 #' @importFrom rlang .data

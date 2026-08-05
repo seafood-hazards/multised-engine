@@ -51,6 +51,33 @@ Alongside the generations:
 - **websites** — four Quarto sites, each in a **sibling repo**, not in this
   project. See [websites.md](docs/websites.md).
 
+## Public interface
+
+The pipeline is being wrapped in a small package API. **`create_db()` currently
+covers the slim generation only**; the other four still run as scripts.
+
+```r
+create_db(generation, source = NULL, steps = NULL,
+          db_dir = multised_db_dir(), verbose = TRUE)
+```
+
+- `source` is required for the per-source generations (pilot/slim/clean) and must
+  be `NULL` for merged/refined.
+- `steps` re-runs a subset, e.g. `steps = 14:15`. Steps 1-2 are one unit.
+- `slim_steps(source)` returns the steps that apply to a source (the table below,
+  executable).
+- Paths: `db_dir` argument, or `options(multised.db_dir = )`.
+
+**R collates only top-level `R/*.R`.** Package code therefore lives in flat files
+whose names encode the old tree (`R/slim-03-categorize.R`,
+`R/slim-01-transform-mudab.R`). Do not add subdirectories under `R/`.
+
+The original scripts under `R/pilot/`, `R/slim/`, `R/clean/`, `R/merge/`,
+`R/refine/` and `R/analysis/` are **kept deliberately** so every generation can
+still be run and checked by hand; they are excluded from the package tarball via
+`.Rbuildignore` (`^R/.+/`). They will be deleted once each generation has been
+manually verified against the new interface.
+
 ## Slim schema (7 tables)
 
 `element` → `dataset` → `site` → `event` → `subsample` → `measurement`, plus

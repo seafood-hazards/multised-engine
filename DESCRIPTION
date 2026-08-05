@@ -24,8 +24,10 @@ Imports:
     DBI,
     RSQLite,
     dplyr,
+    lubridate,
     purrr,
     readr,
+    rlang,
     stringr,
     tibble,
     tidyr

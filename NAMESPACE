@@ -23,6 +23,7 @@ importFrom(DBI,
   dbWriteTable
 )
 importFrom(RSQLite,SQLite)
+importFrom(lubridate,year)
 importFrom(purrr,
   discard,
   keep,
@@ -57,6 +58,7 @@ importFrom(stringr,
   str_replace_all,
   str_split,
   str_starts,
+  str_sub,
   str_to_lower,
   str_to_upper,
   str_trim
@@ -69,7 +71,10 @@ importFrom(tibble,
 importFrom(tidyr,
   pivot_longer,
   pivot_wider,
-  replace_na
+  replace_na,
+  separate,
+  separate_rows,
+  unite
 )
 importFrom(utils,
   head,

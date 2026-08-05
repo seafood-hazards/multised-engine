@@ -7,6 +7,10 @@
 # renv's .Rprofile must not ship: it activates a library that does not exist on
 # the installing machine and breaks `remotes::install_github()`.
 ^\.Rprofile$
+# The original pipeline scripts stay in the repository so every generation can
+# still be run and verified by hand, but R does not collate R/ subdirectories, so
+# shipping them would only add dead files to the tarball.
+^R/.+/
 # `data` is a symlink to external storage holding many GB of SQLite databases,
 # and `data/` is a reserved directory in an R package. Never build it in.
 ^data$
