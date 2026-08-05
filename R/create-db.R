@@ -1,0 +1,151 @@
+# ── Public entry point: build a database generation ──────────────────────────
+
+# The slim step registry. Step numbers are fixed per concern, so a source runs
+# only the later steps that apply to it (see the slim step table in CLAUDE.md).
+slim_step_table <- function() {
+  all_sources <- multised_sources()
+  tibble::tribble(
+    ~step, ~name,                  ~fun,                       ~sources,
+    1L,  "transform_data",       "slim_transform",             all_sources,
+    2L,  "create_tables",        "slim_create_tables",         all_sources,
+    3L,  "categorize",           "slim_categorize",            all_sources,
+    4L,  "quality_control",      "slim_quality_control",       all_sources,
+    5L,  "mark_duplicates",      "slim_mark_duplicates",       all_sources,
+    6L,  "mark_additional_data", "slim_mark_additional_data",  all_sources,
+    7L,  "mark_multi",           "slim_mark_multi",            all_sources,
+    8L,  "mark_below_loq",       "slim_mark_below_loq",        all_sources,
+    9L,  "add_converted_value",  "slim_add_converted_value",   all_sources,
+    10L, "mark_range",           "slim_mark_range",            all_sources,
+    11L, "mark_below_loq_num",   "slim_mark_below_loq_num",    all_sources,
+    12L, "mark_weight_basis",    "slim_mark_weight_basis",     all_sources,
+    13L, "mark_source_specific", "slim_mark_source_specific",
+    c("vannmiljo", "ices-dome", "4demon"),
+    14L, "correct_grainsize",    "slim_correct_grainsize",
+    c("vannmiljo", "ices-dome", "mudab"),
+    15L, "derive_fines",         "slim_derive_fines",
+    c("mareano", "vannmiljo", "ices-dome", "mudab")
+  )
+}
+
+#' Which slim steps apply to a source
+#'
+#' Steps 1-12 are common to every source; step 13 onward is source-specific and
+#' present only where a source has something extra to fold in or derive. Mareano
+#' runs 1-12 and 15 (no native flags, clean grain-size); 4Demon runs 1-13 only
+#' (no grain-size).
+#'
+#' @param source One of [multised_sources()].
+#'
+#' @return A data frame of the applicable steps, with columns `step`, `name` and
+#'   `fun`.
+#' @export
+#' @examples
+#' slim_steps("mareano")
+#' slim_steps("4demon")
+slim_steps <- function(source) {
+  check_source(source)
+  tbl <- slim_step_table()
+  keep <- vapply(tbl$sources, function(s) source %in% s, logical(1))
+  tbl[keep, c("step", "name", "fun")]
+}
+
+#' Build a database generation
+#'
+#' Runs a pipeline generation end to end. The first three generations
+#' (`"pilot"`, `"slim"`, `"clean"`) produce one database per source and require
+#' `source`; the last two (`"merged"`, `"refined"`) combine all five and must not
+#' be given one.
+#'
+#' Every step is idempotent, so re-running the whole generation, or a subset via
+#' `steps`, is safe.
+#'
+#' @param generation The generation to build: `"pilot"`, `"slim"`, `"clean"`,
+#'   `"merged"` or `"refined"`.
+#' @param source For the per-source generations, one of [multised_sources()].
+#'   Must be `NULL` for `"merged"` and `"refined"`.
+#' @param steps Optional subset of step numbers, for example `steps = 3:12`.
+#'   Steps 1 and 2 form one unit (the parse and the write), so requesting either
+#'   runs both. Defaults to every step that applies to the source.
+#' @param db_dir Directory holding the databases. Defaults to
+#'   [multised_db_dir()].
+#' @param verbose Print each step's summary as it runs.
+#'
+#' @return Invisibly, a named list with one element per step run, holding that
+#'   step's summary.
+#' @export
+#' @examples
+#' \dontrun{
+#' # the whole slim generation for one source
+#' create_db("slim", "mareano")
+#'
+#' # re-run only the grain-size steps
+#' create_db("slim", "ices-dome", steps = 14:15)
+#'
+#' # against databases held somewhere else
+#' create_db("slim", "mudab", db_dir = "~/sediment/db")
+#' }
+create_db <- function(generation = c("pilot", "slim", "clean",
+                                     "merged", "refined"),
+                      source = NULL,
+                      steps = NULL,
+                      db_dir = multised_db_dir(),
+                      verbose = TRUE) {
+  generation <- match.arg(generation)
+  per_source <- generation %in% c("pilot", "slim", "clean")
+
+  if (per_source) {
+    check_source(source)
+  } else if (!is.null(source)) {
+    stop("The ", generation, " generation combines every source, so `source` ",
+         "must be NULL.", call. = FALSE)
+  }
+
+  switch(
+    generation,
+    slim = create_db_slim(source, steps, db_dir, verbose),
+    stop("The ", generation, " generation is not available through create_db() ",
+         "yet; only \"slim\" is. Run the scripts under R/", generation,
+         "/ from the project root in the meantime.", call. = FALSE)
+  )
+}
+
+create_db_slim <- function(source, steps, db_dir, verbose) {
+  applicable <- slim_steps(source)
+
+  if (is.null(steps)) {
+    steps <- applicable$step
+  } else {
+    steps <- as.integer(steps)
+    # 1 parses the pilot database into frames, 2 writes them; neither is useful
+    # without the other.
+    if (any(steps %in% 1:2)) steps <- sort(union(steps, 1:2))
+    unknown <- setdiff(steps, applicable$step)
+    if (length(unknown)) {
+      stop("Step(s) ", paste(unknown, collapse = ", "), " do not apply to ",
+           source, ". Applicable steps: ",
+           paste(applicable$step, collapse = ", "), call. = FALSE)
+    }
+    applicable <- applicable[applicable$step %in% steps, ]
+  }
+
+  out <- list()
+
+  if (all(1:2 %in% applicable$step)) {
+    msg(verbose, "\n== ", source, " step 1-2: transform + create tables ==\n")
+    tables <- slim_transform(source, db_dir = db_dir, verbose = verbose)
+    out[["create_tables"]] <- slim_create_tables(tables, source,
+                                                 db_dir = db_dir,
+                                                 verbose = verbose)
+    applicable <- applicable[!applicable$step %in% 1:2, ]
+  }
+
+  for (i in seq_len(nrow(applicable))) {
+    step <- applicable$step[i]
+    name <- applicable$name[i]
+    fun  <- get(applicable$fun[i], mode = "function")
+    msg(verbose, "\n== ", source, " step ", step, ": ", name, " ==\n")
+    out[[name]] <- fun(source, db_dir = db_dir, verbose = verbose)
+  }
+
+  invisible(out)
+}
