@@ -11,7 +11,7 @@
 # table from slim and restores the source's own values.
 
 clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
-                             geo_dir = multised_geo_dir(),
+                             seastamp_dir = multised_seastamp_dir(),
                              region = "auto", verbose = TRUE) {
   check_source(source)
 
@@ -20,7 +20,7 @@ clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
   site <- as_tibble(dbReadTable(con, "site"))
 
   enr <- seastamp_enrich(site, id_col = "site_id",
-                         geo_dir = geo_dir, region = region, verbose = verbose)
+                         seastamp_dir = seastamp_dir, region = region, verbose = verbose)
 
   dbWriteTable(con, "_enr", as.data.frame(enr), overwrite = TRUE)
   dbExecute(con, "

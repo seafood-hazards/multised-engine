@@ -234,7 +234,7 @@ fail for environmental rather than data reasons. Skip them with
 The wrapper runs four seastamp commands as one chain and validates every path up
 front, so all five datasets are needed even if only one column is wanted:
 
-| Dataset | Command | Column(s) | Size | Path under `geo_dir` |
+| Dataset | Command | Column(s) | Size | Path under `seastamp_dir` |
 |---------|---------|-----------|-----:|----------------------|
 | GSHHG (full res) | `coast` | `dist_to_coast` (km) | 217 MB | `gshhg/gshhg-shp-2.3.7/GSHHS_shp/f` |
 | GEBCO sub-ice topo | `depth` | `depth` (positive-down; land → NULL) | 7.0 GB | `gebco/GEBCO_2024_sub_ice_topo.nc` |
@@ -242,12 +242,12 @@ front, so all five datasets are needed even if only one column is wanted:
 | Natural Earth 10m | `place` | `country`, `country_code` | 14 MB | `naturalearth/ne_10m_admin_0_countries.shp` |
 | GISCO LAU 2021 | `place` | `municipality` (Europe only) | 273 MB | `gisco/LAU_RG_01M_2021_4326.shp` |
 
-Fetch them with the tool's own `scripts/download_data.sh -d <geo_dir>`. IHO sits
+Fetch them with the tool's own `scripts/download_data.sh -d <seastamp_dir>`. IHO sits
 behind the Marine Regions licence form, so it needs `--mr-name`, `--mr-org`,
 `--mr-email` and `--mr-country`; running it accepts CC BY-NC-SA 4.0.
 
-`geo_dir` defaults to `multised_geo_dir()` (`data/geoenrich`, or the
-`multised.geo_dir` option) and is an argument of `create_db()`.
+`seastamp_dir` defaults to `multised_seastamp_dir()` (`data/seastamp`, or the
+`multised.seastamp_dir` option) and is an argument of `create_db()`.
 
 **Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
 and they are transient: clean step 4 recomputes all six from the site table, so

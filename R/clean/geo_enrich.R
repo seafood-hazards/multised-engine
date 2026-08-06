@@ -34,8 +34,8 @@ BIN <- Sys.which("seastamp")
 if (BIN == "") BIN <- "/home/takaya/programs/seastamp/seastamp"
 if (!file.exists(BIN)) stop("seastamp not found; install it or set BIN")
 
-# Reference-data dir, still named geoenrich on disk (external storage).
-GEO       <- "data/geoenrich"
+# Reference-data dir (external storage). Renamed geoenrich -> seastamp on disk.
+GEO       <- "data/seastamp"
 COAST     <- file.path(GEO, "gshhg/gshhg-shp-2.3.7/GSHHS_shp/f")
 DEPTH     <- file.path(GEO, "gebco/GEBCO_2024_sub_ice_topo.nc")
 SEA       <- file.path(GEO, "iho/World_Seas_IHO_v3/World_Seas_IHO_v3.shp")

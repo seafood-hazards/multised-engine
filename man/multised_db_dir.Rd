@@ -4,7 +4,7 @@
 \alias{multised_db_dir}
 \alias{multised_analysis_dir}
 \alias{multised_raw_dir}
-\alias{multised_geo_dir}
+\alias{multised_seastamp_dir}
 \title{Where the databases and analysis outputs live}
 \usage{
 multised_db_dir()
@@ -13,7 +13,7 @@ multised_analysis_dir()
 
 multised_raw_dir()
 
-multised_geo_dir()
+multised_seastamp_dir()
 }
 \value{
 A length-one character path.
@@ -22,10 +22,10 @@ A length-one character path.
 \code{multised_db_dir()} is the directory holding the SQLite databases,
 \code{multised_analysis_dir()} the directory analysis outputs are written to,
 \code{multised_raw_dir()} the vendor files the pilot stage parses, and
-\code{multised_geo_dir()} the seastamp reference datasets (GSHHG, GEBCO, IHO,
+\code{multised_seastamp_dir()} the seastamp reference datasets (GSHHG, GEBCO, IHO,
 Natural Earth, GISCO) the geo steps need. All default to the layout used by
 the project itself and can be overridden globally with \code{\link[=options]{options()}}, or per
-call via the \code{db_dir} and \code{geo_dir} arguments of \code{\link[=create_db]{create_db()}}.
+call via the \code{db_dir} and \code{seastamp_dir} arguments of \code{\link[=create_db]{create_db()}}.
 }
 \examples{
 multised_db_dir()

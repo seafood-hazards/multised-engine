@@ -44,7 +44,7 @@ pilot_geo_spec <- function(source) {
 # latitude, so repeated stations at one position share a single lookup.
 pilot_geo_enrich <- function(df, lon_col, lat_col,
                              country_col = "est_country",
-                             geo_dir = multised_geo_dir(),
+                             seastamp_dir = multised_seastamp_dir(),
                              region = "auto", verbose = TRUE) {
   pts <- df |>
     distinct(.data[[lon_col]], .data[[lat_col]]) |>
@@ -53,7 +53,7 @@ pilot_geo_enrich <- function(df, lon_col, lat_col,
 
   enr <- seastamp_enrich(pts, id_col = ".pt_id",
                          lon_col = lon_col, lat_col = lat_col,
-                         geo_dir = geo_dir, region = region, verbose = verbose)
+                         seastamp_dir = seastamp_dir, region = region, verbose = verbose)
 
   # the nearest-country column is named per source; the rest match the clean names
   lookup <- pts |>

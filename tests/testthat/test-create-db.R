@@ -33,19 +33,19 @@ test_that("the pilot registry keeps the original step numbering", {
                "step 1 cannot be skipped")
 })
 
-test_that("geo_dir is configurable and reaches both geo steps", {
-  expect_equal(multised_geo_dir(), "data/geoenrich")
-  old <- options(multised.geo_dir = "/somewhere/geo")
+test_that("seastamp_dir is configurable and reaches both geo steps", {
+  expect_equal(multised_seastamp_dir(), "data/seastamp")
+  old <- options(multised.seastamp_dir = "/somewhere/ref")
   on.exit(options(old), add = TRUE)
-  expect_equal(multised_geo_dir(), "/somewhere/geo")
+  expect_equal(multised_seastamp_dir(), "/somewhere/ref")
   expect_equal(seastamp_data()$depth,
-               "/somewhere/geo/gebco/GEBCO_2024_sub_ice_topo.nc")
+               "/somewhere/ref/gebco/GEBCO_2024_sub_ice_topo.nc")
   options(old)
   # the argument must be accepted by the public verb, not just the internals
-  expect_true("geo_dir" %in% names(formals(create_db)))
+  expect_true("seastamp_dir" %in% names(formals(create_db)))
   for (f in c(create_db_pilot, create_db_clean, pilot_geo_enrich,
               clean_geo_enrich, seastamp_enrich)) {
-    expect_true("geo_dir" %in% names(formals(f)))
+    expect_true("seastamp_dir" %in% names(formals(f)))
   }
 })
 

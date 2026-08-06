@@ -32,15 +32,16 @@ seastamp_bin <- function() {
   unname(bin)
 }
 
-# Reference datasets. Still under data/geoenrich on disk (external storage, not
-# renamed with the tool).
-seastamp_data <- function(geo_dir = multised_geo_dir()) {
+# Reference datasets, under data/seastamp on disk (external storage). The tree
+# was called data/geoenrich until the tool was renamed; anything still pointing
+# at the old name needs `options(multised.seastamp_dir = ...)`.
+seastamp_data <- function(seastamp_dir = multised_seastamp_dir()) {
   list(
-    coast     = file.path(geo_dir, "gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"),
-    depth     = file.path(geo_dir, "gebco/GEBCO_2024_sub_ice_topo.nc"),
-    sea       = file.path(geo_dir, "iho/World_Seas_IHO_v3/World_Seas_IHO_v3.shp"),
-    countries = file.path(geo_dir, "naturalearth/ne_10m_admin_0_countries.shp"),
-    muni      = file.path(geo_dir, "gisco/LAU_RG_01M_2021_4326.shp"))
+    coast     = file.path(seastamp_dir, "gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"),
+    depth     = file.path(seastamp_dir, "gebco/GEBCO_2024_sub_ice_topo.nc"),
+    sea       = file.path(seastamp_dir, "iho/World_Seas_IHO_v3/World_Seas_IHO_v3.shp"),
+    countries = file.path(seastamp_dir, "naturalearth/ne_10m_admin_0_countries.shp"),
+    muni      = file.path(seastamp_dir, "gisco/LAU_RG_01M_2021_4326.shp"))
 }
 
 #' Annotate coordinates with location attributes
@@ -55,7 +56,7 @@ seastamp_data <- function(geo_dir = multised_geo_dir()) {
 #'
 #' @param points A data frame with an id column and longitude/latitude columns.
 #' @param id_col,lon_col,lat_col Column names in `points`.
-#' @param geo_dir Directory holding the reference datasets.
+#' @param seastamp_dir Directory holding the reference datasets.
 #' @param work_dir Scratch directory for the intermediate TSVs.
 #' @param region seastamp's projection region, `"auto"` by default: the
 #'   projection is derived from the points themselves, which is seastamp 0.12.0's
@@ -87,7 +88,7 @@ seastamp_enrich <- function(points,
                             id_col   = "site_id",
                             lon_col  = "longitude",
                             lat_col  = "latitude",
-                            geo_dir  = multised_geo_dir(),
+                            seastamp_dir  = multised_seastamp_dir(),
                             work_dir = file.path(tempdir(), "seastamp"),
                             region   = "auto",
                             verbose  = TRUE) {
@@ -99,11 +100,11 @@ seastamp_enrich <- function(points,
   }
 
   BIN  <- seastamp_bin()
-  data <- seastamp_data(geo_dir)
+  data <- seastamp_data(seastamp_dir)
   absent <- names(data)[!file.exists(unlist(data))]
   if (length(absent)) {
     stop("seastamp reference data not found for: ", paste(absent, collapse = ", "),
-         "\nLooked under ", geo_dir, ". Fetch them with the tool's ",
+         "\nLooked under ", seastamp_dir, ". Fetch them with the tool's ",
          "scripts/download_data.sh.", call. = FALSE)
   }
 

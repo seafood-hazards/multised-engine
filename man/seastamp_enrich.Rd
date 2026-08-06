@@ -9,7 +9,7 @@ seastamp_enrich(
   id_col = "site_id",
   lon_col = "longitude",
   lat_col = "latitude",
-  geo_dir = multised_geo_dir(),
+  seastamp_dir = multised_seastamp_dir(),
   work_dir = file.path(tempdir(), "seastamp"),
   region = "auto",
   verbose = TRUE
@@ -20,7 +20,7 @@ seastamp_enrich(
 
 \item{id_col, lon_col, lat_col}{Column names in \code{points}.}
 
-\item{geo_dir}{Directory holding the reference datasets.}
+\item{seastamp_dir}{Directory holding the reference datasets.}
 
 \item{work_dir}{Scratch directory for the intermediate TSVs.}
 

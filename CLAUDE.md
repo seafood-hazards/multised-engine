@@ -85,11 +85,13 @@ export_data(generation = "refined", source = NULL,
   (only `background` has more than one step).
 - Listing helpers: `slim_steps(source)`, `analysis_modules(generation)`,
   `multised_sources()` — all executable versions of the tables below.
-- Paths: the `db_dir` / `out_dir` / `geo_dir` arguments, or the
+- Paths: the `db_dir` / `out_dir` / `seastamp_dir` arguments, or the
   `multised.db_dir`, `multised.analysis_dir`, `multised.raw_dir` and
-  `multised.geo_dir` options. `geo_dir` is the seastamp reference tree, read by
-  pilot step 4 and clean step 4 only; skip those steps where seastamp is not
-  installed (`create_db("pilot", src, steps = c(1, 5))`, `steps = 1:3` for clean).
+  `multised.seastamp_dir` options. `seastamp_dir` (`data/seastamp`, called
+  `data/geoenrich` before the tool was renamed) is the seastamp reference tree,
+  read by pilot step 4 and clean step 4 only; skip those steps where seastamp is
+  not installed (`create_db("pilot", src, steps = c(1, 5))`, `steps = 1:3` for
+  clean).
 
 Analyses never modify a pipeline DB, so re-running is always safe; each writes
 to `out_dir/<module>/`.
