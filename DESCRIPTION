@@ -16,7 +16,8 @@ Description: Assembles a database of marine-sediment trace-element measurements
     carbon, spatial and temporal coverage, outlier flagging, and pristine
     background classification.
 License: MIT + file LICENSE
-URL: https://github.com/seafood-hazards/multised-engine
+URL: https://github.com/seafood-hazards/multised-engine,
+    https://seafood-hazards.github.io/multised-engine/
 BugReports: https://github.com/seafood-hazards/multised-engine/issues
 Depends:
     R (>= 4.1)

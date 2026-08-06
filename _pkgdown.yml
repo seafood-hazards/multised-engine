@@ -12,11 +12,10 @@ navbar:
     left:  [articles, reference]
     right: [search, github]
 
-articles:
-- title: Running the pipeline
-  navbar: Generations
-  contents:
-  - pilot
+# No explicit `articles:` index: pkgdown generates one from vignettes/articles/
+# and adds the navbar entry itself. Add a grouped index once there is an article
+# per generation, taking the names from a successful build rather than guessing
+# them (a file in vignettes/articles/ is not addressed by its bare filename).
 
 reference:
 - title: Building a database
