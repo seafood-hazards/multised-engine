@@ -20,7 +20,7 @@
 #' @importFrom stringr str_to_upper str_to_lower str_trim str_remove
 #'   str_remove_all str_replace str_replace_all str_detect str_extract
 #'   str_match str_starts str_split str_sub str_pad fixed regex
-#' @importFrom readr read_tsv write_tsv read_csv write_csv
+#' @importFrom readr read_tsv write_tsv read_csv write_csv cols col_character
 #' @importFrom purrr map map_chr map_dbl map_lgl map_int keep discard
 #'   map_dfr pmap pmap_dfr walk compact
 #' @importFrom rlang .data :=

@@ -46,6 +46,8 @@ importFrom(purrr,
   walk
 )
 importFrom(readr,
+  col_character,
+  cols,
   read_csv,
   read_tsv,
   write_csv,

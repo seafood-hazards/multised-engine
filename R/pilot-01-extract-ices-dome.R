@@ -19,7 +19,12 @@ pilot_extract_ices_dome <- function(raw_dir = multised_raw_dir(), verbose = TRUE
   # Fixes applied at read: PARAM upper-cased (and the literal "NA" sodium code
   # rescued from being read as missing), the SEDTOT/SEDtot casing split, and two
   # transposed lab codes.
-  all_data <- read_csv(data_file, show_col_types = FALSE) |>
+  # `Test Organism` is empty for the first ~218k rows, so readr guesses logical
+  # and then warns 416 times when species names appear. The column is dropped by
+  # the select() below and never reaches an output table; typing it explicitly
+  # silences a warning that would otherwise look like a data problem on every run.
+  all_data <- read_csv(data_file, show_col_types = FALSE,
+                       col_types = cols(`Test Organism` = col_character())) |>
     mutate(PARAM = if_else(is.na(PARAM), "NA", toupper(PARAM)),
            MATRX = if_else(MATRX == "SEDTOT", "SEDtot", MATRX),
            RLABO = ifelse(RLABO == "LNUG", "LUNG", RLABO),

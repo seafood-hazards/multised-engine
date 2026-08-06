@@ -12,6 +12,7 @@ Assembles a database of marine-sediment trace-element measurements from five ext
 Useful links:
 \itemize{
   \item \url{https://github.com/seafood-hazards/multised-engine}
+  \item \url{https://seafood-hazards.github.io/multised-engine/}
   \item Report bugs at \url{https://github.com/seafood-hazards/multised-engine/issues}
 }
 
