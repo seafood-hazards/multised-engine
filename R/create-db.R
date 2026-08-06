@@ -79,6 +79,10 @@ slim_steps <- function(source) {
 #' @param seastamp_bin Path to the seastamp executable, used by the same two
 #'   steps. Defaults to [multised_seastamp_bin()], which reads the
 #'   `multised.seastamp_bin` option, then `SEASTAMP_BIN`, then the `PATH`.
+#' @param out_dir Directory the analysis CSVs are written under. Only the
+#'   merged and refined generations write any: merged steps 2, 4 and 5 and
+#'   refined step 6. Defaults to [multised_analysis_dir()], which is the live
+#'   analysis tree, so pass a scratch directory when testing a rebuild.
 #' @param verbose Print each step's summary as it runs.
 #'
 #' @return Invisibly, a named list with one element per step run, holding that
@@ -103,6 +107,9 @@ slim_steps <- function(source) {
 #'
 #' # the aquaculture reference database, which clean step 5 needs
 #' create_db("aquaculture")
+#'
+#' # a merge that writes its CSVs somewhere harmless
+#' create_db("merged", db_dir = "~/test/db", out_dir = "~/test/analysis")
 #' }
 create_db <- function(generation = c("pilot", "slim", "clean",
                                      "merged", "refined", "aquaculture"),
@@ -111,6 +118,7 @@ create_db <- function(generation = c("pilot", "slim", "clean",
                       db_dir = multised_db_dir(),
                       seastamp_dir = multised_seastamp_dir(),
                       seastamp_bin = multised_seastamp_bin(),
+                      out_dir = multised_analysis_dir(),
                       verbose = TRUE) {
   generation <- match.arg(generation)
   per_source <- generation %in% c("pilot", "slim", "clean")
@@ -136,8 +144,8 @@ create_db <- function(generation = c("pilot", "slim", "clean",
     clean  = create_db_clean(source, steps, db_dir, verbose,
                              seastamp_dir = seastamp_dir,
                              seastamp_bin = seastamp_bin),
-    merged  = create_db_merged(steps, db_dir, verbose),
-    refined = create_db_refined(steps, db_dir, verbose),
+    merged  = create_db_merged(steps, db_dir, verbose, analysis_dir = out_dir),
+    refined = create_db_refined(steps, db_dir, verbose, analysis_dir = out_dir),
     aquaculture = aquaculture_build(db_dir = db_dir, verbose = verbose),
     stop("The ", generation, " generation is not available through create_db().",
          call. = FALSE)

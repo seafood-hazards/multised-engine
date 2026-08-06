@@ -146,6 +146,16 @@ test_that("the clean generation runs five steps in sequence", {
   expect_error(create_db("clean", "mareano", steps = 6), "steps 1-5")
 })
 
+test_that("the analysis output directory is reachable from create_db", {
+  # merged steps 2/4/5 and refined step 6 write CSVs; without this they can only
+  # be sent to the live analysis tree, which a test rebuild must not touch
+  expect_true("out_dir" %in% names(formals(create_db)))
+  expect_equal(eval(formals(create_db)$out_dir), multised_analysis_dir())
+  for (f in c(create_db_merged, create_db_refined)) {
+    expect_true("analysis_dir" %in% names(formals(f)))
+  }
+})
+
 test_that("the aquaculture reference is a build of its own, not a generation", {
   # it takes no source and no steps: one file in, one table out
   expect_error(create_db("aquaculture", source = "mareano"),
