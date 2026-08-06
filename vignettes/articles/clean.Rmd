@@ -1,0 +1,176 @@
+---
+title: "Generation 3: clean"
+description: >
+  Apply the slim flags: harmonise names and units, remove what is unusable,
+  collapse replicates, label the result, and geo-enrich every site.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Slim marked; clean acts. This is the generation that turns flags into decisions:
+flagged rows are removed, technical replicates collapsed, units converted, names
+mapped to a common vocabulary, and grain-size composition moved out of
+`measurement` into its own table. It is also the last per-source generation —
+after this the sources are comparable enough to union.
+
+## Before you start
+
+**The source's slim database**, `<source>_slim.sqlite`, in the same `db_dir`.
+
+**The aquaculture reference database**, for step 5. Build it once:
+
+```{r}
+create_db("aquaculture")   # -> aquaculture_no.sqlite, needs sf
+```
+
+It reads the Fiskeridirektoratet "Yggdrasil" exports from
+`<raw_dir>/yggdrasil/` and is not a pipeline generation, so it takes no `source`
+and no `steps`.
+
+**The seastamp CLI and its reference data**, for step 4 only. Five datasets
+totalling about 7.7 GB; the wrapper validates all five up front because the four
+seastamp commands run as one chain, so even a run that only wants
+`dist_to_coast` needs GEBCO present. Skip the step with `steps = 1:3` where it
+is not installed. Full dataset table in
+[clean-pipeline.md](https://github.com/seafood-hazards/multised-engine/blob/main/docs/clean-pipeline.md).
+
+**Nothing else.** Steps 1-3 are pure SQLite-to-SQLite.
+
+## The schema
+
+Seven tables carried over from slim, plus one new: **`grain_size_fraction`**,
+holding the grain-size detail that leaves `measurement`. 4Demon has no grain
+size, so it has 7 tables where the others have 8.
+
+The columns become uniform here, which they were not in slim: a common
+`dataset` column set, a common 13-column `subsample`, `depth_from`/`depth_to` in
+cm everywhere, `value_std` in mg/kg, `method` mapped to the ICES-DOME
+vocabulary, and `sampling_tool` remapped from raw gear codes to readable names.
+
+`site` gains the location attributes: `depth`, `country`, `country_code`,
+`dist_to_coast`, `municipality`, `sea_name` — all recomputed by step 4, so the
+source's own values do not survive — plus `dist_to_aquaculture` from step 5.
+
+## Running it
+
+```{r}
+create_db("clean", "mareano", db_dir = "./data/multised-test")
+```
+
+The steps run in strict sequence on a database step 1 rebuilds from scratch, so
+a subset only makes sense when the earlier steps have already run.
+
+| Step | Name | Does |
+|---|---|---|
+| 1 | harmonise | uniform names, units, depths, tools |
+| 2 | clean | remove flagged rows, collapse replicates |
+| 3 | annotate | carry labels, split grain size to its own table |
+| 4 | geo_enrich | recompute the six location columns with seastamp |
+| 5 | aquaculture | `dist_to_aquaculture` for Norwegian sites |
+
+```{r}
+# without seastamp
+create_db("clean", "mareano", steps = 1:3, db_dir = "./data/multised-test")
+
+# re-run just the geo step against a reference tree held elsewhere
+create_db("clean", "mareano", steps = 4,
+          seastamp_dir = "~/seastamp", seastamp_bin = "/path/to/seastamp")
+```
+
+Step 4 is worth re-running after any rebuild: step 1 regenerates `site` from
+slim, which restores the source's own values.
+
+## What you should get
+
+Row counts of the five stored clean databases.
+
+| Source | dataset | element | site | event | subsample | measurement | method | grain_size_fraction |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| `mareano` | 2 | 13 | 397 | 404 | 3,280 | 24,098 | 18 | 13,060 |
+| `vannmiljo` | 27 | 20 | 17,960 | 25,187 | 28,022 | 82,011 | 371 | 14,768 |
+| `ices-dome` | 28 | 55 | 6,660 | 13,576 | 14,756 | 69,719 | 908 | 55,715 |
+| `mudab` | 16 | 23 | 1,838 | 6,033 | 6,209 | 30,744 | 307 | 21,261 |
+| `4demon` | 5 | 4 | 160 | 1,480 | 1,480 | 4,459 | 38 | — |
+
+`measurement` drops sharply against slim — 41,789 to 24,098 for Mareano — partly
+because flagged rows go, and partly because grain-size composition leaves for
+`grain_size_fraction`. Vannmiljø loses exactly one site and one event to the
+`outside_europe` cascade.
+
+## Checking a rebuild: two parts
+
+Unlike slim, clean cannot be compared in one pass, because step 4 is expected to
+differ.
+
+**Steps 1-3 should be byte-identical.** Verified on Mareano: rebuilding with
+`steps = 1:3` gives 7 of 8 tables identical to the stored database. `site` is the
+exception, and only because steps 4 and 5 have not filled it in yet.
+
+```{r}
+create_db("clean", "mareano", steps = 1:3, db_dir = "./data/multised-test")
+
+a <- DBI::dbConnect(RSQLite::SQLite(), "./data/db/mareano_clean.sqlite")
+b <- DBI::dbConnect(RSQLite::SQLite(), "./data/multised-test/mareano_clean.sqlite")
+vapply(DBI::dbListTables(a), function(t)
+  identical(DBI::dbReadTable(a, t), DBI::dbReadTable(b, t)), logical(1))
+```
+
+**Step 4 is judged on plausibility, not reproduction.** The code uses seastamp's
+own `region = "auto"`; the stored databases hold `"global"` values from before
+that default changed. Measured over the 27,015 clean sites, `dist_to_coast`
+moves on **every** row (median 4.8-11.3% by source, largest single shift 93 km),
+`municipality` is reassigned for 1,884 sites and `country` for 283, while
+`sea_name` changes for 2 and `depth` is unchanged everywhere — depth does not
+project, so it cannot depend on this.
+
+So: distances positive and sane, countries correct, `depth` matching the stored
+values exactly. Adopting `auto` for the published databases is a deliberate
+refresh, not something to do by accident: it will change the multised-clean and
+multised-merged pages.
+
+## Step 5: distance to aquaculture
+
+`site.dist_to_aquaculture` is km to the nearest Norwegian farm, active or
+closed, and NULL outside Norway. Past farms count: a closed site is a historical
+pressure on the sediment just as a current one is.
+
+It keys on `country_code = 'NOR'`, which step 4 assigns, so it must run after
+it. Running it against a site table that still holds the source's own two-letter
+codes is an error rather than a silent zero:
+
+```
+`site.country_code` holds two-letter codes, so clean step 4 (geo_enrich) has
+not run for mareano. Distances would be computed for no sites at all.
+```
+
+The step is idempotent: it resets the column and recomputes.
+
+The distance depends only on the site and farm coordinates, not on the seastamp
+region, so **it should reproduce the stored values exactly** even though the
+step-4 columns beside it do not. Verified on Mareano: 396 of 397 identical. The
+single exception is site 179, whose country moved `NOR` to `RUS` under
+`region = "auto"` — so the distance became NULL, correctly. That is the
+country reassignment described above showing up one layer down.
+
+## When it fails
+
+**"unable to open database file"** — the slim database is not in `db_dir`.
+
+**"seastamp not found on the PATH."** — see the pilot article; resolution is
+`options(multised.seastamp_bin)`, then `SEASTAMP_BIN`, then the `PATH`. Or run
+`steps = 1:3`.
+
+**"The aquaculture reference database is not in …"** — build it first with
+`create_db("aquaculture")`. Step 5 will not guess where it is.
+
+**A step 2 or 3 run that errors on a missing column** — the steps are sequential
+on a database step 1 rebuilds, so running them out of order against a database
+from a previous state will not work. Re-run from step 1.
+
+## Next
+
+`create_db("merged")` unions all five clean databases into
+`multised_merged.sqlite` and removes cross-source duplicates. It takes no
+`source`, since it combines every one of them.

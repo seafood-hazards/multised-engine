@@ -20,36 +20,94 @@ Five generations. The first three are one SQLite DB **per source**; the last two
 are single cross-source DBs. Each has a spec doc under `docs/` — **read the
 relevant one before changing that stage.**
 
-| # | Gen       | Code                 | Output DB (`data/db/`)      | Spec                                             | Status |
+| # | Gen       | Package files        | Output DB (`data/db/`)      | Spec                                             | Status |
 |---|-----------|----------------------|-----------------------------|--------------------------------------------------|--------|
-| 1 | pilot     | `R/pilot/<source>/`  | `pilot_<source>.sqlite`     | (per source; table structure differs)            | done   |
-| 2 | slim      | `R/slim/<source>/`   | `<source>_slim.sqlite`      | [slim-pipeline.md](docs/slim-pipeline.md)        | done   |
-| 3 | clean     | `R/clean/<source>/`  | `<source>_clean.sqlite`     | [clean-pipeline.md](docs/clean-pipeline.md)      | done   |
-| 4 | merged    | `R/merge/`           | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |
-| 5 | refined   | `R/refine/`          | `multised_refined.sqlite`   | [refined-pipeline.md](docs/refined-pipeline.md)  | phase 1 done |
+| 1 | pilot     | `R/pilot-*.R`        | `<source>_pilot.sqlite`     | (per source; table structure differs)            | done   |
+| 2 | slim      | `R/slim-*.R`         | `<source>_slim.sqlite`      | [slim-pipeline.md](docs/slim-pipeline.md)        | done   |
+| 3 | clean     | `R/clean-*.R`        | `<source>_clean.sqlite`     | [clean-pipeline.md](docs/clean-pipeline.md)      | done   |
+| 4 | merged    | `R/merge-*.R`        | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |
+| 5 | refined   | `R/refine-*.R`       | `multised_refined.sqlite`   | [refined-pipeline.md](docs/refined-pipeline.md)  | phase 1 done |
+
+Run any of them with `create_db(gen, source)`.
 
 - **pilot → slim** parses raw source files, then reshapes into the shared 7-table
   schema and flags quality/duplicates/etc.
 - **clean** applies the slim flags (01 harmonise, 02 clean, 03 annotate; shared
-  helpers in `R/clean/_shared/`). Sites are geo-enriched by `R/clean/geo_enrich.R`
+  helpers in `R/clean-shared-*.R`). Sites are geo-enriched by `R/clean-04-geo-enrich.R`
   (depth, country, dist_to_coast, municipality, sea_name) using the external
-  `seastamp` CLI.
+  `seastamp` CLI, then step 05 adds `dist_to_aquaculture` (Norway only; keys on
+  the `NOR` country code step 04 assigns, so it must follow it).
 - **merged** unions all five clean DBs and removes cross-source duplicates.
 - **refined** is a mart cut from the merged DB for the pristine/background work.
 
 Alongside the generations:
 
-- **aquaculture** (`R/aquaculture/`) — a standalone Norway-only reference DB
-  (`aquaculture_no.sqlite`) of marine aquaculture sites from the
-  Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`), plus the
-  `dist_to_aquaculture` column it adds to every clean `site` (Norway only). See
+- **aquaculture** (`R/aquaculture-01-build.R`) — a standalone Norway-only
+  reference DB (`aquaculture_no.sqlite`) of marine aquaculture sites from the
+  Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`). Not a
+  generation: build it with `create_db("aquaculture")` (no `source`, no `steps`),
+  and clean step 05 measures against it. Needs `sf`. See
   [clean-pipeline.md](docs/clean-pipeline.md).
-- **analysis** (`R/analysis/<module>/`) — read-only analyses on a finished DB,
-  writing CSVs to `data/analysis/` for the websites. Scripts are named
-  `<NN>_<generation>_<name>.R`, where the generation token (`clean` / `merged` /
-  `refined`) says which DB is read. See [analysis.md](docs/analysis.md).
+- **analysis** (`R/analysis-<generation>-<module>.R`) — read-only analyses on a
+  finished DB, writing CSVs to `data/analysis/<module>/` for the websites. The
+  generation token (`clean` / `merged` / `refined`) says which DB is read. Run
+  with `analyze_data()`. See [analysis.md](docs/analysis.md).
 - **websites** — four Quarto sites, each in a **sibling repo**, not in this
   project. See [websites.md](docs/websites.md).
+
+## Public interface
+
+Three entry points cover the whole project; everything else is internal.
+
+```r
+create_db(generation, source = NULL, steps = NULL,
+          db_dir = multised_db_dir(), verbose = TRUE)
+
+analyze_data(generation, module = NULL, steps = NULL,
+             db_dir = multised_db_dir(),
+             out_dir = multised_analysis_dir(), verbose = TRUE)
+
+export_data(generation = "refined", source = NULL,
+            db_dir = multised_db_dir(),
+            out_dir = multised_analysis_dir(), verbose = TRUE)
+```
+
+- `create_db()` covers **all five generations**. `source` is required for the
+  per-source generations (pilot/slim/clean) and must be `NULL` for
+  merged/refined.
+- `analyze_data()` covers **all 25 analyses** (6 clean, 13 merged, 6 refined);
+  `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
+  module for it. Most modules hold one analysis; `background` holds six.
+- `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
+  column dictionary. It computes nothing, which is why it is not an analysis
+  module; `refined` is the only generation with one.
+- `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
+  `analyze_data()` `steps` selects within one module and so requires `module`
+  (only `background` has more than one step).
+- Listing helpers: `slim_steps(source)`, `analysis_modules(generation)`,
+  `multised_sources()` — all executable versions of the tables below.
+- Paths: the `db_dir` / `out_dir` / `seastamp_dir` arguments, or the
+  `multised.db_dir`, `multised.analysis_dir`, `multised.raw_dir` and
+  `multised.seastamp_dir` options. `seastamp_dir` (`data/seastamp`, called
+  `data/geoenrich` before the tool was renamed) is the seastamp reference tree,
+  read by pilot step 4 and clean step 4 only; skip those steps where seastamp is
+  not installed (`create_db("pilot", src, steps = c(1, 5))`, `steps = 1:3` for
+  clean).
+
+Analyses never modify a pipeline DB, so re-running is always safe; each writes
+to `out_dir/<module>/`.
+
+**R collates only top-level `R/*.R`.** Package code therefore lives in flat files
+whose names encode the old tree (`R/slim-03-categorize.R`,
+`R/slim-01-transform-mudab.R`, `R/analysis-merged-hotspots.R`). Do not add
+subdirectories under `R/`.
+
+The original script trees were deleted at v0.3.0, once every generation and all
+25 analyses had been validated by hand against the stored databases and outputs.
+Each conversion was verified by rebuilding into a temp directory and diffing.
+Thirteen review and export prototypes that were never part of the interface live
+on in `inst/scripts/` (`pilot/`, `slim/`, `merge/`), to be `source()`d from the
+project root when wanted.
 
 ## Slim schema (7 tables)
 
@@ -149,7 +207,7 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [clean-pipeline.md](docs/clean-pipeline.md) | clean schema, harmonise/clean/annotate, geo-enrichment, aquaculture |
 | [merge-pipeline.md](docs/merge-pipeline.md) | union, dedup rules, finalise, outlier flagging, summary |
 | [refined-pipeline.md](docs/refined-pipeline.md) | refined mart schema, steps, resolved/open decisions |
-| [analysis.md](docs/analysis.md) | the `R/analysis/` modules and which site each feeds |
+| [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the four sibling-repo Quarto sites, publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
 | [plan.md](docs/plan.md) | overall project plan |
