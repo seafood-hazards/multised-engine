@@ -1,0 +1,167 @@
+---
+title: "Analyses"
+description: >
+  The 25 read-only analyses that run on a finished database and write the CSVs
+  the four Quarto sites are built from.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Analyses read a finished database and write tidy CSVs (and, for two modules,
+plots) under `out_dir/<module>/`. They **never modify a pipeline database**, so
+re-running one is always safe — the only thing at risk is the output directory.
+
+Each output feeds a page on one of the Quarto sites, which is why adding one
+means uploading it to that site repo's release before pushing `main`: the CI
+pre-render downloads them, and a local render hides the problem because the
+local data symlink is skip-if-exists.
+
+## Running them
+
+```{r}
+analyze_data("merged", out_dir = "./data/analysis-test")            # all 13
+analyze_data("clean", module = "grainsize", out_dir = "…")          # one module
+analyze_data("refined", module = "background", steps = 4, out_dir = "…")
+```
+
+**Pass `out_dir`.** It defaults to the live analysis tree, and a test run left at
+the default overwrites the files the sites are built from. Nothing is destroyed
+that a re-run cannot restore, but there is no reason to.
+
+`db_dir` is read-only here, so pointing it at the real `data/db` is safe and is
+what you want: the analyses should be checked against the databases the stored
+outputs came from.
+
+Fast. All 25 took under a minute here: clean 0.2, merged 0.6, refined 0.1.
+
+## The 25
+
+`analysis_modules(generation)` is the executable version of these tables.
+
+**clean** — 6 modules, per source, feeding multised-clean:
+
+`grainsize`, `normalisation`, `organic`, `spatial`, `temporal`, `uncertainty`
+
+**merged** — 13 modules, feeding multised-merged:
+
+`merged_summary`, `grainsize`, `normalisation`, `organic`, `spatial`,
+`temporal`, `depthprofile`, `enrichment`, `clustering`, `hotspots`, `regions`,
+`siteyears`, `outlier_review`
+
+**refined** — `background`, one module holding **6 ordered steps**, mapping onto
+the six background pages of multised-refined. `analyze_data("refined")` therefore
+reports one module, not six.
+
+Note that `grainsize`, `normalisation`, `organic`, `spatial` and `temporal`
+exist for both clean and merged, and **share an output directory**. That is why
+the token in the function name is the generation (`analysis_clean_grainsize()`
+vs `analysis_merged_grainsize()`) rather than the module alone, and why a
+directory listing mixes outputs from two generations.
+
+Two modules need a suggested package and say so by name if it is missing:
+`clustering` needs **cluster**, `outlier_review` needs **ggplot2**.
+
+## What you should get
+
+File counts per module directory, after all three generations have run:
+
+| Module | Files | | Module | Files |
+|---|--:|---|---|--:|
+| `background` | 20 | | `merged_summary` | 3 |
+| `clustering` | 4 | | `normalisation` | 8 |
+| `depthprofile` | 4 | | `organic` | 8 |
+| `enrichment` | 3 | | `outlier_review` | 5 |
+| `grainsize` | 10 | | `regions` | 4 |
+| `hotspots` | 4 | | `siteyears` | 4 |
+| `spatial` | 6 | | `temporal` | 7 |
+| `uncertainty` | 5 | | | |
+
+95 files in total that also exist in the stored tree.
+
+## Checking a rebuild
+
+Analyses are deterministic, so given the same database they reproduce byte for
+byte.
+
+```{r}
+compare <- function(out) {
+  mods <- basename(list.dirs(out, recursive = FALSE))
+  unlist(lapply(mods, function(m) {
+    a <- file.path("./data/analysis", m); b <- file.path(out, m)
+    f <- intersect(list.files(a), list.files(b))
+    stats::setNames(vapply(f, function(x)
+      identical(unname(tools::md5sum(file.path(a, x))),
+                unname(tools::md5sum(file.path(b, x)))), logical(1)),
+      file.path(m, f))
+  }))
+}
+
+table(compare("./data/analysis-test"))
+```
+
+Verified here: **90 of 95 identical**.
+
+### The five that differ
+
+All five are `outlier_review`:
+
+```
+outlier_review/outlier_candidates.csv
+outlier_review/outlier_group_summary.csv
+outlier_review/outlier_dist_organic.png
+outlier_review/outlier_dist_reference.png
+outlier_review/outlier_dist_target.png
+```
+
+**The stored files are stale, not the new ones.** Running the original script
+`R/analysis/outlier_review/01_merged_outlier_review.R` into an isolated directory
+and comparing all three versions by MD5 gives:
+
+| File | converted == original | stored == original |
+|---|---|---|
+| all five | **TRUE** | FALSE |
+
+So the conversion reproduces the original exactly, and the stored copies match
+neither. They predate the merge-stage outlier flagging (`merge_mark_outliers()`,
+merged step 4) that settled the rule this module was written to explore. Re-run
+the module if you want current numbers.
+
+This is worth knowing before judging a rebuild: five differences that all sit in
+one module, with the module that produced them being a review prototype rather
+than a site input, is the expected result — not a conversion defect.
+
+## outlier_review is not a site input
+
+It is the prototype that settled the distributional `outlier_flag` rule the merge
+stage now applies. It writes candidate and summary CSVs plus distribution plots
+for eyeballing, and it is included in a full `"merged"` run, but no Quarto page
+reads it.
+
+## The export is not an analysis
+
+The flat downloadable dataset denormalises rather than computing, so it lives
+behind its own verb:
+
+```{r}
+export_data("refined", out_dir = "./data/analysis-test")
+```
+
+It still writes to `<out_dir>/download/`, the path multised-refined's pre-render
+expects. It is deliberately not reachable as an analysis module — there is
+exactly one public path to it.
+
+## When it fails
+
+**"The refined generation has no module 'grainsize'."** — module names are
+validated against the generation. `analysis_modules("refined")` lists what is
+available.
+
+**"`steps` selects within one module, so `module` is required with it."** —
+only `background` has more than one step.
+
+**"The clustering analysis needs the suggested package(s): cluster."** — install
+it, or run the other twelve merged modules individually.
+
+**CSVs appearing in `data/analysis`** — `out_dir` was left at its default.
