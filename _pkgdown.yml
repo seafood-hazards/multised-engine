@@ -1,0 +1,54 @@
+url: https://seafood-hazards.github.io/multised-engine/
+
+# `docs/` already holds the specification documents, so the generated site goes
+# in a subdirectory rather than over the top of them.
+destination: docs/site
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [articles, reference]
+    right: [search, github]
+
+articles:
+- title: Running the pipeline
+  navbar: Generations
+  contents:
+  - pilot
+
+reference:
+- title: Building a database
+  desc: >
+    One verb covers all five generations. The listing helpers are executable
+    versions of the tables in the articles.
+  contents:
+  - create_db
+  - multised_sources
+  - slim_steps
+
+- title: Analysing and exporting
+  desc: >
+    Analyses read a finished database and never modify it, so re-running is
+    always safe. The flat export denormalises rather than computing, which is
+    why it is a separate verb.
+  contents:
+  - analyze_data
+  - analysis_modules
+  - export_data
+
+- title: Configuration
+  desc: >
+    Where the databases, analysis outputs, raw exports and seastamp reference
+    data live, and how to point at the seastamp binary.
+  contents:
+  - multised_db_dir
+
+- title: Location annotation
+  contents:
+  - seastamp_enrich
+
+- title: Package
+  contents:
+  - multised.engine-package

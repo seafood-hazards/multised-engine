@@ -1,0 +1,206 @@
+---
+title: "Generation 1: pilot"
+description: >
+  Parse each vendor's raw export into a per-source database. What each source
+  needs, what to run, and what the result should look like.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+The pilot generation reads each data provider's own files and lands them in
+SQLite with as little interpretation as possible. It is the only stage that
+touches the vendor formats, and the only one whose table structure differs per
+source: Mareano has 6 tables, Vannmiljø 10, and the names have nothing in
+common. Harmonisation is the *next* generation's job.
+
+Nothing in this article can be run from a checkout alone: every step needs the
+raw exports, which are not distributed with the package.
+
+## Before you start
+
+**The raw exports**, under `data/raw/<Source>/`. Each parser checks its inputs
+up front and names any that are missing, so a wrong path fails immediately
+rather than half way through a parse.
+
+| Source | Directory | Files |
+|---|---|---|
+| `mareano` | `Mareano/` | `Mareano.xlsx`, `P2301_surfacedata_GISprepared_draft.xlsx`, `P2501_surfacesamples_GISprepared_ICP_coulter_POPs.xlsx` |
+| `vannmiljo` | `Vannmiljo/` | `Vannmilio_Elements_interest.xlsx`, `Vannmilio_Elements_others.xlsx`, `Vannmilio_pH_Carbon_Sulfur_all.xlsx`, `Vannmilio_Partikler_all.xlsx` |
+| `ices-dome` | `ICES DOME/` | `DomeSediment_Data_0326015962.csv` plus the `code/` lookup directory |
+| `mudab` | `Mudab/` | `export_mudab_V_MESSWERTE_SEDIMENT.csv`, `export_mudab.tsv`, `MUDAB_CODELISTEN.tsv` |
+| `4demon` | `4Demon/` | `20200713_1007454DEMON_HeavyMetals_PCBs_in_sediment.csv` |
+
+Note Vannmiljø's filenames say `Vannmilio` while the directory says `Vannmiljo`.
+That is how the exports arrived; it is not a typo to fix.
+
+**Suggested R packages**, needed by two sources only:
+
+- `readxl` — Mareano and Vannmiljø (Excel inputs)
+- `sf` — Vannmiljø only, to reproject UTM33 to longitude/latitude
+
+`sf` needs GDAL, GEOS, PROJ and udunits at the system level. If it installs but
+will not load, the libraries arrived after `sf` did; rebuild with
+`renv::install("sf", rebuild = TRUE)`.
+
+**The seastamp CLI** and its reference datasets, for step 4. See
+`vignette("clean")` for the dataset table; the short version is five downloads
+totalling about 7.7 GB, of which GEBCO is 7 GB. Skipping step 4 is a supported
+option (below).
+
+## Running it
+
+```{r}
+library(multised.engine)
+
+create_db("pilot", "mareano")
+```
+
+That is the whole command. It writes `data/db/mareano_pilot.sqlite` and prints a
+summary per step.
+
+Two arguments are worth knowing:
+
+```{r}
+# build somewhere harmless while testing, rather than over the real databases
+create_db("pilot", "mareano", db_dir = "./data/multised-test")
+
+# point at seastamp explicitly: the RStudio console does not inherit the login
+# shell's PATH, so a binary the Terminal tab can see is often invisible here
+create_db("pilot", "mareano", seastamp_bin = "/path/to/seastamp")
+```
+
+`db_dir` defaults to `multised_db_dir()` (`data/db`), so leaving it out writes
+to the real working set. While validating, set it once for the session:
+
+```{r}
+options(multised.db_dir = "./data/multised-test")
+```
+
+The five sources are independent, so order does not matter:
+
+```{r}
+for (src in multised_sources()) create_db("pilot", src)
+```
+
+### Steps
+
+The step numbers are inherited from the original scripts, which is why they are
+1, 4, 5 rather than 1, 2, 3.
+
+| Step | Does |
+|---|---|
+| 1 | parse the vendor files into data frames |
+| 4 | annotate the station frame with seastamp |
+| 5 | create the schema and write the tables |
+
+Steps 4 and 5 consume what step 1 builds, so step 1 cannot be skipped; asking
+for `steps = 5` is an error rather than a silent no-op.
+
+**Without seastamp**, run the parse and the write only:
+
+```{r}
+create_db("pilot", "mareano", steps = c(1, 5))
+```
+
+The six location columns come out `NULL`. That costs nothing downstream: clean
+step 4 recomputes all of them anyway, and those are the values that survive into
+the merged database. Pilot geo-enrichment exists so the pilot databases are
+inspectable on their own, not because anything later depends on it.
+
+## What you should get
+
+Row counts of the five stored pilot databases. A rebuild should reproduce these
+exactly; if a number moves, the raw export changed or something is wrong.
+
+| Source | Tables | Rows |
+|---|--:|---|
+| `mareano` | 6 | core 404, cruise 40, lld 994, parameter 60, sample 3553, sediment 144040 |
+| `vannmiljo` | 10 | activity 31, analysis_method 31, client 1289, contractor 307, lld 54952, parameter 50, sample 45852, sample_method 9, sediment 238254, site 24330 |
+| `ices-dome` | 9 | analysis_method 2609, code_lookup 708, lld 1536, parameter 142, project 148, reference 27, sample 17694, sediment 345809, site 11306 |
+| `mudab` | 10 | analysis_method 342, code_lookup 279, lod 482, measurement_time 5514, parameter 61, reference_material 542, sample 14089, sediment 167124, station 823, survey 3981 |
+| `4demon` | 6 | method 176, parameter 17, project 222, sample 1796, sediment 23542, station 166 |
+
+The station frame differs per source, which is also where the geo columns land:
+`core` for Mareano, `site` for Vannmiljø and ICES-DOME, `survey` for MUDAB,
+`station` for 4Demon. Mareano is the one source that names the nearest-country
+column `country`; the others call it `est_country`.
+
+Console output for a full Mareano run ends like this:
+
+```
+== mareano pilot step 1: extract ==
+mareano parsed: cruise 40, core 404, sample 3553, parameter 60, sediment 144040, lld 994
+
+== mareano pilot step 4: geo (seastamp) ==
+seastamp: 394 points annotated (region auto)
+  394 distinct positions -> 404 station rows annotated
+
+== mareano pilot step 5: write ==
+  core 404 | cruise 40 | lld 994 | parameter 60 | sample 3553 | sediment 144040
+```
+
+seastamp runs over *distinct* coordinates, so the two numbers differ wherever
+stations repeat a position: 394 positions for 404 Mareano cores, and 24,193 for
+24,330 Vannmiljø sites. That also sets the runtime — Mareano's geo step is
+seconds, Vannmiljø's is minutes.
+
+## Checking a rebuild
+
+Compare the table row counts against the table above, and the measurement
+columns against the previous database. The counts are the strong signal: they
+are large, source-specific, and a parsing change moves them.
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), "./data/multised-test/mareano_pilot.sqlite")
+sapply(DBI::dbListTables(con), function(t)
+  DBI::dbGetQuery(con, paste0("SELECT COUNT(*) FROM ", t))[[1]])
+DBI::dbDisconnect(con)
+```
+
+**Do not compare the geo columns against a stored pilot database.** They will
+differ, by design: those values came from an earlier implementation using `sf`
+with rnaturalearth and giscoR, which seastamp replaced. Same reference datasets,
+different code, so the numbers disagree in detail. Judge them on whether they
+are plausible — distances positive and sane, countries correct, `sea_name`
+populated — not on whether they reproduce.
+
+The `region` argument compounds this: the code uses seastamp's own
+`region = "auto"`, while the stored databases hold `"global"` values.
+`dist_to_coast` moves on every row between the two (median 4.8-11.3% by source,
+largest single shift 93 km), `municipality` for 1,884 sites and `country` for
+283. `depth` does not project and is unchanged.
+
+## When it fails
+
+**"Mareano export not found: …"** — the input check. `create_db()` has no
+`raw_dir` argument, so redirect with the option:
+
+```{r}
+options(multised.raw_dir = "/path/to/raw")
+```
+
+**"The Vannmiljo pilot parser needs the suggested package(s): sf."** — either
+`sf` is absent, or it is installed and will not load. Run `library(sf)` to see
+which; the message says so too. `renv::restore()` fixes the first, system
+libraries plus a rebuild fix the second.
+
+**"seastamp not found on the PATH."** — resolution order is
+`options(multised.seastamp_bin)`, then `SEASTAMP_BIN`, then the `PATH`. In
+RStudio prefer one of the first two, since the console does not inherit the
+shell's `PATH`. Or skip step 4 with `steps = c(1, 5)`.
+
+**"seastamp reference data not found for: …"** — the datasets, not the binary.
+All five are validated up front because the four seastamp commands run as one
+chain, so even a run that only wants `dist_to_coast` needs GEBCO present.
+
+**A long wall of `` • `` -> `...227` `` messages** while an Excel sheet loads.
+That is readxl repairing empty column names, and it is expected for Mareano and
+Vannmiljø.
+
+## Next
+
+`create_db("slim", source)` reads `<source>_pilot.sqlite` and reshapes it into
+the shared seven-table schema. From there the generations are common across
+sources, and the per-source differences are down to a handful of columns.

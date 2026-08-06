@@ -22,3 +22,6 @@
 ^\.project$
 ^\.idea$
 ^\.Rhistory$
+^_pkgdown\.yml$
+^vignettes/articles$
+^pkgdown$
