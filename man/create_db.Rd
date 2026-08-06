@@ -5,7 +5,7 @@
 \title{Build a database generation}
 \usage{
 create_db(
-  generation = c("pilot", "slim", "clean", "merged", "refined"),
+  generation = c("pilot", "slim", "clean", "merged", "refined", "aquaculture"),
   source = NULL,
   steps = NULL,
   db_dir = multised_db_dir(),
@@ -16,10 +16,10 @@ create_db(
 }
 \arguments{
 \item{generation}{The generation to build: \code{"pilot"}, \code{"slim"}, \code{"clean"},
-\code{"merged"} or \code{"refined"}.}
+\code{"merged"} or \code{"refined"}, or \code{"aquaculture"} for the reference database.}
 
 \item{source}{For the per-source generations, one of \code{\link[=multised_sources]{multised_sources()}}.
-Must be \code{NULL} for \code{"merged"} and \code{"refined"}.}
+Must be \code{NULL} for \code{"merged"}, \code{"refined"} and \code{"aquaculture"}.}
 
 \item{steps}{Optional subset of step numbers, for example \code{steps = 3:12}.
 Steps 1 and 2 form one unit (the parse and the write), so requesting either
@@ -49,6 +49,11 @@ Runs a pipeline generation end to end. The first three generations
 be given one.
 }
 \details{
+\code{"aquaculture"} is not a pipeline generation. It builds a standalone Norway-only
+reference database of marine aquaculture sites from the Fiskeridirektoratet
+exports, which clean step 5 measures \code{site.dist_to_aquaculture} against. Build
+it once, before the clean generation needs it.
+
 Every step is idempotent, so re-running the whole generation, or a subset via
 \code{steps}, is safe.
 }
@@ -68,5 +73,8 @@ create_db("pilot", "mareano", seastamp_dir = "~/seastamp")
 
 # skip the geo step where seastamp is not installed
 create_db("pilot", "mareano", steps = c(1, 5))
+
+# the aquaculture reference database, which clean step 5 needs
+create_db("aquaculture")
 }
 }

@@ -19,6 +19,16 @@ after this the sources are comparable enough to union.
 
 **The source's slim database**, `<source>_slim.sqlite`, in the same `db_dir`.
 
+**The aquaculture reference database**, for step 5. Build it once:
+
+```{r}
+create_db("aquaculture")   # -> aquaculture_no.sqlite, needs sf
+```
+
+It reads the Fiskeridirektoratet "Yggdrasil" exports from
+`<raw_dir>/yggdrasil/` and is not a pipeline generation, so it takes no `source`
+and no `steps`.
+
 **The seastamp CLI and its reference data**, for step 4 only. Five datasets
 totalling about 7.7 GB; the wrapper validates all five up front because the four
 seastamp commands run as one chain, so even a run that only wants
@@ -41,8 +51,7 @@ vocabulary, and `sampling_tool` remapped from raw gear codes to readable names.
 
 `site` gains the location attributes: `depth`, `country`, `country_code`,
 `dist_to_coast`, `municipality`, `sea_name` — all recomputed by step 4, so the
-source's own values do not survive — plus `dist_to_aquaculture` (see the gap
-below).
+source's own values do not survive — plus `dist_to_aquaculture` from step 5.
 
 ## Running it
 
@@ -59,6 +68,7 @@ a subset only makes sense when the earlier steps have already run.
 | 2 | clean | remove flagged rows, collapse replicates |
 | 3 | annotate | carry labels, split grain size to its own table |
 | 4 | geo_enrich | recompute the six location columns with seastamp |
+| 5 | aquaculture | `dist_to_aquaculture` for Norwegian sites |
 
 ```{r}
 # without seastamp
@@ -95,8 +105,8 @@ Unlike slim, clean cannot be compared in one pass, because step 4 is expected to
 differ.
 
 **Steps 1-3 should be byte-identical.** Verified on Mareano: rebuilding with
-`steps = 1:3` gives 7 of 8 tables identical to the stored database, with `site`
-the only exception, and only for the reason in the next section.
+`steps = 1:3` gives 7 of 8 tables identical to the stored database. `site` is the
+exception, and only because steps 4 and 5 have not filled it in yet.
 
 ```{r}
 create_db("clean", "mareano", steps = 1:3, db_dir = "./data/multised-test")
@@ -120,28 +130,29 @@ values exactly. Adopting `auto` for the published databases is a deliberate
 refresh, not something to do by accident: it will change the multised-clean and
 multised-merged pages.
 
-## The aquaculture gap
+## Step 5: distance to aquaculture
 
-`site.dist_to_aquaculture` — km to the nearest Norwegian farm, active or closed,
-NULL outside Norway — is **populated in the stored clean databases but not
-produced by `create_db()`**. The two scripts that build it,
-`R/aquaculture/01_build_aquaculture.R` and `02_site_distance.R`, were not
-converted with the rest of the pipeline.
+`site.dist_to_aquaculture` is km to the nearest Norwegian farm, active or
+closed, and NULL outside Norway. Past farms count: a closed site is a historical
+pressure on the sediment just as a current one is.
 
-So a rebuilt `site` table has 9 columns where the stored one has 10, with the
-same 397 rows and every other value identical. That is the whole of the
-difference; it is not a symptom of anything else.
+It keys on `country_code = 'NOR'`, which step 4 assigns, so it must run after
+it. Running it against a site table that still holds the source's own two-letter
+codes is an error rather than a silent zero:
 
-Until the scripts are converted, the column comes from running them by hand from
-the project root, after the clean databases exist:
-
-```{r}
-source("R/aquaculture/01_build_aquaculture.R")   # builds aquaculture_no.sqlite
-source("R/aquaculture/02_site_distance.R")       # adds the column to all five
+```
+`site.country_code` holds two-letter codes, so clean step 4 (geo_enrich) has
+not run for mareano. Distances would be computed for no sites at all.
 ```
 
-They need `sf`, and `01` needs the Fiskeridirektoratet "Yggdrasil" exports under
-`data/raw/yggdrasil/`. `02` is idempotent: it resets the column and recomputes.
+The step is idempotent: it resets the column and recomputes.
+
+The distance depends only on the site and farm coordinates, not on the seastamp
+region, so **it should reproduce the stored values exactly** even though the
+step-4 columns beside it do not. Verified on Mareano: 396 of 397 identical. The
+single exception is site 179, whose country moved `NOR` to `RUS` under
+`region = "auto"` — so the distance became NULL, correctly. That is the
+country reassignment described above showing up one layer down.
 
 ## When it fails
 
@@ -151,8 +162,8 @@ They need `sf`, and `01` needs the Fiskeridirektoratet "Yggdrasil" exports under
 `options(multised.seastamp_bin)`, then `SEASTAMP_BIN`, then the `PATH`. Or run
 `steps = 1:3`.
 
-**"The clean generation has steps 1-4; got 5."** — there is no step 5. The
-aquaculture column above is not one, which is exactly the gap.
+**"The aquaculture reference database is not in …"** — build it first with
+`create_db("aquaculture")`. Step 5 will not guess where it is.
 
 **A step 2 or 3 run that errors on a missing column** — the steps are sequential
 on a database step 1 rebuilds, so running them out of order against a database

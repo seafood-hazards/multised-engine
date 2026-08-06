@@ -36,16 +36,18 @@ alongside (see **Public interface**).
 - **clean** applies the slim flags (01 harmonise, 02 clean, 03 annotate; shared
   helpers in `R/clean-shared-*.R`). Sites are geo-enriched by `R/clean-04-geo-enrich.R`
   (depth, country, dist_to_coast, municipality, sea_name) using the external
-  `seastamp` CLI.
+  `seastamp` CLI, then step 05 adds `dist_to_aquaculture` (Norway only; keys on
+  the `NOR` country code step 04 assigns, so it must follow it).
 - **merged** unions all five clean DBs and removes cross-source duplicates.
 - **refined** is a mart cut from the merged DB for the pristine/background work.
 
 Alongside the generations:
 
-- **aquaculture** (`R/aquaculture/`) — a standalone Norway-only reference DB
-  (`aquaculture_no.sqlite`) of marine aquaculture sites from the
-  Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`), plus the
-  `dist_to_aquaculture` column it adds to every clean `site` (Norway only). See
+- **aquaculture** (`R/aquaculture-01-build.R`) — a standalone Norway-only
+  reference DB (`aquaculture_no.sqlite`) of marine aquaculture sites from the
+  Fiskeridirektoratet "Yggdrasil" exports (`data/raw/yggdrasil/`). Not a
+  generation: build it with `create_db("aquaculture")` (no `source`, no `steps`),
+  and clean step 05 measures against it. Needs `sf`. See
   [clean-pipeline.md](docs/clean-pipeline.md).
 - **analysis** (`R/analysis-<generation>-<module>.R`) — read-only analyses on a
   finished DB, writing CSVs to `data/analysis/<module>/` for the websites. The

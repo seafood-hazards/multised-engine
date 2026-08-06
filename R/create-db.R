@@ -56,13 +56,18 @@ slim_steps <- function(source) {
 #' `source`; the last two (`"merged"`, `"refined"`) combine all five and must not
 #' be given one.
 #'
+#' `"aquaculture"` is not a pipeline generation. It builds a standalone Norway-only
+#' reference database of marine aquaculture sites from the Fiskeridirektoratet
+#' exports, which clean step 5 measures `site.dist_to_aquaculture` against. Build
+#' it once, before the clean generation needs it.
+#'
 #' Every step is idempotent, so re-running the whole generation, or a subset via
 #' `steps`, is safe.
 #'
 #' @param generation The generation to build: `"pilot"`, `"slim"`, `"clean"`,
-#'   `"merged"` or `"refined"`.
+#'   `"merged"` or `"refined"`, or `"aquaculture"` for the reference database.
 #' @param source For the per-source generations, one of [multised_sources()].
-#'   Must be `NULL` for `"merged"` and `"refined"`.
+#'   Must be `NULL` for `"merged"`, `"refined"` and `"aquaculture"`.
 #' @param steps Optional subset of step numbers, for example `steps = 3:12`.
 #'   Steps 1 and 2 form one unit (the parse and the write), so requesting either
 #'   runs both. Defaults to every step that applies to the source.
@@ -95,9 +100,12 @@ slim_steps <- function(source) {
 #'
 #' # skip the geo step where seastamp is not installed
 #' create_db("pilot", "mareano", steps = c(1, 5))
+#'
+#' # the aquaculture reference database, which clean step 5 needs
+#' create_db("aquaculture")
 #' }
 create_db <- function(generation = c("pilot", "slim", "clean",
-                                     "merged", "refined"),
+                                     "merged", "refined", "aquaculture"),
                       source = NULL,
                       steps = NULL,
                       db_dir = multised_db_dir(),
@@ -114,6 +122,11 @@ create_db <- function(generation = c("pilot", "slim", "clean",
          "must be NULL.", call. = FALSE)
   }
 
+  if (generation == "aquaculture" && !is.null(steps)) {
+    stop("The aquaculture reference database is built in one step, so `steps` ",
+         "must be NULL.", call. = FALSE)
+  }
+
   switch(
     generation,
     pilot  = create_db_pilot(source, steps, db_dir, verbose,
@@ -125,10 +138,9 @@ create_db <- function(generation = c("pilot", "slim", "clean",
                              seastamp_bin = seastamp_bin),
     merged  = create_db_merged(steps, db_dir, verbose),
     refined = create_db_refined(steps, db_dir, verbose),
-    stop("The ", generation, " generation is not available through create_db() ",
-         "yet; \"slim\", \"clean\", \"merged\" and \"refined\" are. Run the ",
-         "scripts under R/", generation, "/ from the project root in the ",
-         "meantime.", call. = FALSE)
+    aquaculture = aquaculture_build(db_dir = db_dir, verbose = verbose),
+    stop("The ", generation, " generation is not available through create_db().",
+         call. = FALSE)
   )
 }
 
@@ -228,7 +240,11 @@ clean_step_table <- function() {
     # Step 4 shells out to the external seastamp CLI and needs its reference
     # datasets, so it is the one clean step that can fail for environmental
     # reasons; skip it with steps = 1:3 if the tool is not installed.
-    4L,  "geo_enrich", "clean_geo_enrich"
+    4L,  "geo_enrich", "clean_geo_enrich",
+    # Step 5 measures against the aquaculture reference database, which
+    # create_db("aquaculture") builds; it also needs the country code step 4
+    # assigns, so it cannot run before it.
+    5L,  "aquaculture", "clean_aquaculture"
   )
 }
 
@@ -241,7 +257,7 @@ create_db_clean <- function(source, steps, db_dir, verbose,
     steps <- as.integer(steps)
     unknown <- setdiff(steps, applicable$step)
     if (length(unknown)) {
-      stop("The clean generation has steps 1-4; got ",
+      stop("The clean generation has steps 1-5; got ",
            paste(unknown, collapse = ", "), ".", call. = FALSE)
     }
     applicable <- applicable[applicable$step %in% steps, ]

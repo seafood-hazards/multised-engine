@@ -138,11 +138,24 @@ test_that("the merge source preference order is the documented one", {
   expect_length(merge_key_cols()$element, 0)
 })
 
-test_that("the clean generation runs three steps in sequence", {
-  expect_equal(clean_step_table()$step, 1:4)
-  expect_equal(clean_step_table()$name, c("harmonise", "clean", "annotate", "geo_enrich"))
-  # clean has no step 5; asking for one is an error, not a silent no-op
-  expect_error(create_db("clean", "mareano", steps = 5), "steps 1-4")
+test_that("the clean generation runs five steps in sequence", {
+  expect_equal(clean_step_table()$step, 1:5)
+  expect_equal(clean_step_table()$name,
+               c("harmonise", "clean", "annotate", "geo_enrich", "aquaculture"))
+  # clean has no step 6; asking for one is an error, not a silent no-op
+  expect_error(create_db("clean", "mareano", steps = 6), "steps 1-5")
+})
+
+test_that("the aquaculture reference is a build of its own, not a generation", {
+  # it takes no source and no steps: one file in, one table out
+  expect_error(create_db("aquaculture", source = "mareano"),
+               "combines every source")
+  expect_error(create_db("aquaculture", steps = 1), "`steps` must be NULL")
+  expect_true(is.function(aquaculture_build))
+  expect_equal(basename(aquaculture_db_path("db")), "aquaculture_no.sqlite")
+  # and the clean step that consumes it says so when it is absent
+  expect_error(clean_aquaculture("mareano", db_dir = tempdir()),
+               "create_db\\(\"aquaculture\"\\)")
 })
 
 test_that("every clean step function exists", {
