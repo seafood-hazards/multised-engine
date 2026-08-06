@@ -12,10 +12,28 @@ navbar:
     left:  [articles, reference]
     right: [search, github]
 
-# No explicit `articles:` index: pkgdown generates one from vignettes/articles/
-# and adds the navbar entry itself. Add a grouped index once there is an article
-# per generation, taking the names from a successful build rather than guessing
-# them (a file in vignettes/articles/ is not addressed by its bare filename).
+# Pipeline order, not alphabetical: an article is only useful after the one
+# feeding it. Articles under vignettes/articles/ are addressed as
+# `articles/<name>`, which is what pkgdown::as_pkgdown(".")$vignettes reports.
+articles:
+- title: Building the databases
+  navbar: Generations
+  desc: >
+    One article per generation, in the order they run. Each carries the expected
+    row counts and what a rebuild should, and should not, reproduce.
+  contents:
+  - articles/pilot
+  - articles/slim
+  - articles/clean
+  - articles/merged
+  - articles/refined
+
+- title: Using them
+  navbar: Analyses
+  desc: >
+    Read-only analyses on a finished database, and the flat export.
+  contents:
+  - articles/analyses
 
 reference:
 - title: Building a database
