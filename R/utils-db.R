@@ -59,11 +59,21 @@ clean_db_path <- function(source, db_dir = multised_db_dir()) {
 # everything else. Names the step so the message says what to skip.
 require_suggested <- function(pkgs, what) {
   missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-  if (length(missing)) {
-    stop(what, " needs the suggested package(s): ",
-         paste(missing, collapse = ", "),
-         ".\nInstall them, or skip that step with the `steps` argument.",
-         call. = FALSE)
+  if (!length(missing)) return(invisible(NULL))
+
+  # requireNamespace() is FALSE for two different problems: the package is not
+  # installed, or it is installed and will not load. sf hits the second whenever
+  # its GDAL/GEOS/PROJ shared libraries are absent, and the fixes are not the
+  # same, so say which one it is rather than always advising an install.
+  present <- missing[nzchar(vapply(missing, function(p) system.file(package = p),
+                                   character(1)))]
+  detail <- if (length(present)) {
+    paste0("\n", paste(present, collapse = ", "), " is installed but will not ",
+           "load. Run library(", present[1], ") to see why; this is usually a ",
+           "missing system library rather than a missing R package.")
+  } else {
+    "\nInstall them with renv::restore(), or skip that step with `steps`."
   }
-  invisible(NULL)
+  stop(what, " needs the suggested package(s): ",
+       paste(missing, collapse = ", "), ".", detail, call. = FALSE)
 }
