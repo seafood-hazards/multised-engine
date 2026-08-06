@@ -371,7 +371,7 @@ Results: ICES-DOME 1,147 `renorm`, MUDAB 1,068 `renorm`, both 0 `suspect`.
 **Vannmiljø** has no matrix, and its `GSMF_63` / `GSMF_2000` codes mean ">n µm"
 (not "<n"), so the per-curve renormalisation does not apply. Its noise is instead a
 handful of isolated values (22 rows). These were exported
-(`R/slim/review/export_vannmiljo_suspect_grainsize.R`) and manually reviewed
+(`inst/scripts/slim/export_vannmiljo_suspect_grainsize.R`) and manually reviewed
 against the raw data: the error magnitude varies per row (×1000, ×10, borderline)
 and the values were found incorrect, so they are flagged `gs_corr = 'invalid'`
 (with `value_std_corr` nulled) for removal in the clean stage rather than rescaled.

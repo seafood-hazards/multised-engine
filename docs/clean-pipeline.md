@@ -270,7 +270,7 @@ change the published multised-clean and multised-merged pages.
 
 ---
 
-## Aquaculture (Norway reference) — `R/aquaculture/`
+## Aquaculture (Norway reference) — `create_db("aquaculture")`
 
 A standalone reference DB of Norwegian marine aquaculture sites, and a distance
 column it adds to every clean `site` table. Norway-only for now (no international

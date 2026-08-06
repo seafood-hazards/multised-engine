@@ -116,8 +116,9 @@ outlier_review/outlier_dist_target.png
 ```
 
 **The stored files are stale, not the new ones.** Running the original script
-`R/analysis/outlier_review/01_merged_outlier_review.R` into an isolated directory
-and comparing all three versions by MD5 gives:
+`R/analysis/outlier_review/01_merged_outlier_review.R`, before it was removed at
+v0.3.0, into an isolated directory and comparing all three versions by MD5
+gives:
 
 | File | converted == original | stored == original |
 |---|---|---|

@@ -28,8 +28,7 @@ relevant one before changing that stage.**
 | 4 | merged    | `R/merge-*.R`        | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |
 | 5 | refined   | `R/refine-*.R`       | `multised_refined.sqlite`   | [refined-pipeline.md](docs/refined-pipeline.md)  | phase 1 done |
 
-Run any of them with `create_db(gen, source)`; the original script tree is kept
-alongside (see **Public interface**).
+Run any of them with `create_db(gen, source)`.
 
 - **pilot → slim** parses raw source files, then reshapes into the shared 7-table
   schema and flags quality/duplicates/etc.
@@ -103,11 +102,12 @@ whose names encode the old tree (`R/slim-03-categorize.R`,
 `R/slim-01-transform-mudab.R`, `R/analysis-merged-hotspots.R`). Do not add
 subdirectories under `R/`.
 
-The original script trees (`R/pilot/`, `R/slim/`, `R/clean/`, `R/merge/`,
-`R/refine/`, `R/analysis/`) are **kept deliberately** until each generation has
-been validated by hand, and are excluded from the tarball via `.Rbuildignore`
-(`^R/.+/`). Each conversion was verified by rebuilding into a temp directory and
-diffing against the stored output.
+The original script trees were deleted at v0.3.0, once every generation and all
+25 analyses had been validated by hand against the stored databases and outputs.
+Each conversion was verified by rebuilding into a temp directory and diffing.
+Thirteen review and export prototypes that were never part of the interface live
+on in `inst/scripts/` (`pilot/`, `slim/`, `merge/`), to be `source()`d from the
+project root when wanted.
 
 ## Slim schema (7 tables)
 
@@ -207,7 +207,7 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [clean-pipeline.md](docs/clean-pipeline.md) | clean schema, harmonise/clean/annotate, geo-enrichment, aquaculture |
 | [merge-pipeline.md](docs/merge-pipeline.md) | union, dedup rules, finalise, outlier flagging, summary |
 | [refined-pipeline.md](docs/refined-pipeline.md) | refined mart schema, steps, resolved/open decisions |
-| [analysis.md](docs/analysis.md) | the `R/analysis/` modules and which site each feeds |
+| [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the four sibling-repo Quarto sites, publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
 | [plan.md](docs/plan.md) | overall project plan |

@@ -94,8 +94,10 @@ analyze_data(generation, module = NULL, steps = NULL) # all 25 analyses
 export_data("refined")                                # flat TSV + dictionary
 ```
 
-The original script trees under `R/<generation>/` are kept until each generation
-has been validated by hand, and are excluded from the built package.
+The package is flat: R collates only top-level `R/*.R`. The original script
+trees were removed at v0.3.0 after every generation and analysis had been
+validated by hand; the review and export prototypes that were never part of the
+interface are in `inst/scripts/`.
 
 ## Companion sites
 

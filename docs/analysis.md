@@ -39,8 +39,8 @@ Package code is flat (R collates only top-level `R/*.R`):
 
 `R/analysis-<generation>-<name>.R`, one function `analysis_<generation>_<name>()`
 
-The original script tree `R/analysis/<module>/<NN>_<generation>_<name>.R` is kept
-until the outputs have been validated by hand, and is excluded from the tarball.
+The original script tree `R/analysis/<module>/<NN>_<generation>_<name>.R` was
+removed at v0.3.0, once every module's output had been validated by hand.
 
 The `<generation>` token says which DB is read, and therefore which site
 consumes the output:
@@ -114,5 +114,6 @@ export_data(generation = "refined", source = NULL,
 
 One flat row per target measurement, plus a column dictionary that drives the
 Dataset Download page. Only the refined generation has an export; the five
-`R/pilot/<source>/07_create_data_frame.R` scripts are legacy per-source review
-dumps for the retired pilot sites and are not part of the interface.
+`inst/scripts/pilot/<source>_07_create_data_frame.R` scripts are legacy
+per-source review dumps for the retired pilot sites and are not part of the
+interface.
