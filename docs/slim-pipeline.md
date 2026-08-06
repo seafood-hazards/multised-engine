@@ -5,6 +5,17 @@ its per-source column differences, and (2) the behaviour of the
 marking steps 3–12, plus the source-specific steps 13 (`src_flag`), 14 (grain-size
 correction) and 15 (`fines_lt63`).
 
+## Running it
+
+```r
+create_db("slim", source)                 # every step that applies
+create_db("slim", "ices-dome", steps = 14:15)
+```
+
+`slim_steps(source)` returns the applicable steps. Steps 1-2 are one unit: the
+parse feeds the write, so requesting either runs both. Package code is
+`R/slim-*.R`.
+
 ## 1. Shared slim schema
 
 Seven tables, built by `02_create_tables.R` for every source. Common columns:
@@ -360,7 +371,7 @@ Results: ICES-DOME 1,147 `renorm`, MUDAB 1,068 `renorm`, both 0 `suspect`.
 **Vannmiljø** has no matrix, and its `GSMF_63` / `GSMF_2000` codes mean ">n µm"
 (not "<n"), so the per-curve renormalisation does not apply. Its noise is instead a
 handful of isolated values (22 rows). These were exported
-(`R/slim/review/export_vannmiljo_suspect_grainsize.R`) and manually reviewed
+(`inst/scripts/slim/export_vannmiljo_suspect_grainsize.R`) and manually reviewed
 against the raw data: the error magnitude varies per row (×1000, ×10, borderline)
 and the values were found incorrect, so they are flagged `gs_corr = 'invalid'`
 (with `value_std_corr` nulled) for removal in the clean stage rather than rescaled.

@@ -1,7 +1,7 @@
 Package: multised.engine
 Type: Package
 Title: Build and Analyse the MULTISED Marine Sediment Database
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: c(
     person("Takaya", "Saito", email = "takaya.saito@outlook.com",
            role = c("aut", "cre", "cph")),
@@ -16,7 +16,8 @@ Description: Assembles a database of marine-sediment trace-element measurements
     carbon, spatial and temporal coverage, outlier flagging, and pristine
     background classification.
 License: MIT + file LICENSE
-URL: https://github.com/seafood-hazards/multised-engine
+URL: https://github.com/seafood-hazards/multised-engine,
+    https://seafood-hazards.github.io/multised-engine/
 BugReports: https://github.com/seafood-hazards/multised-engine/issues
 Depends:
     R (>= 4.1)
@@ -24,8 +25,10 @@ Imports:
     DBI,
     RSQLite,
     dplyr,
+    lubridate,
     purrr,
     readr,
+    rlang,
     stringr,
     tibble,
     tidyr
@@ -34,15 +37,11 @@ Suggests:
     cowplot,
     ggplot2,
     ggpubr,
-    giscoR,
-    leaflet,
     readxl,
-    rnaturalearth,
-    rnaturalearthdata,
     sf,
     testthat (>= 3.0.0),
     viridis
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

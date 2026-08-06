@@ -29,7 +29,7 @@ Data moves through five generations. The first three produce one SQLite database
 
 | # | Generation | Output                      | What it does                                                  |
 |---|------------|-----------------------------|---------------------------------------------------------------|
-| 1 | pilot      | `pilot_<source>.sqlite`     | parse raw source files (table structure differs per source)   |
+| 1 | pilot      | `<source>_pilot.sqlite`     | parse raw source files (table structure differs per source)   |
 | 2 | slim       | `<source>_slim.sqlite`      | reshape into a shared 7-table schema, then flag quality, duplicates, detection limits and derive standardised values |
 | 3 | clean      | `<source>_clean.sqlite`     | apply the slim flags; geo-enrich every site                   |
 | 4 | merged     | `multised_merged.sqlite`    | union all five sources, remove cross-source duplicates        |
@@ -46,20 +46,58 @@ The package installs the pipeline code only. The **databases are not
 distributed with it**: they are built from the external sources, or downloaded
 from the releases of the companion sites below.
 
-Some analysis modules need optional spatial packages (`sf`, `leaflet`,
-`rnaturalearth`, `giscoR`). Install them alongside if you intend to run those:
+Some steps need suggested packages: `readxl` and `sf` (the Mareano and Vannmiljø
+parsers), `ggplot2`, `cowplot`, `ggpubr`, `viridis` and `cluster` (plotting and
+clustering analyses). Each says so by name if it is missing, so you can install
+only what you use — or take them all up front:
 
 ```r
 remotes::install_github("seafood-hazards/multised-engine", dependencies = TRUE)
 ```
 
+### System requirements
+
+Two dependencies are not R packages.
+
+**System libraries.** `sf` and its dependencies build against GDAL, GEOS, PROJ
+and udunits; `s2` needs Abseil and `curl` needs libcurl. On Debian / Ubuntu:
+
+```bash
+sudo apt install -y libgdal-dev libgeos-dev libproj-dev libudunits2-dev \
+                    libabsl-dev libcurl4-openssl-dev
+```
+
+```bash
+brew install gdal geos proj udunits abseil curl      # macOS
+```
+
+`renv::restore()` reports which of these are missing before it starts, and
+`renv::sysreqs()` lists them per package. A common failure is an `sf` that
+installs but will not load: that means the libraries arrived after `sf` did, so
+rebuild it with `renv::install("sf", rebuild = TRUE)`.
+
+**The seastamp CLI**, for the two geo steps (pilot step 4, clean step 4), from
+[AIQC-Hub/seastamp](https://github.com/AIQC-Hub/seastamp), plus its reference
+datasets (see [docs/clean-pipeline.md](docs/clean-pipeline.md)). Put it on the
+`PATH`, or point at it with `options(multised.seastamp_bin = "/path/to/seastamp")`
+— the RStudio console does not inherit the login shell's `PATH`. Skip those two
+steps where it is not installed: `create_db("pilot", src, steps = c(1, 5))`,
+`create_db("clean", src, steps = 1:3)`.
+
 ## Status
 
-The programmatic interface (`create_db()` and `analyze_data()`, selecting a
-pipeline generation plus its arguments) is **in development**. Until it lands,
-the pipeline runs as ordered scripts under `R/`, `source()`d from the project
-root in the documented order, since they use relative paths such as
-`./data/db/…`.
+Three public verbs cover the whole project:
+
+```r
+create_db(generation, source = NULL, steps = NULL)   # all five generations
+analyze_data(generation, module = NULL, steps = NULL) # all 25 analyses
+export_data("refined")                                # flat TSV + dictionary
+```
+
+The package is flat: R collates only top-level `R/*.R`. The original script
+trees were removed at v0.3.0 after every generation and analysis had been
+validated by hand; the review and export prototypes that were never part of the
+interface are in `inst/scripts/`.
 
 ## Companion sites
 

@@ -1,0 +1,167 @@
+---
+title: "Generation 4: merged"
+description: >
+  Union the five clean databases into one, remove cross-source duplicates,
+  finalise the keys and flag distributional outliers.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+The first cross-source database. Five clean databases go in, one
+`multised_merged.sqlite` comes out, with the same measurement rows minus those
+that were the same measurement reported twice by two providers.
+
+It takes no `source`. Passing one is an error, not a filter.
+
+## Before you start
+
+**All five clean databases** in `db_dir`. Merged does not build them, and it
+will not merge a subset: a missing source is a missing source, not a smaller
+union.
+
+**Nothing external.** No seastamp, no `sf` — the location attributes are
+carried over from clean, not recomputed. Whatever the clean databases hold is
+what the merged database inherits, which matters for the comparison below.
+
+## Running it
+
+```{r}
+create_db("merged",
+          db_dir  = "./data/multised-test",
+          out_dir = "./data/multised-test/analysis")
+```
+
+**Pass `out_dir`.** Three of the five steps write analysis CSVs as well as
+touching the database, and `out_dir` defaults to the live analysis tree
+(`data/analysis`), where the site pre-render steps read from. A test rebuild
+that leaves it at the default overwrites those files. They regenerate
+identically from the same inputs, so it is recoverable rather than fatal, but
+there is no reason to find out.
+
+About half a minute for the whole thing.
+
+### Steps
+
+| Step | Name | Does | Writes CSVs |
+|---|---|---|:-:|
+| 1 | union | stack all five, prefixing keys per source | |
+| 2 | dedup | remove cross-source duplicates | ✓ |
+| 3 | finalise | renumber to clean surrogate keys | |
+| 4 | mark_outliers | `outlier_flag` on `measurement` | ✓ |
+| 5 | summary | retention and stage-total reporting | ✓ |
+
+Steps run in sequence on a database step 1 rebuilds, so a subset only makes
+sense once the earlier steps have run. Step 5 computes nothing and can be
+re-run freely.
+
+## Deduplication
+
+The same sediment sample can reach two providers — a Norwegian cruise reported
+both nationally and to ICES, say. Duplicates are matched on position, date,
+depth and element, and resolved by a fixed source preference:
+
+**Mareano > 4Demon > MUDAB > Vannmiljø > ICES-DOME**
+
+National archives beat the international aggregator, since the aggregator is
+usually the copy. The rule and its 1% exact-date threshold are in
+[merge-pipeline.md](https://github.com/seafood-hazards/multised-engine/blob/main/docs/merge-pipeline.md).
+
+The retention this produces is the most informative single number in the whole
+generation:
+
+```
+    Source clean_n merged_n retained_pct
+   Mareano   24098    24098        100.0
+    4Demon    4459     4459        100.0
+     MUDAB   30744    30744        100.0
+ Vannmiljø   82011    81355         99.2
+ ICES-DOME   69719    50188         72.0
+```
+
+ICES-DOME loses 28% because it is the aggregator: those rows are held by a
+national source too. The three sources above it in the preference order lose
+nothing by construction.
+
+## What you should get
+
+The stored `multised_merged.sqlite`:
+
+| Table | Rows |
+|---|--:|
+| `dataset` | 78 |
+| `element` | 69 |
+| `site` | 26,849 |
+| `event` | 46,091 |
+| `subsample` | 53,143 |
+| `measurement` | 190,844 |
+| `method` | 1,485 |
+| `grain_size_fraction` | 104,804 |
+
+Stage totals, which say what each step removed:
+
+| Table | clean total | final | removed | retained % |
+|---|--:|--:|--:|--:|
+| `dataset` | 78 | 78 | 0 | 100.0 |
+| `event` | 46,680 | 46,091 | 589 | 98.7 |
+| `grain_size_fraction` | 104,804 | 104,804 | 0 | 100.0 |
+| `measurement` | 211,031 | 190,844 | 20,187 | 90.4 |
+| `method` | 1,642 | 1,485 | 157 | 90.4 |
+| `site` | 27,015 | 26,849 | 166 | 99.4 |
+| `subsample` | 53,747 | 53,143 | 604 | 98.9 |
+
+Outliers, from step 4: 381 high, 272 low, 190,191 in distribution.
+
+## Checking a rebuild: mind the inputs
+
+Merged is deterministic, so it reproduces exactly **given the same clean
+databases**. That last clause is the whole difficulty.
+
+If you merge the clean databases you rebuilt yourself, they carry
+`region = "auto"` geo columns while the stored merged database carries
+`"global"` ones, so `dist_to_coast`, `municipality` and `country` will differ —
+inherited from clean, not introduced here. Row counts and every chemistry column
+should still match exactly, since dedup keys on position, date, depth and
+element, and 3-decimal-place positions are not moved by the projection change.
+
+To test the merge logic on its own, merge the **stored** clean databases:
+
+```{r}
+dir.create("./data/merge-test")
+file.copy(Sys.glob("./data/db/*_clean.sqlite"), "./data/merge-test")
+
+create_db("merged", db_dir = "./data/merge-test",
+          out_dir = "./data/merge-test/analysis")
+```
+
+That was verified here: all six analysis CSVs byte-identical to the live ones,
+and the row counts above reproduced.
+
+```{r}
+a <- DBI::dbConnect(RSQLite::SQLite(), "./data/db/multised_merged.sqlite")
+b <- DBI::dbConnect(RSQLite::SQLite(), "./data/merge-test/multised_merged.sqlite")
+vapply(DBI::dbListTables(a), function(t)
+  identical(DBI::dbReadTable(a, t), DBI::dbReadTable(b, t)), logical(1))
+```
+
+## When it fails
+
+**"The merged generation combines every source, so `source` must be NULL."** —
+there is no per-source merge.
+
+**"unable to open database file"** — one of the five clean databases is not in
+`db_dir`. All five, or none.
+
+**CSVs appearing in `data/analysis/merge`** — `out_dir` was left at its default.
+Nothing is lost that a re-run does not restore, but pass it.
+
+**Retention that is not 100% for Mareano, 4Demon or MUDAB** — those three sit
+above Vannmiljø and ICES-DOME in the preference order and cannot lose rows to
+them. If they do, the preference order or the matching key has changed.
+
+## Next
+
+`create_db("refined")` cuts a mart from this database for the pristine and
+background work: one measurement table, a slim normaliser, baked ratios, and the
+aquaculture and repeat-site links.

@@ -1,0 +1,60 @@
+# ── Public entry point: export a flat dataset ────────────────────────────────
+# The third verb, alongside create_db() (builds a database) and analyze_data()
+# (computes from one). An export denormalises a finished database into a single
+# flat file for people who do not want the relational schema. It computes
+# nothing, which is why it is not an analysis module.
+
+# The export registry. Only the refined generation has an export today; the
+# generation argument is kept so adding one is a registry line rather than a
+# signature change.
+export_table <- function() {
+  tibble::tribble(
+    ~generation, ~fun,                     ~per_source,
+    "refined",   "export_refined_dataset", FALSE
+  )
+}
+
+#' Export a flat dataset from a finished database
+#'
+#' Denormalises a pipeline database into a single flat, gzipped TSV plus a
+#' column dictionary, for users who want the data without the relational
+#' schema. It reads only, so re-running is always safe.
+#'
+#' The refined export writes to `out_dir/download/`, the path the
+#' multised-refined site's pre-render step expects.
+#'
+#' @param generation Which database to export. Currently `"refined"` only.
+#' @param source Must be `NULL`. Present for symmetry with [create_db()]; no
+#'   export is per-source yet.
+#' @param db_dir Directory holding the databases. Defaults to
+#'   [multised_db_dir()].
+#' @param out_dir Directory the export is written under. Defaults to
+#'   [multised_analysis_dir()].
+#' @param verbose Print the summary as it runs.
+#'
+#' @return Invisibly, the paths of the files written.
+#' @export
+#' @examples
+#' \dontrun{
+#' export_data("refined")
+#' export_data("refined", out_dir = "~/sediment/exports")
+#' }
+export_data <- function(generation = c("refined"),
+                        source = NULL,
+                        db_dir = multised_db_dir(),
+                        out_dir = multised_analysis_dir(),
+                        verbose = TRUE) {
+  generation <- match.arg(generation)
+  spec <- export_table()
+  spec <- spec[spec$generation == generation, ]
+
+  if (!is.null(source) && !spec$per_source) {
+    stop("The ", generation, " export covers every source, so `source` must ",
+         "be NULL.", call. = FALSE)
+  }
+
+  fun <- get(spec$fun, mode = "function")
+  msg(verbose, "\n== ", generation, " export ==\n")
+  dir <- fun(db_dir = db_dir, out_dir = out_dir, verbose = verbose)
+  invisible(sort(list.files(dir, full.names = TRUE)))
+}

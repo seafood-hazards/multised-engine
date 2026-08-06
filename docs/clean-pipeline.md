@@ -6,8 +6,9 @@ format. Still **one DB per source**; merging into a single cross-source DB is a
 later generation (see [plan.md](plan.md)). A single website summarises the clean
 results (replacing the per-source pilot sites).
 
-Built by a new `R/clean/<source>/` script tree, run in order, reading the slim DB.
-Three ordered steps (rename freely; the parenthesised names are the originals):
+Run with `create_db("clean", source)`; package code is `R/clean-*.R`, with the
+shared helpers in `R/clean-shared-*.R`. Reads the slim DB. Three ordered steps
+(the parenthesised names are the originals):
 
 1. **Harmonise** (data conversion) — uniform names, units, depths, tools.
 2. **Clean** (data cleaning) — remove flagged rows, collapse replicates.
@@ -42,7 +43,7 @@ lacks that table. Key changes vs slim:
   `institute_code`, `accessed` (retrieval date). Columns a source lacks are NULL;
   ICES-DOME's multi-nation `country`/`institute` lists are de-duplicated and sorted
   (kept for back-tracing); MUDAB `country` is set to Germany. A shared lookup
-  (`R/clean/_shared/dataset_meta.R`) supplies `url` + `accessed`.
+  (`R/clean-shared-dataset-meta.R`) supplies `url` + `accessed`.
 - **site** — a common column set: `site_id`, `latitude`, `longitude`, `depth`,
   `country`, `country_code`, `dist_to_coast`, `municipality`, `sea_name`,
   `dist_to_aquaculture`. `depth`
@@ -55,7 +56,7 @@ lacks that table. Key changes vs slim:
   `site_id` and the coordinates are stable; the other attributes are regenerated
   upstream. `standardise_site()` (Harmonise) guarantees the column set/order and
   keeps the slim `area_flag`; the Clean step then consumes it via
-  `consume_area_flag()` (`R/clean/_shared/site_meta.R`): sites flagged
+  `consume_area_flag()` (`R/clean-shared-site-meta.R`): sites flagged
   `outside_europe` and their linked event/subsample/measurement rows are removed
   (cascade), and the `area_flag` column is dropped, so the final `site` has no flag.
 - **measurement** — all chemistry (`target` / `reference` / `organic`); grain-size
@@ -81,14 +82,14 @@ lacks that table. Key changes vs slim:
   `unknown`), with `method_description` kept where present (ICES/MUDAB) or filled
   from the ICES wording. `lod` / `loq` are converted to mg/kg (`limit_unit` =
   `mg/kg`). `comment` (Mareano) and `uncertainty` (MUDAB, unused by Clean) are
-  dropped. Via `R/clean/_shared/method_meta.R`.
+  dropped. Via `R/clean-shared-method-meta.R`.
   - The 4Demon sieve fraction, previously encoded in the method code, moves to the
     `fraction_range` column and joins the replicate-collapse key (so `<63µm` and
     `<2000µm` values of the same element are not averaged together).
 - **event** — columns `event_id`, `dataset_id`, `site_id`, `year`, `date`,
   `sampling_tool`, `n_layers`. `date` is derived from `datetime` where needed
   (`datetime` / `time` dropped). `sampling_tool` is remapped from the raw gear codes
-  to short descriptive names via a shared lookup (`R/clean/_shared/event_meta.R`;
+  to short descriptive names via a shared lookup (`R/clean-shared-event-meta.R`;
   e.g. `VV`/`19B` -> van Veen grab, `BC` -> box corer, unlisted / missing ->
   unknown). `multi_flag` is dropped (equals `n_layers > 1`) and ICES-DOME's
   `tool_description` is folded into the name.
@@ -127,7 +128,7 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
   `TOC → CORG`, `TOC63` kept as-is. A small per-source symbol map does this.
 - **Element names + CAS.** The `element` name column becomes `name`; each chemistry
   symbol gets one canonical Title-Case name and CAS number from a shared lookup
-  (`R/clean/_shared/element_meta.R`), so all sources read identical values. CAS is
+  (`R/clean-shared-element-meta.R`), so all sources read identical values. CAS is
   taken from Vannmiljø's `cas_no` where available (AL FE CO CU MN MO SE ZN), iodine
   added from the registry; organic carbon (CORG/TOC63) has no CAS (NULL). Grain-size
   composition names follow ICES-DOME for shared symbols via the same lookup (so e.g.
@@ -200,7 +201,7 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **`comp_exist`** on `subsample` flags grain-size availability; grain-size
   composition no longer sits in `measurement`.
 
-**Status:** built and verified for **all five sources** (`R/clean/<source>/`). Every
+**Status:** built and verified for **all five sources**. Every
 source now runs steps 01-03 (4Demon's 03 does the fraction annotation only — no
 grain-size). Chemistry counts are unchanged by the annotation: `measurement` holds
 all chemistry (e.g. ICES 69,719; MUDAB 30,744).
@@ -221,7 +222,55 @@ Cross-source portability handled in code: `col_or_false` removal predicate (abse
 
 ---
 
-## Aquaculture (Norway reference) — `R/aquaculture/`
+## 4. Geo-enrich — `seastamp` and its reference data
+
+Clean step 4 (`clean_geo_enrich()`) and pilot step 4 (`pilot_geo_enrich()`) both
+go through `seastamp_enrich()`, which shells out to the external
+[seastamp](https://github.com/AIQC-Hub/seastamp) CLI. Neither the binary nor its
+reference datasets ship with the package, so these are the two steps that can
+fail for environmental rather than data reasons. Skip them with
+`create_db("clean", src, steps = 1:3)` or `create_db("pilot", src, steps = c(1, 5))`.
+
+The wrapper runs four seastamp commands as one chain and validates every path up
+front, so all five datasets are needed even if only one column is wanted:
+
+| Dataset | Command | Column(s) | Size | Path under `seastamp_dir` |
+|---------|---------|-----------|-----:|----------------------|
+| GSHHG (full res) | `coast` | `dist_to_coast` (km) | 217 MB | `gshhg/gshhg-shp-2.3.7/GSHHS_shp/f` |
+| GEBCO sub-ice topo | `depth` | `depth` (positive-down; land → NULL) | 7.0 GB | `gebco/GEBCO_2024_sub_ice_topo.nc` |
+| IHO Sea Areas v3 | `sea` | `sea_name` | 143 MB | `iho/World_Seas_IHO_v3/World_Seas_IHO_v3.shp` |
+| Natural Earth 10m | `place` | `country`, `country_code` | 14 MB | `naturalearth/ne_10m_admin_0_countries.shp` |
+| GISCO LAU 2021 | `place` | `municipality` (Europe only) | 273 MB | `gisco/LAU_RG_01M_2021_4326.shp` |
+
+Fetch them with the tool's own `scripts/download_data.sh -d <seastamp_dir>`. IHO sits
+behind the Marine Regions licence form, so it needs `--mr-name`, `--mr-org`,
+`--mr-email` and `--mr-country`; running it accepts CC BY-NC-SA 4.0.
+
+`seastamp_dir` defaults to `multised_seastamp_dir()` (`data/seastamp`, or the
+`multised.seastamp_dir` option) and is an argument of `create_db()`.
+
+**Finding the binary.** `seastamp_bin()` looks at `options(multised.seastamp_bin)`,
+then `Sys.getenv("SEASTAMP_BIN")`, then the `PATH`. Prefer one of the first two in
+RStudio: its console does not inherit the login shell's `PATH`, so a seastamp the
+Terminal tab finds is often invisible to the console, and the run fails with
+"seastamp not found" despite a working install.
+
+**Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
+and they are transient: clean step 4 recomputes all six from the site table, so
+the clean values are the ones that survive. The pilot values are also **not**
+comparable with the stored pilot databases, whose geo columns came from the old
+sf + rnaturalearth + giscoR implementation that `pilot_geo_enrich()` replaced.
+
+**Region.** `region = "auto"` in code (seastamp's own default and the accurate
+choice), but the stored databases hold `"global"` values. `dist_to_coast` moves
+on every row between the two (median 4.8-11.3% by source, largest shift 93 km),
+`municipality` for 1,884 sites and `country` for 283; `depth` does not project
+and is unchanged. Adopting `auto` therefore needs a deliberate refresh, and will
+change the published multised-clean and multised-merged pages.
+
+---
+
+## Aquaculture (Norway reference) — `create_db("aquaculture")`
 
 A standalone reference DB of Norwegian marine aquaculture sites, and a distance
 column it adds to every clean `site` table. Norway-only for now (no international
