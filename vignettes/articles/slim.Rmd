@@ -1,0 +1,184 @@
+---
+title: "Generation 2: slim"
+description: >
+  Reshape each pilot database into the shared seven-table schema, then flag
+  quality, duplicates, detection limits and derived values.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Slim is where the five sources stop looking like five different databases. Every
+pilot database, whatever its shape, becomes the same seven tables, and a run of
+marking steps then flags what the clean generation will act on.
+
+Nothing is deleted here. The flags are suspicious markers for the next
+generation and for manual review, so a slim database has the same measurements
+its pilot database had, plus opinions about them.
+
+## Before you start
+
+Only one thing: the source's **pilot database**, `<source>_pilot.sqlite`, in the
+same `db_dir`. No raw exports, no seastamp, no `readxl` or `sf` — slim reads
+SQLite and writes SQLite, so nothing environmental can bite. If a run fails here
+it is the data or the code, which makes this generation a cleaner test than the
+pilot was.
+
+## The schema
+
+Seven tables, identical across sources:
+
+```
+element → dataset → site → event → subsample → measurement
+                                                  ↑
+                                               method
+```
+
+- `event.dataset_id → dataset`, `event.site_id → site`
+- `subsample.event_id → event`
+- `measurement.subsample_id → subsample`, `measurement.symbol → element`,
+  `measurement.method_id → method`; `method.symbol → element`
+
+The *structure* is identical; the wide tables' columns are not. `measurement`
+runs from 15 columns (Mareano) to 24 (ICES-DOME and 4Demon), because each source
+carries what it actually recorded: `below_lld` for Mareano, `operator` and
+`filtered` for Vannmiljø, `basis`/`matrix`/`qflag` for the rest. The per-source
+column map is in [slim-pipeline.md](https://github.com/seafood-hazards/multised-engine/blob/main/docs/slim-pipeline.md).
+
+Sites are keyed on latitude and longitude **rounded to 3 decimal places**, which
+is why the site count is lower than the event count everywhere.
+
+## Running it
+
+```{r}
+create_db("slim", "mareano", db_dir = "./data/multised-test")
+```
+
+Fast — a few seconds per source, since there is no parsing and no external tool.
+
+```{r}
+for (src in multised_sources()) create_db("slim", src, db_dir = "./data/multised-test")
+```
+
+### Steps
+
+Fifteen numbered steps, but **no source runs all fifteen**. Steps 1-12 are
+common; 13 onward exist only where a source has something extra to fold in or
+derive, and the numbers are fixed per concern rather than renumbered per source.
+
+```{r}
+slim_steps("mareano")   # 1-12, 15
+slim_steps("4demon")    # 1-13
+```
+
+| Source | Steps | Why |
+|---|---|---|
+| `mareano` | 1-12, 15 | no source-native flags, grain size already clean |
+| `vannmiljo` | 1-15 | all of them |
+| `ices-dome` | 1-15 | all of them |
+| `mudab` | 1-12, 14, 15 | no source-native flags |
+| `4demon` | 1-13 | no grain size, so nothing to correct or derive |
+
+| Step | Adds |
+|---|---|
+| 1-2 | pilot database → data frames → the seven tables |
+| 3 | `element.category` — `target` / `reference` / `organic` / `composition` |
+| 4 | `area_flag`, `invalid_flag` |
+| 5 | `dup_flag` |
+| 6 | the `*_exist` flags on `subsample` |
+| 7 | `n_layers`, `multi_flag` |
+| 8 | `below_loq` |
+| 9 | `value_std`, `unit_std` (mg/kg) |
+| 10 | `range_flag` |
+| 11 | `below_loq_num` |
+| 12 | `weight_basis` |
+| 13 | `src_flag` — the source's own flags |
+| 14 | `value_std_corr`, `gs_corr` — grain-size correction |
+| 15 | `fines_lt63`, `fines_basis` |
+
+Step 3 matters more than its position suggests: `element.category` is the single
+source of truth for what a measurand *is*, and every later step reads it rather
+than keeping its own list of symbols.
+
+**Steps 1 and 2 are one unit.** The parse builds the frames, the write consumes
+them, and neither is useful alone, so asking for either runs both:
+
+```{r}
+create_db("slim", "mareano", steps = 5)      # just re-mark duplicates
+create_db("slim", "mareano", steps = 2)      # runs 1 and 2
+create_db("slim", "mareano", steps = 13)     # error: does not apply to mareano
+```
+
+Every step is idempotent, so re-running one, or the whole generation, is safe.
+
+## What you should get
+
+Row counts of the five stored slim databases.
+
+| Source | element | dataset | site | event | subsample | measurement | method |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| `mareano` | 13 | 2 | 397 | 404 | 3,280 | 41,789 | 23 |
+| `vannmiljo` | 20 | 27 | 17,961 | 25,188 | 28,023 | 107,867 | 446 |
+| `ices-dome` | 55 | 28 | 6,660 | 13,576 | 14,756 | 158,858 | 1,314 |
+| `mudab` | 23 | 16 | 1,838 | 6,033 | 6,209 | 63,642 | 423 |
+| `4demon` | 4 | 5 | 160 | 1,480 | 1,480 | 6,739 | 38 |
+
+4Demon has 4 elements because it carries no grain size and no organic carbon;
+ICES-DOME has 55 because its grain-size composition vocabulary is large.
+
+Unlike the pilot generation, a slim rebuild should be **byte-identical** to the
+stored database — there is no external tool in the path to introduce
+differences. A full Mareano rebuild was checked this way: all 7 tables identical,
+not merely the same row counts.
+
+## Checking a rebuild
+
+```{r}
+compare <- function(stored, rebuilt) {
+  a <- DBI::dbConnect(RSQLite::SQLite(), stored)
+  b <- DBI::dbConnect(RSQLite::SQLite(), rebuilt)
+  on.exit({DBI::dbDisconnect(a); DBI::dbDisconnect(b)}, add = TRUE)
+  vapply(DBI::dbListTables(a), function(t)
+    identical(DBI::dbReadTable(a, t), DBI::dbReadTable(b, t)), logical(1))
+}
+
+compare("./data/db/mareano_slim.sqlite",
+        "./data/multised-test/mareano_slim.sqlite")
+```
+
+All seven should be `TRUE`. If one is not, compare its dimensions first: a
+column difference points at the schema step, a row difference at the transform.
+
+The flag tallies are the other useful check, since they are what the whole
+generation exists to produce:
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), "./data/multised-test/mareano_slim.sqlite")
+DBI::dbGetQuery(con, "SELECT category, COUNT(*) n FROM element GROUP BY category")
+DBI::dbGetQuery(con, "SELECT dup_flag, COUNT(*) n FROM measurement GROUP BY dup_flag")
+DBI::dbGetQuery(con, "SELECT weight_basis, COUNT(*) n FROM measurement GROUP BY weight_basis")
+DBI::dbDisconnect(con)
+```
+
+## When it fails
+
+**"unable to open database file"** — the pilot database is not in `db_dir`.
+Slim reads `<source>_pilot.sqlite` from the same directory it writes to, so
+build the pilot generation there first, or copy it across.
+
+**"Step(s) 13 do not apply to mareano"** — the step registry rejecting a step
+the source does not have, rather than silently doing nothing. `slim_steps(src)`
+lists what applies.
+
+**Row counts that look plausible but are wrong.** This has happened once:
+`ices_dome_slim.sqlite` was overwritten with 4Demon output and went unnoticed
+because the numbers were believable. Check the source is what you think it is
+before trusting a comparison — `SELECT DISTINCT source FROM dataset` is the
+quickest tell.
+
+## Next
+
+`create_db("clean", source)` applies the flags this generation set: removing
+what is unusable, collapsing replicates, harmonising units and names, and
+geo-enriching every site with seastamp.
