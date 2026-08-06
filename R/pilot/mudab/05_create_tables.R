@@ -3,7 +3,7 @@ library(RSQLite)
 library(dplyr)
 library(purrr)
 
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_mudab.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mudab_pilot.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # --- 0. Drop tables in reverse dependency order ---

@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # ── 0. Read source data ──────────────────────────────────────────────────────
-con_src <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_mareano.sqlite")
+con_src <- dbConnect(RSQLite::SQLite(), "./data/db/mareano_pilot.sqlite")
 
 df_cruise    <- dbReadTable(con_src, "cruise")    |> as_tibble()
 df_core      <- dbReadTable(con_src, "core")      |> as_tibble()

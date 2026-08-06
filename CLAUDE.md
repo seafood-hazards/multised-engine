@@ -22,7 +22,7 @@ relevant one before changing that stage.**
 
 | # | Gen       | Package files        | Output DB (`data/db/`)      | Spec                                             | Status |
 |---|-----------|----------------------|-----------------------------|--------------------------------------------------|--------|
-| 1 | pilot     | `R/pilot-*.R`        | `pilot_<source>.sqlite`     | (per source; table structure differs)            | done   |
+| 1 | pilot     | `R/pilot-*.R`        | `<source>_pilot.sqlite`     | (per source; table structure differs)            | done   |
 | 2 | slim      | `R/slim-*.R`         | `<source>_slim.sqlite`      | [slim-pipeline.md](docs/slim-pipeline.md)        | done   |
 | 3 | clean     | `R/clean-*.R`        | `<source>_clean.sqlite`     | [clean-pipeline.md](docs/clean-pipeline.md)      | done   |
 | 4 | merged    | `R/merge-*.R`        | `multised_merged.sqlite`    | [merge-pipeline.md](docs/merge-pipeline.md)      | done   |

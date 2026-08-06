@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # ── 0. Read source data ──────────────────────────────────────────────────────
-con_src <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmiljo.sqlite")
+con_src <- dbConnect(RSQLite::SQLite(), "./data/db/vannmiljo_pilot.sqlite")
 
 df_activity <- dbReadTable(con_src, "activity") |> as_tibble()
 df_client <- dbReadTable(con_src, "client") |> as_tibble()

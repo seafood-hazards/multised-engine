@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_mudab.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mudab_pilot.sqlite")
 
 df_code_lookup <- dbReadTable(con, "code_lookup") |> as_tibble()
 df_station <- dbReadTable(con, "station") |> as_tibble()

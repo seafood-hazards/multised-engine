@@ -3,7 +3,7 @@ library(RSQLite)
 library(tidyverse)
 
 # --- Connect ---
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_4demon.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/4demon_pilot.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # --- 0. Drop tables in reverse dependency order ---

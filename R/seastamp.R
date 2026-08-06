@@ -21,12 +21,9 @@
 # columns unchanged). No fallback to the old `geoenrich` binary on purpose: it
 # stops at 0.8.0, whose default region differs, so silently running it would give
 # different distances rather than an error.
-# Where the binary is, in order: the option, the environment variable, the PATH,
-# then the author's install. PATH alone is not enough: the RStudio console does
-# not inherit the login shell's PATH, so a seastamp the Terminal tab can see is
-# routinely invisible to the console. The option is the fix that does not depend
-# on how R was launched.
-seastamp_bin <- function() {
+#' @rdname multised_db_dir
+#' @export
+multised_seastamp_bin <- function() {
   bin <- getOption("multised.seastamp_bin", Sys.getenv("SEASTAMP_BIN", ""))
   if (!nzchar(bin)) bin <- unname(Sys.which("seastamp"))
   if (!nzchar(bin)) bin <- "/home/takaya/programs/seastamp/seastamp"
@@ -67,6 +64,8 @@ seastamp_data <- function(seastamp_dir = multised_seastamp_dir()) {
 #' @param points A data frame with an id column and longitude/latitude columns.
 #' @param id_col,lon_col,lat_col Column names in `points`.
 #' @param seastamp_dir Directory holding the reference datasets.
+#' @param seastamp_bin Path to the seastamp executable. Defaults to
+#'   [multised_seastamp_bin()].
 #' @param work_dir Scratch directory for the intermediate TSVs.
 #' @param region seastamp's projection region, `"auto"` by default: the
 #'   projection is derived from the points themselves, which is seastamp 0.12.0's
@@ -99,6 +98,7 @@ seastamp_enrich <- function(points,
                             lon_col  = "longitude",
                             lat_col  = "latitude",
                             seastamp_dir  = multised_seastamp_dir(),
+                            seastamp_bin  = multised_seastamp_bin(),
                             work_dir = file.path(tempdir(), "seastamp"),
                             region   = "auto",
                             verbose  = TRUE) {
@@ -109,7 +109,7 @@ seastamp_enrich <- function(points,
          call. = FALSE)
   }
 
-  BIN  <- seastamp_bin()
+  BIN  <- seastamp_bin
   data <- seastamp_data(seastamp_dir)
   absent <- names(data)[!file.exists(unlist(data))]
   if (length(absent)) {

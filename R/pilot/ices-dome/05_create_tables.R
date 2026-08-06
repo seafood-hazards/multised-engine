@@ -1,7 +1,7 @@
 library(DBI)
 library(RSQLite)
 
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_ices_dome.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/ices_dome_pilot.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # --- 0. Drop tables in reverse dependency order ---

@@ -56,10 +56,30 @@ test_that("the seastamp binary can be pointed at explicitly", {
   file.create(fake)
   old <- options(multised.seastamp_bin = fake)
   on.exit({ options(old); unlink(fake) }, add = TRUE)
-  expect_equal(seastamp_bin(), fake)
+  expect_equal(multised_seastamp_bin(), fake)
 
   options(multised.seastamp_bin = file.path(tempdir(), "definitely-absent"))
-  expect_error(seastamp_bin(), "seastamp not found")
+  expect_error(multised_seastamp_bin(), "seastamp not found")
+  options(old)
+
+  # and as an argument, for callers who would rather not set an option
+  expect_true("seastamp_bin" %in% names(formals(create_db)))
+  for (f in c(create_db_pilot, create_db_clean, pilot_geo_enrich,
+              clean_geo_enrich, seastamp_enrich)) {
+    expect_true("seastamp_bin" %in% names(formals(f)))
+  }
+})
+
+test_that("pilot databases follow the <source>_<generation> naming", {
+  # renamed from pilot_<source>.sqlite so all three per-source generations match
+  expect_equal(basename(pilot_db_path("mareano", "db")), "mareano_pilot.sqlite")
+  expect_equal(basename(pilot_db_path("ices-dome", "db")), "ices_dome_pilot.sqlite")
+  for (src in multised_sources()) {
+    stem <- source_stem(src)
+    expect_equal(basename(pilot_db_path(src, "db")), paste0(stem, "_pilot.sqlite"))
+    expect_equal(basename(slim_db_path(src, "db")), paste0(stem, "_slim.sqlite"))
+    expect_equal(basename(clean_db_path(src, "db")), paste0(stem, "_clean.sqlite"))
+  }
 })
 
 test_that("each source has a pilot geo spec", {

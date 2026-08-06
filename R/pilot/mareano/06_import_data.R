@@ -2,7 +2,7 @@ library(DBI)
 library(RSQLite)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_mareano.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/mareano_pilot.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # 2. Insert 'cruise' (The top-level parent)

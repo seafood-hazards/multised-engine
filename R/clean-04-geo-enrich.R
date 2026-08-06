@@ -12,6 +12,7 @@
 
 clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
                              seastamp_dir = multised_seastamp_dir(),
+                             seastamp_bin = multised_seastamp_bin(),
                              region = "auto", verbose = TRUE) {
   check_source(source)
 
@@ -20,7 +21,8 @@ clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
   site <- as_tibble(dbReadTable(con, "site"))
 
   enr <- seastamp_enrich(site, id_col = "site_id",
-                         seastamp_dir = seastamp_dir, region = region, verbose = verbose)
+                         seastamp_dir = seastamp_dir, seastamp_bin = seastamp_bin,
+                         region = region, verbose = verbose)
 
   dbWriteTable(con, "_enr", as.data.frame(enr), overwrite = TRUE)
   dbExecute(con, "

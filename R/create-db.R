@@ -71,6 +71,9 @@ slim_steps <- function(source) {
 #' @param seastamp_dir Directory holding the seastamp reference datasets, used by
 #'   the two geo steps (pilot step 4 and clean step 4) and ignored by every
 #'   other generation. Defaults to [multised_seastamp_dir()].
+#' @param seastamp_bin Path to the seastamp executable, used by the same two
+#'   steps. Defaults to [multised_seastamp_bin()], which reads the
+#'   `multised.seastamp_bin` option, then `SEASTAMP_BIN`, then the `PATH`.
 #' @param verbose Print each step's summary as it runs.
 #'
 #' @return Invisibly, a named list with one element per step run, holding that
@@ -99,6 +102,7 @@ create_db <- function(generation = c("pilot", "slim", "clean",
                       steps = NULL,
                       db_dir = multised_db_dir(),
                       seastamp_dir = multised_seastamp_dir(),
+                      seastamp_bin = multised_seastamp_bin(),
                       verbose = TRUE) {
   generation <- match.arg(generation)
   per_source <- generation %in% c("pilot", "slim", "clean")
@@ -112,9 +116,13 @@ create_db <- function(generation = c("pilot", "slim", "clean",
 
   switch(
     generation,
-    pilot  = create_db_pilot(source, steps, db_dir, verbose, seastamp_dir = seastamp_dir),
+    pilot  = create_db_pilot(source, steps, db_dir, verbose,
+                             seastamp_dir = seastamp_dir,
+                             seastamp_bin = seastamp_bin),
     slim   = create_db_slim(source, steps, db_dir, verbose),
-    clean  = create_db_clean(source, steps, db_dir, verbose, seastamp_dir = seastamp_dir),
+    clean  = create_db_clean(source, steps, db_dir, verbose,
+                             seastamp_dir = seastamp_dir,
+                             seastamp_bin = seastamp_bin),
     merged  = create_db_merged(steps, db_dir, verbose),
     refined = create_db_refined(steps, db_dir, verbose),
     stop("The ", generation, " generation is not available through create_db() ",
@@ -225,7 +233,8 @@ clean_step_table <- function() {
 }
 
 create_db_clean <- function(source, steps, db_dir, verbose,
-                            seastamp_dir = multised_seastamp_dir()) {
+                            seastamp_dir = multised_seastamp_dir(),
+                            seastamp_bin = multised_seastamp_bin()) {
   applicable <- clean_step_table()
 
   if (!is.null(steps)) {
@@ -246,7 +255,8 @@ create_db_clean <- function(source, steps, db_dir, verbose,
     msg(verbose, "\n== ", source, " clean step ", step, ": ", name, " ==\n")
     # Only the geo step reads the seastamp reference tree.
     out[[name]] <- if (name == "geo_enrich") {
-      fun(source, db_dir = db_dir, seastamp_dir = seastamp_dir, verbose = verbose)
+      fun(source, db_dir = db_dir, seastamp_dir = seastamp_dir,
+          seastamp_bin = seastamp_bin, verbose = verbose)
     } else {
       fun(source, db_dir = db_dir, verbose = verbose)
     }
@@ -325,7 +335,8 @@ pilot_extract <- function(source, raw_dir = multised_raw_dir(), verbose = TRUE) 
 
 create_db_pilot <- function(source, steps, db_dir, verbose,
                             raw_dir = multised_raw_dir(),
-                            seastamp_dir = multised_seastamp_dir()) {
+                            seastamp_dir = multised_seastamp_dir(),
+                            seastamp_bin = multised_seastamp_bin()) {
   if (!source %in% PILOT_CONVERTED) {
     stop("The pilot generation is not available through create_db() for ",
          sQuote(source), " yet; only ", paste(sQuote(PILOT_CONVERTED), collapse = ", "),
@@ -360,7 +371,9 @@ create_db_pilot <- function(source, steps, db_dir, verbose,
     msg(verbose, "\n== ", source, " pilot step 4: geo (seastamp) ==\n")
     tables[[frame]] <- pilot_geo_enrich(tables[[frame]], spec$lon, spec$lat,
                                         country_col = spec$country_col,
-                                        seastamp_dir = seastamp_dir, verbose = verbose)
+                                        seastamp_dir = seastamp_dir,
+                                        seastamp_bin = seastamp_bin,
+                                        verbose = verbose)
   }
 
   out <- list(extract = vapply(tables, nrow, numeric(1)))

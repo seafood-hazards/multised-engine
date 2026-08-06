@@ -10,6 +10,7 @@ seastamp_enrich(
   lon_col = "longitude",
   lat_col = "latitude",
   seastamp_dir = multised_seastamp_dir(),
+  seastamp_bin = multised_seastamp_bin(),
   work_dir = file.path(tempdir(), "seastamp"),
   region = "auto",
   verbose = TRUE
@@ -21,6 +22,9 @@ seastamp_enrich(
 \item{id_col, lon_col, lat_col}{Column names in \code{points}.}
 
 \item{seastamp_dir}{Directory holding the reference datasets.}
+
+\item{seastamp_bin}{Path to the seastamp executable. Defaults to
+\code{\link[=multised_seastamp_bin]{multised_seastamp_bin()}}.}
 
 \item{work_dir}{Scratch directory for the intermediate TSVs.}
 

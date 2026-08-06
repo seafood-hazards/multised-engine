@@ -10,6 +10,7 @@ create_db(
   steps = NULL,
   db_dir = multised_db_dir(),
   seastamp_dir = multised_seastamp_dir(),
+  seastamp_bin = multised_seastamp_bin(),
   verbose = TRUE
 )
 }
@@ -30,6 +31,10 @@ runs both. Defaults to every step that applies to the source.}
 \item{seastamp_dir}{Directory holding the seastamp reference datasets, used by
 the two geo steps (pilot step 4 and clean step 4) and ignored by every
 other generation. Defaults to \code{\link[=multised_seastamp_dir]{multised_seastamp_dir()}}.}
+
+\item{seastamp_bin}{Path to the seastamp executable, used by the same two
+steps. Defaults to \code{\link[=multised_seastamp_bin]{multised_seastamp_bin()}}, which reads the
+\code{multised.seastamp_bin} option, then \code{SEASTAMP_BIN}, then the \code{PATH}.}
 
 \item{verbose}{Print each step's summary as it runs.}
 }

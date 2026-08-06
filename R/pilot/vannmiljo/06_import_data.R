@@ -2,7 +2,7 @@ library(DBI)
 library(RSQLite)
 
 # 1. Connect and Enable Foreign Keys
-con <- dbConnect(RSQLite::SQLite(), "./data/db/pilot_vannmiljo.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "./data/db/vannmiljo_pilot.sqlite")
 dbExecute(con, "PRAGMA foreign_keys = ON;")
 
 # 2. Insert 'activity' (The top-level parent)

@@ -22,7 +22,7 @@ test_that("path helpers read their option and fall back to the project layout", 
 
 test_that("database paths are built from the source and directory", {
   expect_equal(slim_db_path("ices-dome", "db"), file.path("db", "ices_dome_slim.sqlite"))
-  expect_equal(pilot_db_path("4demon", "db"), file.path("db", "pilot_4demon.sqlite"))
+  expect_equal(pilot_db_path("4demon", "db"), file.path("db", "4demon_pilot.sqlite"))
 })
 
 test_that("an unknown source is rejected by name", {

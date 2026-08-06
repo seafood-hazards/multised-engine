@@ -16,7 +16,7 @@ multised_sources <- function() {
   c("mareano", "vannmiljo", "ices-dome", "mudab", "4demon")
 }
 
-#' Where the databases and analysis outputs live
+#' Where the databases, outputs and tools live
 #'
 #' `multised_db_dir()` is the directory holding the SQLite databases,
 #' `multised_analysis_dir()` the directory analysis outputs are written to,
@@ -25,6 +25,13 @@ multised_sources <- function() {
 #' Natural Earth, GISCO) the geo steps need. All default to the layout used by
 #' the project itself and can be overridden globally with [options()], or per
 #' call via the `db_dir` and `seastamp_dir` arguments of [create_db()].
+#'
+#' `multised_seastamp_bin()` resolves the seastamp executable, checking
+#' `getOption("multised.seastamp_bin")`, then `Sys.getenv("SEASTAMP_BIN")`, then
+#' the `PATH`. Unlike the others it errors when nothing is found, since a
+#' missing tool cannot be defaulted. Prefer the option or the environment
+#' variable in RStudio: its console does not inherit the login shell's `PATH`,
+#' so a binary the Terminal tab finds may still be invisible to the console.
 #'
 #' @return A length-one character path.
 #' @export

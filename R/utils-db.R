@@ -9,7 +9,7 @@ slim_db_path <- function(source, db_dir = multised_db_dir()) {
 }
 
 pilot_db_path <- function(source, db_dir = multised_db_dir()) {
-  file.path(db_dir, paste0("pilot_", source_stem(source), ".sqlite"))
+  file.path(db_dir, paste0(source_stem(source), "_pilot.sqlite"))
 }
 
 # Open a SQLite database with foreign keys on, as every script did.
