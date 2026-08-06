@@ -24,16 +24,19 @@
 #' @rdname multised_db_dir
 #' @export
 multised_seastamp_bin <- function() {
-  bin <- getOption("multised.seastamp_bin", Sys.getenv("SEASTAMP_BIN", ""))
-  if (!nzchar(bin)) bin <- unname(Sys.which("seastamp"))
-  if (!nzchar(bin)) bin <- "/home/takaya/programs/seastamp/seastamp"
-  if (!file.exists(bin)) {
-    stop("seastamp not found at ", sQuote(bin), ". Install it from ",
-         "https://github.com/AIQC-Hub/seastamp, then either put it on the ",
-         "PATH or point at the binary with\n",
+  configured <- getOption("multised.seastamp_bin", Sys.getenv("SEASTAMP_BIN", ""))
+  bin <- if (nzchar(configured)) configured else unname(Sys.which("seastamp"))
+  if (!nzchar(bin) || !file.exists(bin)) {
+    stop(if (nzchar(configured)) {
+           paste0("seastamp not found at ", sQuote(configured), ".")
+         } else {
+           "seastamp not found on the PATH."
+         },
+         " Install it from https://github.com/AIQC-Hub/seastamp so the system ",
+         "can find it. Within an RStudio session, whose console does not ",
+         "inherit the login shell's PATH, point at the binary instead:\n",
          "  options(multised.seastamp_bin = \"/path/to/seastamp\")\n",
-         "Note that the RStudio console does not inherit the shell's PATH, so ",
-         "a binary the Terminal tab can see may still need the option.",
+         "or set SEASTAMP_BIN in ~/.Renviron.",
          call. = FALSE)
   }
   bin

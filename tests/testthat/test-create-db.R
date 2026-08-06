@@ -58,8 +58,11 @@ test_that("the seastamp binary can be pointed at explicitly", {
   on.exit({ options(old); unlink(fake) }, add = TRUE)
   expect_equal(multised_seastamp_bin(), fake)
 
-  options(multised.seastamp_bin = file.path(tempdir(), "definitely-absent"))
-  expect_error(multised_seastamp_bin(), "seastamp not found")
+  absent <- file.path(tempdir(), "definitely-absent")
+  options(multised.seastamp_bin = absent)
+  # the error names the path it was given, so a typo is visible
+  expect_error(multised_seastamp_bin(), "not found at")
+  expect_error(multised_seastamp_bin(), absent, fixed = TRUE)
   options(old)
 
   # and as an argument, for callers who would rather not set an option

@@ -26,12 +26,14 @@ multised_sources <- function() {
 #' the project itself and can be overridden globally with [options()], or per
 #' call via the `db_dir` and `seastamp_dir` arguments of [create_db()].
 #'
-#' `multised_seastamp_bin()` resolves the seastamp executable, checking
-#' `getOption("multised.seastamp_bin")`, then `Sys.getenv("SEASTAMP_BIN")`, then
-#' the `PATH`. Unlike the others it errors when nothing is found, since a
-#' missing tool cannot be defaulted. Prefer the option or the environment
-#' variable in RStudio: its console does not inherit the login shell's `PATH`,
-#' so a binary the Terminal tab finds may still be invisible to the console.
+#' `multised_seastamp_bin()` resolves the seastamp executable. seastamp is an
+#' external dependency, so the normal case is an install the system can find on
+#' the `PATH`, and that is what it looks for. Unlike the others it errors when
+#' nothing is found, since a missing tool cannot be defaulted.
+#' `getOption("multised.seastamp_bin")` and `Sys.getenv("SEASTAMP_BIN")` take
+#' precedence over the `PATH`, for RStudio sessions: its console does not
+#' inherit the login shell's `PATH`, so a binary the Terminal tab finds may
+#' still be invisible to the console.
 #'
 #' @return A length-one character path.
 #' @export

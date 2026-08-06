@@ -31,12 +31,14 @@ the project itself and can be overridden globally with \code{\link[=options]{opt
 call via the \code{db_dir} and \code{seastamp_dir} arguments of \code{\link[=create_db]{create_db()}}.
 }
 \details{
-\code{multised_seastamp_bin()} resolves the seastamp executable, checking
-\code{getOption("multised.seastamp_bin")}, then \code{Sys.getenv("SEASTAMP_BIN")}, then
-the \code{PATH}. Unlike the others it errors when nothing is found, since a
-missing tool cannot be defaulted. Prefer the option or the environment
-variable in RStudio: its console does not inherit the login shell's \code{PATH},
-so a binary the Terminal tab finds may still be invisible to the console.
+\code{multised_seastamp_bin()} resolves the seastamp executable. seastamp is an
+external dependency, so the normal case is an install the system can find on
+the \code{PATH}, and that is what it looks for. Unlike the others it errors when
+nothing is found, since a missing tool cannot be defaulted.
+\code{getOption("multised.seastamp_bin")} and \code{Sys.getenv("SEASTAMP_BIN")} take
+precedence over the \code{PATH}, for RStudio sessions: its console does not
+inherit the login shell's \code{PATH}, so a binary the Terminal tab finds may
+still be invisible to the console.
 }
 \examples{
 multised_db_dir()

@@ -31,8 +31,7 @@ library(dplyr)
 # stops at 0.8.0, whose default region differs, so silently running it would give
 # different distances rather than an error.
 BIN <- Sys.which("seastamp")
-if (BIN == "") BIN <- "/home/takaya/programs/seastamp/seastamp"
-if (!file.exists(BIN)) stop("seastamp not found; install it or set BIN")
+if (BIN == "" || !file.exists(BIN)) stop("seastamp not found on the PATH; install it or set BIN")
 
 # Reference-data dir (external storage). Renamed geoenrich -> seastamp on disk.
 GEO       <- "data/seastamp"
