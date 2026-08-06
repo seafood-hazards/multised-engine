@@ -14,9 +14,7 @@
 #
 # `sf` is a Suggests package, so this step is guarded.
 
-aquaculture_db_path <- function(db_dir = multised_db_dir()) {
-  file.path(db_dir, "aquaculture_no.sqlite")
-}
+# aquaculture_db_path() lives in R/utils-db.R, beside the other database paths.
 
 refine_aquaculture <- function(db_dir = multised_db_dir(), verbose = TRUE) {
   require_suggested("sf", "The refined aquaculture step")
