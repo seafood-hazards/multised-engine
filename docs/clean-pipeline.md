@@ -249,6 +249,12 @@ behind the Marine Regions licence form, so it needs `--mr-name`, `--mr-org`,
 `seastamp_dir` defaults to `multised_seastamp_dir()` (`data/seastamp`, or the
 `multised.seastamp_dir` option) and is an argument of `create_db()`.
 
+**Finding the binary.** `seastamp_bin()` looks at `options(multised.seastamp_bin)`,
+then `Sys.getenv("SEASTAMP_BIN")`, then the `PATH`. Prefer one of the first two in
+RStudio: its console does not inherit the login shell's `PATH`, so a seastamp the
+Terminal tab finds is often invisible to the console, and the run fails with
+"seastamp not found" despite a working install.
+
 **Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
 and they are transient: clean step 4 recomputes all six from the site table, so
 the clean values are the ones that survive. The pilot values are also **not**

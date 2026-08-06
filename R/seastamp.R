@@ -21,15 +21,25 @@
 # columns unchanged). No fallback to the old `geoenrich` binary on purpose: it
 # stops at 0.8.0, whose default region differs, so silently running it would give
 # different distances rather than an error.
+# Where the binary is, in order: the option, the environment variable, the PATH,
+# then the author's install. PATH alone is not enough: the RStudio console does
+# not inherit the login shell's PATH, so a seastamp the Terminal tab can see is
+# routinely invisible to the console. The option is the fix that does not depend
+# on how R was launched.
 seastamp_bin <- function() {
-  bin <- Sys.which("seastamp")
-  if (bin == "") bin <- "/home/takaya/programs/seastamp/seastamp"
+  bin <- getOption("multised.seastamp_bin", Sys.getenv("SEASTAMP_BIN", ""))
+  if (!nzchar(bin)) bin <- unname(Sys.which("seastamp"))
+  if (!nzchar(bin)) bin <- "/home/takaya/programs/seastamp/seastamp"
   if (!file.exists(bin)) {
-    stop("seastamp not found. Install it from ",
-         "https://github.com/AIQC-Hub/seastamp, or put it on the PATH.",
+    stop("seastamp not found at ", sQuote(bin), ". Install it from ",
+         "https://github.com/AIQC-Hub/seastamp, then either put it on the ",
+         "PATH or point at the binary with\n",
+         "  options(multised.seastamp_bin = \"/path/to/seastamp\")\n",
+         "Note that the RStudio console does not inherit the shell's PATH, so ",
+         "a binary the Terminal tab can see may still need the option.",
          call. = FALSE)
   }
-  unname(bin)
+  bin
 }
 
 # Reference datasets, under data/seastamp on disk (external storage). The tree

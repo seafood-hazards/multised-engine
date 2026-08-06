@@ -49,6 +49,19 @@ test_that("seastamp_dir is configurable and reaches both geo steps", {
   }
 })
 
+test_that("the seastamp binary can be pointed at explicitly", {
+  # the RStudio console does not inherit the shell PATH, so resolution must not
+  # depend on Sys.which() alone
+  fake <- tempfile(fileext = ".sh")
+  file.create(fake)
+  old <- options(multised.seastamp_bin = fake)
+  on.exit({ options(old); unlink(fake) }, add = TRUE)
+  expect_equal(seastamp_bin(), fake)
+
+  options(multised.seastamp_bin = file.path(tempdir(), "definitely-absent"))
+  expect_error(seastamp_bin(), "seastamp not found")
+})
+
 test_that("each source has a pilot geo spec", {
   for (src in multised_sources()) {
     spec <- pilot_geo_spec(src)
