@@ -11,7 +11,7 @@
 # table from slim and restores the source's own values.
 
 clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
-                             geo_dir = "data/geoenrich",
+                             geo_dir = multised_geo_dir(),
                              region = "auto", verbose = TRUE) {
   check_source(source)
 

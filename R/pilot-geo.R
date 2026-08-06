@@ -44,7 +44,7 @@ pilot_geo_spec <- function(source) {
 # latitude, so repeated stations at one position share a single lookup.
 pilot_geo_enrich <- function(df, lon_col, lat_col,
                              country_col = "est_country",
-                             geo_dir = "data/geoenrich",
+                             geo_dir = multised_geo_dir(),
                              region = "auto", verbose = TRUE) {
   pts <- df |>
     distinct(.data[[lon_col]], .data[[lat_col]]) |>

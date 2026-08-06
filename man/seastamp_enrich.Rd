@@ -9,7 +9,7 @@ seastamp_enrich(
   id_col = "site_id",
   lon_col = "longitude",
   lat_col = "latitude",
-  geo_dir = "data/geoenrich",
+  geo_dir = multised_geo_dir(),
   work_dir = file.path(tempdir(), "seastamp"),
   region = "auto",
   verbose = TRUE

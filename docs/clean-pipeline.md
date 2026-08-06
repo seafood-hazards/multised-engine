@@ -222,6 +222,48 @@ Cross-source portability handled in code: `col_or_false` removal predicate (abse
 
 ---
 
+## 4. Geo-enrich — `seastamp` and its reference data
+
+Clean step 4 (`clean_geo_enrich()`) and pilot step 4 (`pilot_geo_enrich()`) both
+go through `seastamp_enrich()`, which shells out to the external
+[seastamp](https://github.com/AIQC-Hub/seastamp) CLI. Neither the binary nor its
+reference datasets ship with the package, so these are the two steps that can
+fail for environmental rather than data reasons. Skip them with
+`create_db("clean", src, steps = 1:3)` or `create_db("pilot", src, steps = c(1, 5))`.
+
+The wrapper runs four seastamp commands as one chain and validates every path up
+front, so all five datasets are needed even if only one column is wanted:
+
+| Dataset | Command | Column(s) | Size | Path under `geo_dir` |
+|---------|---------|-----------|-----:|----------------------|
+| GSHHG (full res) | `coast` | `dist_to_coast` (km) | 217 MB | `gshhg/gshhg-shp-2.3.7/GSHHS_shp/f` |
+| GEBCO sub-ice topo | `depth` | `depth` (positive-down; land → NULL) | 7.0 GB | `gebco/GEBCO_2024_sub_ice_topo.nc` |
+| IHO Sea Areas v3 | `sea` | `sea_name` | 143 MB | `iho/World_Seas_IHO_v3/World_Seas_IHO_v3.shp` |
+| Natural Earth 10m | `place` | `country`, `country_code` | 14 MB | `naturalearth/ne_10m_admin_0_countries.shp` |
+| GISCO LAU 2021 | `place` | `municipality` (Europe only) | 273 MB | `gisco/LAU_RG_01M_2021_4326.shp` |
+
+Fetch them with the tool's own `scripts/download_data.sh -d <geo_dir>`. IHO sits
+behind the Marine Regions licence form, so it needs `--mr-name`, `--mr-org`,
+`--mr-email` and `--mr-country`; running it accepts CC BY-NC-SA 4.0.
+
+`geo_dir` defaults to `multised_geo_dir()` (`data/geoenrich`, or the
+`multised.geo_dir` option) and is an argument of `create_db()`.
+
+**Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
+and they are transient: clean step 4 recomputes all six from the site table, so
+the clean values are the ones that survive. The pilot values are also **not**
+comparable with the stored pilot databases, whose geo columns came from the old
+sf + rnaturalearth + giscoR implementation that `pilot_geo_enrich()` replaced.
+
+**Region.** `region = "auto"` in code (seastamp's own default and the accurate
+choice), but the stored databases hold `"global"` values. `dist_to_coast` moves
+on every row between the two (median 4.8-11.3% by source, largest shift 93 km),
+`municipality` for 1,884 sites and `country` for 283; `depth` does not project
+and is unchanged. Adopting `auto` therefore needs a deliberate refresh, and will
+change the published multised-clean and multised-merged pages.
+
+---
+
 ## Aquaculture (Norway reference) — `R/aquaculture/`
 
 A standalone reference DB of Norwegian marine aquaculture sites, and a distance

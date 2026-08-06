@@ -68,6 +68,9 @@ slim_steps <- function(source) {
 #'   runs both. Defaults to every step that applies to the source.
 #' @param db_dir Directory holding the databases. Defaults to
 #'   [multised_db_dir()].
+#' @param geo_dir Directory holding the seastamp reference datasets, used by
+#'   the two geo steps (pilot step 4 and clean step 4) and ignored by every
+#'   other generation. Defaults to [multised_geo_dir()].
 #' @param verbose Print each step's summary as it runs.
 #'
 #' @return Invisibly, a named list with one element per step run, holding that
@@ -83,12 +86,19 @@ slim_steps <- function(source) {
 #'
 #' # against databases held somewhere else
 #' create_db("slim", "mudab", db_dir = "~/sediment/db")
+#'
+#' # geo-enrich from a reference tree outside the project
+#' create_db("pilot", "mareano", geo_dir = "~/geoenrich")
+#'
+#' # skip the geo step where seastamp is not installed
+#' create_db("pilot", "mareano", steps = c(1, 5))
 #' }
 create_db <- function(generation = c("pilot", "slim", "clean",
                                      "merged", "refined"),
                       source = NULL,
                       steps = NULL,
                       db_dir = multised_db_dir(),
+                      geo_dir = multised_geo_dir(),
                       verbose = TRUE) {
   generation <- match.arg(generation)
   per_source <- generation %in% c("pilot", "slim", "clean")
@@ -102,9 +112,9 @@ create_db <- function(generation = c("pilot", "slim", "clean",
 
   switch(
     generation,
-    pilot  = create_db_pilot(source, steps, db_dir, verbose),
+    pilot  = create_db_pilot(source, steps, db_dir, verbose, geo_dir = geo_dir),
     slim   = create_db_slim(source, steps, db_dir, verbose),
-    clean  = create_db_clean(source, steps, db_dir, verbose),
+    clean  = create_db_clean(source, steps, db_dir, verbose, geo_dir = geo_dir),
     merged  = create_db_merged(steps, db_dir, verbose),
     refined = create_db_refined(steps, db_dir, verbose),
     stop("The ", generation, " generation is not available through create_db() ",
@@ -214,7 +224,8 @@ clean_step_table <- function() {
   )
 }
 
-create_db_clean <- function(source, steps, db_dir, verbose) {
+create_db_clean <- function(source, steps, db_dir, verbose,
+                            geo_dir = multised_geo_dir()) {
   applicable <- clean_step_table()
 
   if (!is.null(steps)) {
@@ -233,7 +244,12 @@ create_db_clean <- function(source, steps, db_dir, verbose) {
     name <- applicable$name[i]
     fun  <- get(applicable$fun[i], mode = "function")
     msg(verbose, "\n== ", source, " clean step ", step, ": ", name, " ==\n")
-    out[[name]] <- fun(source, db_dir = db_dir, verbose = verbose)
+    # Only the geo step reads the seastamp reference tree.
+    out[[name]] <- if (name == "geo_enrich") {
+      fun(source, db_dir = db_dir, geo_dir = geo_dir, verbose = verbose)
+    } else {
+      fun(source, db_dir = db_dir, verbose = verbose)
+    }
   }
   invisible(out)
 }
@@ -309,7 +325,7 @@ pilot_extract <- function(source, raw_dir = multised_raw_dir(), verbose = TRUE) 
 
 create_db_pilot <- function(source, steps, db_dir, verbose,
                             raw_dir = multised_raw_dir(),
-                            geo_dir = "data/geoenrich") {
+                            geo_dir = multised_geo_dir()) {
   if (!source %in% PILOT_CONVERTED) {
     stop("The pilot generation is not available through create_db() for ",
          sQuote(source), " yet; only ", paste(sQuote(PILOT_CONVERTED), collapse = ", "),

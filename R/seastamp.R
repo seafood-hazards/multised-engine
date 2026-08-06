@@ -34,7 +34,7 @@ seastamp_bin <- function() {
 
 # Reference datasets. Still under data/geoenrich on disk (external storage, not
 # renamed with the tool).
-seastamp_data <- function(geo_dir = "data/geoenrich") {
+seastamp_data <- function(geo_dir = multised_geo_dir()) {
   list(
     coast     = file.path(geo_dir, "gshhg/gshhg-shp-2.3.7/GSHHS_shp/f"),
     depth     = file.path(geo_dir, "gebco/GEBCO_2024_sub_ice_topo.nc"),
@@ -87,7 +87,7 @@ seastamp_enrich <- function(points,
                             id_col   = "site_id",
                             lon_col  = "longitude",
                             lat_col  = "latitude",
-                            geo_dir  = "data/geoenrich",
+                            geo_dir  = multised_geo_dir(),
                             work_dir = file.path(tempdir(), "seastamp"),
                             region   = "auto",
                             verbose  = TRUE) {

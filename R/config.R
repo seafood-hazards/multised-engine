@@ -18,12 +18,13 @@ multised_sources <- function() {
 
 #' Where the databases and analysis outputs live
 #'
-#' `multised_db_dir()` is the directory holding the SQLite databases, and
-#' `multised_analysis_dir()` the directory analysis outputs are written to, and
-#' `multised_raw_dir()` the vendor files the pilot stage parses. All
-#' default to the layout used by the project itself and can be overridden
-#' globally with [options()], or per call via the `db_dir` argument of
-#' [create_db()].
+#' `multised_db_dir()` is the directory holding the SQLite databases,
+#' `multised_analysis_dir()` the directory analysis outputs are written to,
+#' `multised_raw_dir()` the vendor files the pilot stage parses, and
+#' `multised_geo_dir()` the seastamp reference datasets (GSHHG, GEBCO, IHO,
+#' Natural Earth, GISCO) the geo steps need. All default to the layout used by
+#' the project itself and can be overridden globally with [options()], or per
+#' call via the `db_dir` and `geo_dir` arguments of [create_db()].
 #'
 #' @return A length-one character path.
 #' @export
@@ -47,6 +48,12 @@ multised_analysis_dir <- function() {
 #' @export
 multised_raw_dir <- function() {
   getOption("multised.raw_dir", "data/raw")
+}
+
+#' @rdname multised_db_dir
+#' @export
+multised_geo_dir <- function() {
+  getOption("multised.geo_dir", "data/geoenrich")
 }
 
 # Source key -> database filename stem. The keys keep the hyphen used throughout

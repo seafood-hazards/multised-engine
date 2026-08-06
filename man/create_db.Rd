@@ -9,6 +9,7 @@ create_db(
   source = NULL,
   steps = NULL,
   db_dir = multised_db_dir(),
+  geo_dir = multised_geo_dir(),
   verbose = TRUE
 )
 }
@@ -25,6 +26,10 @@ runs both. Defaults to every step that applies to the source.}
 
 \item{db_dir}{Directory holding the databases. Defaults to
 \code{\link[=multised_db_dir]{multised_db_dir()}}.}
+
+\item{geo_dir}{Directory holding the seastamp reference datasets, used by
+the two geo steps (pilot step 4 and clean step 4) and ignored by every
+other generation. Defaults to \code{\link[=multised_geo_dir]{multised_geo_dir()}}.}
 
 \item{verbose}{Print each step's summary as it runs.}
 }
@@ -52,5 +57,11 @@ create_db("slim", "ices-dome", steps = 14:15)
 
 # against databases held somewhere else
 create_db("slim", "mudab", db_dir = "~/sediment/db")
+
+# geo-enrich from a reference tree outside the project
+create_db("pilot", "mareano", geo_dir = "~/geoenrich")
+
+# skip the geo step where seastamp is not installed
+create_db("pilot", "mareano", steps = c(1, 5))
 }
 }
