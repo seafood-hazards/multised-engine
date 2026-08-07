@@ -159,18 +159,37 @@ sapply(DBI::dbListTables(con), function(t)
 DBI::dbDisconnect(con)
 ```
 
-**Do not compare the geo columns against a stored pilot database.** They will
-differ, by design: those values came from an earlier implementation using `sf`
-with rnaturalearth and giscoR, which seastamp replaced. Same reference datasets,
-different code, so the numbers disagree in detail. Judge them on whether they
-are plausible — distances positive and sane, countries correct, `sea_name`
-populated — not on whether they reproduce.
+**The geo columns now reproduce.** The stored pilot databases were rebuilt with
+seastamp on 2026-08-07, so a fresh `create_db("pilot", src)` matches them
+exactly, geo columns included, as long as the same seastamp version and
+reference data are used.
 
-The `region` argument compounds this: the code uses seastamp's own
-`region = "auto"`, while the stored databases hold `"global"` values.
-`dist_to_coast` moves on every row between the two (median 4.8-11.3% by source,
-largest single shift 93 km), `municipality` for 1,884 sites and `country` for
-283. `depth` does not project and is unchanged.
+Before that rebuild they came from an earlier implementation using `sf` with
+rnaturalearth and giscoR. Replacing it changed the values, measured per source
+over the distinct station positions:
+
+| Source | dist_to_coast, median | municipality | sea_name | country |
+|---|---|--:|--:|--:|
+| `mareano` | 0.34 km (0.9%) | 63% | 99% | 0 |
+| `vannmiljo` | 0.02 km | 12% | 99.9% | 16 |
+| `ices-dome` | 0.04 km (0.4%) | 68% | 91% | 210 |
+| `mudab` | 0.05 km (0.2%) | 49% | 74% | 87 |
+| `4demon` | 0.03 km | 81% | 100% | 0 |
+
+Distances barely moved, since both implementations use GSHHG. `sea_name` moved
+almost everywhere and is the reason the rebuild was worth doing: the old values
+resolved only to ocean basins, so ICES-DOME described the whole of European
+waters with four labels where it now uses nineteen, and every 4Demon station on
+the Belgian shelf read `North Atlantic Ocean` rather than `North Sea`.
+`country_code` changed on every row in every source, from ISO alpha-2 to
+alpha-3.
+
+The `region` argument is a separate axis. The code uses seastamp's own
+`region = "auto"`, which is what the stored pilot databases now hold. The stored
+**clean** and **merged** databases still hold `"global"` values; between the two,
+`dist_to_coast` moves on every row (median 4.8-11.3% by source, largest single
+shift 93 km), `municipality` for 1,884 sites and `country` for 283. `depth` does
+not project and is unchanged.
 
 ## When it fails
 
