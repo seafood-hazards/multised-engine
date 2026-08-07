@@ -52,8 +52,11 @@ Alongside the generations:
   finished DB, writing CSVs to `data/analysis/<module>/` for the websites. The
   generation token (`clean` / `merged` / `refined`) says which DB is read. Run
   with `analyze_data()`. See [analysis.md](docs/analysis.md).
-- **websites** — four Quarto sites, each in a **sibling repo**, not in this
-  project. See [websites.md](docs/websites.md).
+- **websites** — nine Quarto sites, each in a **sibling repo**, not in this
+  project: five per-source pilot sites (`../<source>-pilot`) plus one per later
+  generation. A pilot site depends only on its `<source>_pilot.sqlite`, taken
+  from that repo's *latest* release, so **every release there must carry the
+  database as an asset**. See [websites.md](docs/websites.md).
 
 ## Public interface
 
@@ -208,6 +211,6 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [merge-pipeline.md](docs/merge-pipeline.md) | union, dedup rules, finalise, outlier flagging, summary |
 | [refined-pipeline.md](docs/refined-pipeline.md) | refined mart schema, steps, resolved/open decisions |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
-| [websites.md](docs/websites.md) | the four sibling-repo Quarto sites, publishing, gotchas |
+| [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
 | [plan.md](docs/plan.md) | overall project plan |

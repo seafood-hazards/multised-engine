@@ -199,6 +199,32 @@ chain, so even a run that only wants `dist_to_coast` needs GEBCO present.
 That is readxl repairing empty column names, and it is expected for Mareano and
 Vannmiljø.
 
+## Publishing to the pilot sites
+
+Each source has its own Quarto site — `mareano-pilot`, `vannmiljo-pilot`,
+`ices-dome-pilot`, `mudab-pilot`, `4demon-pilot` — and each depends on exactly
+one file: the `<source>_pilot.sqlite` this generation writes. The site downloads
+it from its own repository's **latest** release, so a rebuilt database reaches
+the site by being attached to a new release there:
+
+```{r}
+# from the site repo, after tagging vX.Y.Z
+# gh release create vX.Y.Z --title vX.Y.Z --notes-from-tag \
+#   ../multised-engine/data/db/mareano_pilot.sqlite
+```
+
+Two things to know before doing that:
+
+- **`releases/latest/download/` does not fall back.** A release published without
+  the database as an asset breaks that site's next render, so every release must
+  carry it, and the release must exist before `main` is pushed.
+- **The content change needs a `cacheKey` bump** in the site's `_db-setup.qmd`,
+  or returning browsers keep serving the cached old copy.
+
+The site repos' `docs/site.md` files carry the full procedure. See
+[websites.md](https://github.com/seafood-hazards/multised-engine/blob/main/docs/websites.md)
+for how the five pilot sites differ from the four generation sites.
+
 ## Next
 
 `create_db("slim", source)` reads `<source>_pilot.sqlite` and reshapes it into
