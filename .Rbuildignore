@@ -19,5 +19,7 @@
 ^\.idea$
 ^\.Rhistory$
 ^_pkgdown\.yml$
+# Read by renv::dependencies() only; not package code.
+^_dependencies\.R$
 ^vignettes/articles$
 ^pkgdown$
