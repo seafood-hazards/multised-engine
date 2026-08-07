@@ -1,0 +1,149 @@
+---
+title: "Analyses: refined"
+description: >
+  The background suite: one module of six ordered steps on the refined
+  database, plus the flat export.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+The refined generation has **one** analysis module, `background`, and it holds
+six steps rather than one. They are the reason the refined mart exists: five
+independent ways of asking what a pristine sediment concentration looks like,
+and a sixth that puts the answers side by side.
+
+They read a finished database and write tidy CSVs under `out_dir/background/`.
+Nothing here **modifies a pipeline database**, so re-running is always safe.
+
+## Before you start
+
+**`multised_refined.sqlite`** in `db_dir`. The aquaculture reference is already
+folded into it, so that is the only file needed, and no suggested packages are
+involved.
+
+## Running them
+
+```{r}
+analyze_data("refined", out_dir = "./data/analysis-test")     # the whole suite
+analyze_data("refined", module = "background", steps = 4,
+             out_dir = "./data/analysis-test")                # just the EF step
+```
+
+**Pass `out_dir`.** It defaults to the live analysis tree (`data/analysis`), and
+a test run left at the default overwrites the files multised-refined is built
+from.
+
+`db_dir` is read-only here, so pointing it at the real `data/db` is safe, and is
+what you want.
+
+About 0.1 minutes — the fastest of the three, because the mart already carries
+the ratios the analyses would otherwise compute.
+
+`analyze_data("refined")` reports **one module, not six**. The six are steps
+within it, which is why `steps` works here and nowhere else.
+
+## The six steps
+
+| Step | Function | Asks |
+|---|---|---|
+| 1 | `analysis_refined_background()` | what do the raw percentiles say? |
+| 2 | `analysis_refined_background_gsnorm()` | and after grain-size normalisation? |
+| 3 | `analysis_refined_background_pressure()` | and if you select on pressure (distance to aquaculture, to coast)? |
+| 4 | `analysis_refined_background_ef()` | what does the enrichment factor against Al say? |
+| 5 | `analysis_refined_background_mixture()` | can a distribution mixture separate background from contaminated? |
+| 6 | `analysis_refined_pristine()` | do the answers agree? |
+
+The six map onto the six background pages of multised-refined, in this order.
+
+### Step 6 depends on 1, 4 and 5
+
+Steps 1-5 are independent: each reads the database and writes its own CSVs, so
+any of them can be re-run alone. Step 6 is different — it is a **synthesis**,
+and it reads three earlier outputs back out of `out_dir/background/`:
+
+```
+refined_background_compare.csv     (step 1)  → the p90 offshore percentile
+refined_ef_background.csv          (step 4)  → the EF background ratio
+refined_mixture_components.csv     (step 5)  → the mixture threshold
+```
+
+So `steps = 6` into a **fresh** `out_dir` fails at the first `read_csv()`. Run
+the suite once into that directory first, or point `out_dir` at one that already
+has the earlier outputs.
+
+## What you should get
+
+20 files in one directory:
+
+```
+background/  refined_background_{compare,meta,percentiles}.csv          (step 1)
+             refined_gsnorm_{compare,meta,percentiles}.csv              (step 2)
+             refined_pressure_{compare,meta,percentiles}.csv            (step 3)
+             refined_ef_{background,dist,meta,pressure}.csv             (step 4)
+             refined_mixture_{components,hist,meta}.csv                 (step 5)
+             refined_pristine_{coverage,meta,summary,validation}.csv    (step 6)
+```
+
+Every step writes a `*_meta.csv` recording the thresholds and filters it used,
+which is what makes the six comparable at step 6 rather than merely adjacent.
+
+The headline finding is in `refined_pristine_coverage.csv`, and it is a negative
+one worth expecting: **aquaculture-proximate sites cannot be classified for lack
+of aluminium** — about 2% Al coverage within 1 km of a farm against 90% beyond
+20 km. The enrichment-factor route needs Al, and the sites under most pressure
+are the ones that do not have it.
+
+## Checking a rebuild
+
+Deterministic, so given the same database they reproduce byte for byte.
+
+```{r}
+a <- "./data/analysis/background"; b <- "./data/analysis-test/background"
+f <- intersect(list.files(a), list.files(b))
+table(vapply(f, function(x)
+  identical(unname(tools::md5sum(file.path(a, x))),
+            unname(tools::md5sum(file.path(b, x)))), logical(1)))
+```
+
+Verified here: **20 of 20 identical**. There are no known stale outputs in this
+generation, so anything `FALSE` is worth investigating.
+
+## The export is not an analysis
+
+The flat downloadable dataset comes from the same database but denormalises
+rather than computing, so it lives behind its own verb:
+
+```{r}
+export_data("refined", out_dir = "./data/analysis-test")
+```
+
+115,820 rows by 16 columns, plus a column dictionary, under
+`<out_dir>/download/` — the path the multised-refined pre-render expects.
+`refined` is the only generation with an export, and it is deliberately not
+reachable as an analysis module: there is exactly one public path to it. See
+`export_data()` and `vignette("refined")`.
+
+## When it fails
+
+**"unable to open database file"** — `multised_refined.sqlite` is not in
+`db_dir`.
+
+**A `read_csv()` error in step 6** — the earlier outputs are not in
+`out_dir/background/`. See above; run steps 1-5 first.
+
+**"The refined generation has no module 'grainsize'."** — the refined generation
+has exactly one module. `analysis_modules("refined")` shows its six steps.
+
+**"`steps` selects within one module, so `module` is required with it."** — pass
+`module = "background"` alongside `steps`.
+
+**CSVs appearing in `data/analysis`** — `out_dir` was left at its default.
+
+## The site
+
+These outputs feed **multised-refined**, along with the two download pages.
+Adding an output means uploading it to that repo's release before pushing
+`main`: the CI pre-render downloads the assets, and a local render hides the
+problem because the local data symlink is skip-if-exists.

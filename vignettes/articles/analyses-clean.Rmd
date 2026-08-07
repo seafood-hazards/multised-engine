@@ -1,0 +1,141 @@
+---
+title: "Analyses: clean"
+description: >
+  Six per-source analyses on the five clean databases, feeding the
+  multised-clean site.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+The clean analyses answer *what is in each source, and how comparable is it?*
+They run before any cross-source merging, which is the point: results are tagged
+by source and kept apart, so a problem that belongs to Vannmiljø stays visible
+as Vannmiljø's rather than being averaged into a total.
+
+They read a finished database and write tidy CSVs under `out_dir/<module>/`.
+Nothing here **modifies a pipeline database**, so re-running is always safe; the
+only thing at risk is the output directory.
+
+## Before you start
+
+**All five clean databases** in `db_dir`. Each module loops over the five stems
+unconditionally, so a missing one is an error rather than a smaller result.
+
+Nothing external, and no suggested packages: the clean analyses read SQLite and
+write CSVs.
+
+## Running them
+
+```{r}
+analyze_data("clean", out_dir = "./data/analysis-test")                  # all 6
+analyze_data("clean", module = "grainsize", out_dir = "./data/analysis-test")
+```
+
+**Pass `out_dir`.** It defaults to the live analysis tree (`data/analysis`),
+which is what the multised-clean pre-render reads, so a test run left at the
+default overwrites the site's inputs. Nothing is destroyed that a re-run cannot
+restore, but there is no reason to.
+
+`db_dir` is read-only here, so pointing it at the real `data/db` is safe, and is
+what you want: the analyses should be checked against the databases the stored
+outputs came from.
+
+About 0.2 minutes for all six.
+
+## The six modules
+
+`analysis_modules("clean")` is the executable version of this table.
+
+| Module | Covers | Files |
+|---|---|--:|
+| `grainsize` | sediment fraction and <63µm fines behind the target concentrations | 5 |
+| `normalisation` | Fe/Al normalisation | 4 |
+| `organic` | organic carbon | 4 |
+| `spatial` | depth and distance to coast | 3 |
+| `temporal` | sampling year | 3 |
+| `uncertainty` | measurement uncertainty | 5 |
+
+Each module writes one set of CSVs covering **all five sources**, with a
+`Source` column, rather than one file per source. Depths are kept in full but
+reported by the EFSA depth bands (0-5 / 5-40 / >40 cm), assigned from the
+subsample interval midpoint.
+
+### Sharing directories with merged
+
+`grainsize`, `normalisation`, `organic`, `spatial` and `temporal` **also exist
+for the merged generation**, and the two write into the same module directory.
+They do not collide: every merged file is prefixed `merged_`
+(`merged_grainsize_fines_summary.csv` beside `grainsize_fines_summary.csv`).
+
+This is why the generation token is in the function name
+(`analysis_clean_grainsize()` vs `analysis_merged_grainsize()`) rather than the
+module name alone, and why a directory listing mixes the outputs of two
+generations. See `vignette("analyses-merged")`.
+
+## What you should get
+
+24 files across six directories:
+
+```
+grainsize/      grainsize_bulk_vs_sieved.csv  grainsize_conc_vs_fines.csv
+                grainsize_fines_summary.csv   grainsize_fraction_summary.csv
+                grainsize_targets_fines.csv
+normalisation/  normalisation_availability.csv  normalisation_correlation.csv
+                normalisation_pairs.csv         normalisation_ratios.csv
+organic/        organic_availability.csv  organic_correlation.csv
+                organic_distribution.csv  organic_pairs.csv
+spatial/        spatial_enrichment.csv  spatial_normaliser.csv  spatial_pairs.csv
+temporal/       temporal_enrichment.csv  temporal_normaliser.csv  temporal_pairs.csv
+uncertainty/    uncertainty_by_element.csv  uncertainty_by_method.csv
+                uncertainty_coverage.csv    uncertainty_pairs.csv
+                uncertainty_rel_values.csv
+```
+
+All 24 also exist in the stored tree.
+
+## Checking a rebuild
+
+Deterministic, so given the same databases they reproduce byte for byte.
+
+```{r}
+compare <- function(out, prefix = "^(?!merged_)") {
+  mods <- basename(list.dirs(out, recursive = FALSE))
+  unlist(lapply(mods, function(m) {
+    a <- file.path("./data/analysis", m); b <- file.path(out, m)
+    f <- intersect(list.files(a), list.files(b))
+    f <- grep(prefix, f, perl = TRUE, value = TRUE)
+    stats::setNames(vapply(f, function(x)
+      identical(unname(tools::md5sum(file.path(a, x))),
+                unname(tools::md5sum(file.path(b, x)))), logical(1)),
+      file.path(m, f))
+  }))
+}
+
+table(compare("./data/analysis-test"))
+```
+
+Verified here: **24 of 24 identical**. Unlike the merged generation, the clean
+analyses have no known stale outputs, so anything `FALSE` is worth
+investigating.
+
+## When it fails
+
+**"unable to open database file"** — one of the five clean databases is not in
+`db_dir`. All five, or none; there is no per-source clean analysis.
+
+**"The clean generation has no module 'clustering'."** — module names are
+validated against the generation. `analysis_modules("clean")` lists the six.
+
+**"`steps` selects within one module, so `module` is required with it."** — no
+clean module has more than one step, so `steps` has nothing to select here.
+
+**CSVs appearing in `data/analysis`** — `out_dir` was left at its default.
+
+## The site
+
+These outputs feed **multised-clean**, which also carries the aquaculture and
+merge-build pages. Adding an output means uploading it to that repo's release
+before pushing `main`: the CI pre-render downloads the assets, and a local
+render hides the problem because the local data symlink is skip-if-exists.

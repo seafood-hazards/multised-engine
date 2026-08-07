@@ -1,0 +1,186 @@
+---
+title: "Analyses: merged"
+description: >
+  Thirteen cross-source analyses on the merged database, feeding the
+  multised-merged site.
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Once the five sources are one database, the questions change. The clean
+analyses ask what each source holds; the merged analyses ask what the *combined*
+record shows — where the concentrations cluster, which regions look alike, how a
+profile behaves down a core, what the coverage actually is once duplicates are
+gone.
+
+They read a finished database and write tidy CSVs (and, for one module, plots)
+under `out_dir/<module>/`. Nothing here **modifies a pipeline database**, so
+re-running is always safe.
+
+## Before you start
+
+**`multised_merged.sqlite`** in `db_dir`. That is the whole prerequisite — no
+per-source databases, nothing external.
+
+Two modules need a suggested package and name it if missing:
+
+- `clustering` needs **cluster**
+- `outlier_review` needs **ggplot2**
+
+## Running them
+
+```{r}
+analyze_data("merged", out_dir = "./data/analysis-test")                 # all 13
+analyze_data("merged", module = "hotspots", out_dir = "./data/analysis-test")
+```
+
+**Pass `out_dir`.** It defaults to the live analysis tree (`data/analysis`), and
+a test run left at the default overwrites the files the site is built from.
+
+`db_dir` is read-only here, so pointing it at the real `data/db` is safe, and is
+what you want: the analyses should be checked against the database the stored
+outputs came from.
+
+About 0.6 minutes for all thirteen — the longest of the three generations, and
+still under a minute.
+
+## The thirteen modules
+
+`analysis_modules("merged")` is the executable version of this table.
+
+| Module | Covers | Files |
+|---|---|--:|
+| `merged_summary` | the **Data Categories** page: every target/reference/organic measurement classified by fraction (bulk / sieved63 / sieved20), covariate availability and layering | 3 |
+| `grainsize` | grain size and fines on the merged database | 5 |
+| `normalisation` | Fe/Al normalisation | 4 |
+| `organic` | organic carbon | 4 |
+| `spatial` | depth and distance to coast | 3 |
+| `temporal` | sampling year | 4 |
+| `depthprofile` | down-core depth profiles | 4 |
+| `enrichment` | enrichment | 3 |
+| `clustering` | Facies: K-means on chemistry. Needs **cluster** | 4 |
+| `hotspots` | Hotspots: DBSCAN on geography | 4 |
+| `regions` | Regions: both, weighted | 4 |
+| `siteyears` | location-controlled temporal trend, 2dp grid, within-cell | 4 |
+| `outlier_review` | review prototype, **not a site input**. Needs **ggplot2** | 5 |
+
+`clustering`, `hotspots` and `regions` are one family rather than three
+unrelated modules: chemistry alone, geography alone, and the two combined under
+a weight sweep. They make sense read together.
+
+Five module names are shared with the clean generation, and the two write into
+the same directory. They do not collide — every file here is prefixed `merged_`
+(`merged_grainsize_fines_summary.csv` beside clean's
+`grainsize_fines_summary.csv`). See `vignette("analyses-clean")`.
+
+## outlier_review is not a site input
+
+It is the prototype that settled the distributional `outlier_flag` rule the
+**merge stage now applies** (`merge_mark_outliers()`, merged step 4). It writes
+candidate and summary CSVs plus three distribution plots for eyeballing, and it
+runs as part of a full `"merged"` pass, but no Quarto page reads it. The
+site's Outlier Flagging page reads the `merge_outlier_*` CSVs written by the
+merge step instead.
+
+## What you should get
+
+51 files across thirteen directories. The prefixes make the generation obvious
+in a listing:
+
+```
+merged_summary/   merged_bulk_factors.csv  merged_coverage_fraction.csv
+                  merged_layering.csv
+grainsize/        merged_grainsize_*.csv                              (5)
+normalisation/    merged_normalisation_*.csv                          (4)
+organic/          merged_organic_*.csv                                (4)
+spatial/          merged_spatial_*.csv                                (3)
+temporal/         merged_temporal_*.csv                               (4)
+depthprofile/     merged_depthprofile_*.csv                           (4)
+enrichment/       merged_enrichment_*.csv                             (3)
+clustering/       merged_clustering_*.csv                             (4)
+hotspots/         merged_hotspots_*.csv                               (4)
+regions/          merged_regions_*.csv                                (4)
+siteyears/        merged_siteyears_*.csv                              (4)
+outlier_review/   outlier_candidates.csv  outlier_group_summary.csv
+                  outlier_dist_{organic,reference,target}.png
+```
+
+`outlier_review` is the one module without the prefix, which is consistent with
+it being the one module that feeds no page.
+
+## Checking a rebuild
+
+Deterministic, so given the same database they reproduce byte for byte.
+
+```{r}
+compare <- function(out) {
+  mods <- basename(list.dirs(out, recursive = FALSE))
+  unlist(lapply(mods, function(m) {
+    a <- file.path("./data/analysis", m); b <- file.path(out, m)
+    f <- intersect(list.files(a), list.files(b))
+    stats::setNames(vapply(f, function(x)
+      identical(unname(tools::md5sum(file.path(a, x))),
+                unname(tools::md5sum(file.path(b, x)))), logical(1)),
+      file.path(m, f))
+  }))
+}
+
+table(compare("./data/analysis-test"))
+```
+
+Verified here: **46 of 51 identical**.
+
+### The five that differ
+
+All five are `outlier_review`:
+
+```
+outlier_review/outlier_candidates.csv
+outlier_review/outlier_group_summary.csv
+outlier_review/outlier_dist_organic.png
+outlier_review/outlier_dist_reference.png
+outlier_review/outlier_dist_target.png
+```
+
+**The stored files are stale, not the new ones.** Running the original script
+`R/analysis/outlier_review/01_merged_outlier_review.R`, before it was removed at
+v0.3.0, into an isolated directory and comparing all three versions by MD5
+gives:
+
+| File | converted == original | stored == original |
+|---|---|---|
+| all five | **TRUE** | FALSE |
+
+So the conversion reproduces the original exactly, and the stored copies match
+neither. They predate the merge-stage outlier flagging that settled the rule
+this module was written to explore. Re-run the module if you want current
+numbers.
+
+Worth knowing before judging a rebuild: five differences that all sit in one
+module, and that module a review prototype rather than a site input, is the
+expected result — not a conversion defect.
+
+## When it fails
+
+**"unable to open database file"** — `multised_merged.sqlite` is not in
+`db_dir`.
+
+**"The clustering analysis needs the suggested package(s): cluster."** — install
+it, or run the other twelve modules individually.
+
+**"The outlier_review analysis needs the suggested package(s): ggplot2."** —
+same, and this one costs nothing to skip, since no page reads it.
+
+**"The merged generation has no module 'uncertainty'."** — that one is clean
+only. `analysis_modules("merged")` lists the thirteen.
+
+**CSVs appearing in `data/analysis`** — `out_dir` was left at its default.
+
+## The site
+
+These outputs feed **multised-merged**. Adding an output means uploading it to
+that repo's release before pushing `main`: the CI pre-render downloads the
+assets, and a local render hides the problem because the local data symlink is
+skip-if-exists.
