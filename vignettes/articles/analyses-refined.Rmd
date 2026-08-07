@@ -113,17 +113,43 @@ generation, so anything `FALSE` is worth investigating.
 ## The export is not an analysis
 
 The flat downloadable dataset comes from the same database but denormalises
-rather than computing, so it lives behind its own verb:
+rather than deriving anything of its own, so it lives behind its own verb:
 
 ```{r}
 export_data("refined", out_dir = "./data/analysis-test")
 ```
 
-115,820 rows by 16 columns, plus a column dictionary, under
+115,820 rows by 25 columns, plus a column dictionary, under
 `<out_dir>/download/` — the path the multised-refined pre-render expects.
 `refined` is the only generation with an export, and it is deliberately not
 reachable as an analysis module: there is exactly one public path to it. See
 `export_data()` and `vignette("refined")`.
+
+**It runs after this module, not before.** Nine of the 25 columns are the
+pristine and background verdicts, and the export does not derive them: it joins
+the reference values this module wrote (`refined_ef_background.csv`,
+`refined_background_compare.csv`, `refined_mixture_components.csv`) and applies
+the published rules. Run it on an empty `out_dir` and it stops, naming the files
+it could not find, rather than writing a dataset with the verdict columns
+missing or invented.
+
+That coupling is the point: the download and the Pristine Classification page
+cannot drift apart, because there is one set of thresholds. The cheap way to
+confirm it after a change is to group the exported rows by element and fraction
+and compare against `refined_pristine_summary.csv`:
+
+```{r}
+d <- readr::read_tsv("./data/analysis-test/download/multised_refined_dataset.tsv.gz")
+d |>
+  dplyr::filter(fraction %in% c("bulk", "sieved63", "sieved20"),
+                is.na(outlier_flag), value_mgkg > 0) |>
+  dplyr::group_by(symbol = element, cat = fraction) |>
+  dplyr::summarise(pct_classifiable = round(100 * mean(classifiable)),
+                   pct_ef = round(100 * mean(pristine_ef, na.rm = TRUE)),
+                   .groups = "drop")
+```
+
+Verified here: **20 of 20 groups identical** to the analysis.
 
 ## When it fails
 

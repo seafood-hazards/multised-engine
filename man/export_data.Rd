@@ -37,6 +37,12 @@ schema. It reads only, so re-running is always safe.
 \details{
 The refined export writes to \verb{out_dir/download/}, the path the
 multised-refined site's pre-render step expects.
+
+The refined dataset carries the pristine and background verdicts alongside
+the measurements. It does not derive them: the thresholds come from the
+\code{background} module's outputs under \verb{out_dir/background/}, so
+\code{analyze_data("refined")} must have run against the same \code{out_dir} first.
+If those files are missing the export stops and names them.
 }
 \examples{
 \dontrun{
