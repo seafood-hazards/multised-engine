@@ -257,12 +257,14 @@ Terminal tab finds is often invisible to the console, and the run fails with
 
 **Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
 and they are transient: clean step 4 recomputes all six from the site table, so
-the clean values are the ones that survive. The pilot values are also **not**
-comparable with the stored pilot databases, whose geo columns came from the old
+the clean values are the ones that survive. The stored **pilot** databases were
+rebuilt with seastamp on 2026-08-07 and published to the five pilot sites, so
+they now agree with a fresh build; before that they held values from the old
 sf + rnaturalearth + giscoR implementation that `pilot_geo_enrich()` replaced.
 
 **Region.** `region = "auto"` in code (seastamp's own default and the accurate
-choice), but the stored databases hold `"global"` values. `dist_to_coast` moves
+choice), and what the stored pilot databases now hold, but the stored clean and
+merged databases still hold `"global"` values. `dist_to_coast` moves
 on every row between the two (median 4.8-11.3% by source, largest shift 93 km),
 `municipality` for 1,884 sites and `country` for 283; `depth` does not project
 and is unchanged. Adopting `auto` therefore needs a deliberate refresh, and will
