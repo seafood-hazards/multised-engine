@@ -82,8 +82,10 @@ export_data(generation = "refined", source = NULL,
   `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
   module for it. Most modules hold one analysis; `background` holds six.
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
-  column dictionary. It computes nothing, which is why it is not an analysis
-  module; `refined` is the only generation with one.
+  column dictionary. It derives nothing of its own, which is why it is not an
+  analysis module; `refined` is the only generation with one. It does carry the
+  pristine / background verdicts, joined from the `background` module's CSVs, so
+  **`analyze_data("refined")` must have run first** or it errors.
 - `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
   `analyze_data()` `steps` selects within one module and so requires `module`
   (only `background` has more than one step).

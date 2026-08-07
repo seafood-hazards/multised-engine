@@ -29,9 +29,18 @@ Two modules need a suggested package, and say so if it is missing:
 `clustering` needs **cluster**, `outlier_review` needs **ggplot2**.
 
 The flat downloadable dataset is **not** an analysis module: it denormalises
-rather than computing, so it lives behind `export_data("refined")`. It still
-writes to `<out_dir>/download/`, the path the multised-refined pre-render
-expects. See [the export section](#export).
+rather than deriving anything of its own, so it lives behind
+`export_data("refined")`. It still writes to `<out_dir>/download/`, the path the
+multised-refined pre-render expects. See [the export section](#export).
+
+It does ship the pristine and background verdicts, but it reads the thresholds
+behind them from the `background` module's outputs
+(`refined_ef_background.csv`, `refined_background_compare.csv`,
+`refined_mixture_components.csv`) rather than recomputing them. So the export
+now **depends on the background module having run**, and stops with a message
+naming the missing files if it has not. That coupling is deliberate: it is what
+keeps the download and the site's Pristine Classification page from drifting
+apart.
 
 ## Layout
 
@@ -117,3 +126,31 @@ Dataset Download page. Only the refined generation has an export; the five
 `inst/scripts/pilot/<source>_07_create_data_frame.R` scripts are legacy
 per-source review dumps for the retired pilot sites and are not part of the
 interface.
+
+**25 columns.** Sixteen describe the measurement (location, year, layer,
+element, fraction, value, the Fe / Al / organic normalisers, the fines, the two
+distances, `outlier_flag`). The other nine are the verdicts, added by
+`add_background_flags()`:
+
+| Column | Is |
+|---|---|
+| `ef` | the enrichment factor, `ratio_al / bg_ratio_al` |
+| `classifiable` | whether an EF exists, so a pristine verdict is possible |
+| `pristine_ef` | `EF < 1`, the permissive rule |
+| `pristine_strict` | `EF < 1` and below the mixture threshold and below the offshore P90 |
+| `background_p90` | below the offshore P90 (raw concentration, not grain-size controlled) |
+| `background_mixture` | below the mixture threshold (likewise) |
+| `bg_ratio_al`, `p90_off`, `mixture_threshold` | the three references applied to that row |
+
+Scope matches `analysis_refined_pristine()` exactly: fractions `bulk` /
+`sieved63` / `sieved20`, outliers dropped, non-positive values dropped. Rows
+outside it get empty verdicts, never verdicts computed on a different basis.
+The match is checkable, and is worth rechecking after any change to the
+background module: group the exported rows by element and fraction and compare
+`pct_classifiable` / `pct_ef` / `pct_strict` against
+`refined_pristine_summary.csv`. All 20 groups agree.
+
+`ef` is written with `signif(, 6)` rather than rounded to a few decimals, and
+`check_ef_consistent()` enforces the reason: at 3 decimals, 24 rows with an EF
+just under 1 printed as `1.000` beside `pristine_ef = TRUE`, so the file
+contradicted itself for anyone applying their own cutoff.

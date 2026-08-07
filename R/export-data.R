@@ -23,6 +23,12 @@ export_table <- function() {
 #' The refined export writes to `out_dir/download/`, the path the
 #' multised-refined site's pre-render step expects.
 #'
+#' The refined dataset carries the pristine and background verdicts alongside
+#' the measurements. It does not derive them: the thresholds come from the
+#' `background` module's outputs under `out_dir/background/`, so
+#' `analyze_data("refined")` must have run against the same `out_dir` first.
+#' If those files are missing the export stops and names them.
+#'
 #' @param generation Which database to export. Currently `"refined"` only.
 #' @param source Must be `NULL`. Present for symmetry with [create_db()]; no
 #'   export is per-source yet.
