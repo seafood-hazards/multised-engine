@@ -1,0 +1,64 @@
+name: Publish pkgdown Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages:    write
+  id-token: write
+
+# One deployment at a time; do not cancel a run that is already publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url:  ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # Hard dependencies only. The Suggests (sf, ggplot2, cluster, readxl, ...)
+      # are needed to RUN the pipeline, not to document it: every article chunk
+      # is `eval = FALSE` and no runnable example touches them. Installing them
+      # here would mean building GDAL, GEOS and PROJ for nothing.
+      - name: Install dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: any::pkgdown, local::.
+
+      # Not build_site_github_pages(): its dest_dir defaults to docs/, which
+      # here holds the specification documents. build_site() honours the
+      # `destination: docs/site` in _pkgdown.yml.
+      - name: Build site
+        run: pkgdown::build_site(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Add .nojekyll
+        run: touch docs/site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site/
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
