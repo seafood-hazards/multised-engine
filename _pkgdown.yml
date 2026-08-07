@@ -31,9 +31,13 @@ articles:
 - title: Using them
   navbar: Analyses
   desc: >
-    Read-only analyses on a finished database, and the flat export.
+    Read-only analyses on a finished database, one article per generation: what
+    each reads, what it writes, and which site it feeds. The flat export is
+    covered with the refined analyses.
   contents:
-  - articles/analyses
+  - articles/analyses-clean
+  - articles/analyses-merged
+  - articles/analyses-refined
 
 reference:
 - title: Building a database

@@ -158,7 +158,7 @@ Five generations from vendor exports to a mart. The analyses run on the last
 three:
 
 ```{r}
-analyze_data("clean", ...)     #  6 modules
-analyze_data("merged", ...)    # 13 modules
-analyze_data("refined", ...)   #  6, the background suite
+analyze_data("clean", ...)     #  6 modules      vignette("analyses-clean")
+analyze_data("merged", ...)    # 13 modules      vignette("analyses-merged")
+analyze_data("refined", ...)   #  1, six steps   vignette("analyses-refined")
 ```
