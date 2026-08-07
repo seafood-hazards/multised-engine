@@ -1,3 +1,34 @@
+# multised.engine 0.3.1
+
+Documentation and publishing only: no pipeline code changed, so a rebuild from
+this version reproduces exactly what `v0.3.0` did.
+
+## Publishing
+
+* The **pkgdown site is live** at
+  <https://seafood-hazards.github.io/multised-engine/>, built and deployed from
+  `main` by GitHub Actions. It installs hard dependencies only, since every
+  article chunk is `eval = FALSE` and nothing runnable touches `sf` - which would
+  otherwise mean building GDAL, GEOS and PROJ to render prose.
+
+## Documentation
+
+* The single Analyses article is **split into one per generation**
+  (`analyses-clean`, `analyses-merged`, `analyses-refined`), each shaped like the
+  generation articles: what it reads, what it writes, how to check a rebuild, and
+  which site it feeds.
+* The **five pilot websites** are documented. `docs/websites.md` now covers all
+  nine sites, and `vignette("pilot")` gains the publishing procedure: each pilot
+  site depends on exactly one `<source>_pilot.sqlite`, taken from its own
+  repository's *latest* release, which does not fall back - so every release
+  there must carry the database.
+* **Pilot geo columns now reproduce.** The stored pilot databases were rebuilt
+  with seastamp on 2026-08-07, so a fresh `create_db("pilot", src)` matches them
+  including the six location columns. `vignette("pilot")` records what the
+  earlier `sf` implementation produced instead, per source; the change that
+  mattered was `sea_name` resolving IHO sea areas rather than ocean basins.
+  The stored clean and merged databases still hold `region = "global"` values.
+
 # multised.engine 0.3.0
 
 The package gains a public interface. Everything the project does is now behind
