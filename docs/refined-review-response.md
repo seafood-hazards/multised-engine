@@ -421,8 +421,23 @@ dataset is rebuilt three times.
    indicator, and the confirmed / no-signal reading of the held-out aquaculture
    check). The three amendments in §5 are all carried. Two things came out of
    writing them, in §6 below.
-7. Deferred to separate work: item 7 (regression normalisation), item 10's
-   matched-fjord and temporal-alignment analyses.
+7. Item 7 (regression normalisation) and item 10's matched-fjord and
+   temporal-alignment analyses.
+
+   **Item 10's half is done, v0.9.3**, and it is the largest single change to a
+   published conclusion in this whole response. Both confounders turned out to be
+   directly measurable on the refined DB, so neither needed the new data the
+   disposition assumed. `analysis_refined_pressure_controls()` (background step 7)
+   and the new **Pressure Controls** page report the near/far ratio under two
+   controls: restricting the near band to samples taken while the farm was
+   operating, and matching against a local far band inside the same municipality
+   rather than the national >20 km pool. Copper falls 3.22 to 1.04, zinc 1.81 to
+   0.85, molybdenum 13.5 to 8.03 on 28 time-aligned measurements. See §7.
+
+   Item 7's **sub-point is done in the same release**: the note that a sieved
+   fraction is already a grain-size control, so Al-normalising inside one controls
+   grain size twice, is on the EF page. The regression normalisation itself is
+   still outstanding and is the last item in this document.
 
 ---
 
@@ -490,3 +505,101 @@ One correction went out with the pages: the classifiability caption on
 pre-restriction figures. The figure itself has drawn 1% and 79% since v0.9.0,
 because restricting the reference to one aluminium basis removed samples from
 the classifiable set. Only the caption was stale.
+
+---
+
+## 7. Ordering step 7, part one: the pressure gradient is an upper bound
+
+Item 10's two remaining limitations were recorded as "neither is a quick fix". Both
+turned out to be measurable on the refined database as it stands, and the answers
+change a published conclusion.
+
+### Temporal alignment
+
+`site.aqua_id` keys every Norwegian site to its **nearest** farm, regardless of
+whether that farm existed when the sediment was collected. The aquaculture
+reference carries `start_year` (the Fiskeridirektoratet clearance date) and
+`end_year` (the withdrawal date), so each near-farm measurement can be placed
+before clearance, during operation, or after closure.
+
+Bulk measurements within 1 km of a farm, by period:
+
+| Element | pre-farm | operating | post-closure | operating P90 | pre-farm P90 |
+|---------|---------:|----------:|-------------:|--------------:|-------------:|
+| CU | 1,000 | 10,867 | 1,195 | 72 | **180** |
+| ZN | 952 | 9,738 | 1,160 | 142 | **636** |
+| MO | **106** | **28** | 17 | 29.7 | **54.9** |
+| CO | 78 | 52 | 10 | 19.8 | 14.0 |
+| MN | 86 | 30 | 20 | 584 | 565 |
+| SE | 0 | 1 | 1 | | |
+
+Two findings. **The 13.5x molybdenum headline rests on 28 measurements** that were
+contemporary with an operating farm; 106 of its 151 placeable near-cage
+measurements predate the site's clearance. And for copper and zinc the **pre-farm
+samples are the most contaminated of the three periods**, by a factor of 2.5 to
+4.5. They are not simply older (median years 2015-2016, overlapping the operating
+ones, because clearance years run to 2026): they are coastal baseline sampling.
+Proximity to a farm is partly a marker of industrialised coastline.
+
+### Geographic matching
+
+The far band is the national pool beyond 20 km of a farm. It is not the near band
+with the farms removed:
+
+| Subset | n | median dist to coast | median mud |
+|--------|---|---------------------:|-----------:|
+| background (>20 km) | 3,318 | **82.8 km** | 76.1% |
+| local far (5-20 km) | 4,586 | 0.182 km | 53.0% |
+| near, operating | 10,988 | 0.390 km | 32.4% |
+
+The published ratio compares open shelf with coast. Matching near (<1 km) against
+local far (>=5 km) **inside one municipality**, with at least 10 measurements per
+band, removes that contrast:
+
+| Element | published | operating only | municipality-matched | matched + operating |
+|---------|----------:|---------------:|---------------------:|--------------------:|
+| CU | 3.22 | 2.94 | **1.04** | 1.14 |
+| ZN | 1.81 | 1.60 | **0.85** | 0.86 |
+| MO | 13.5 | 8.03 (n=28) | no municipality qualifies | |
+| CO | 1.43 | 1.66 | | |
+| MN | 0.47 | 0.48 | | |
+
+Near sediment exceeds local far sediment in 52% of the 52 testable municipalities
+for copper and 44% of 48 for zinc. That is a coin flip.
+
+### What this does and does not establish
+
+It does **not** establish that farms have no effect. The matched design asks
+whether near-farm sediment differs from sediment a few kilometres away *in the same
+fjord system*, and in a Norwegian farming municipality the local far band is itself
+a farmed landscape. A null result is consistent with a fjord-wide effect. No
+distance-based design on this data separates those two.
+
+It does establish that **the published near/far ratios are upper bounds**, and that
+the raw-concentration gradient carries much less information about farm pressure
+than the pressure page implied. The grain-size difference runs the other way here
+and does not rescue it: the local far band is muddier than the near band, so the
+matched ratio if anything understates.
+
+The Al-normalised gradient on the EF page is untouched by this and remains the
+strongest evidence for a near-cage effect. It is also the least representative
+subset, resting on the ~1% of near-cage samples that carry aluminium, which is far
+too few to match within a municipality. Both statements are now on the site.
+
+### Where it landed
+
+New analysis `analysis_refined_pressure_controls()` (background step 7;
+`analysis_refined_method_changes()` moved to step 8 so it still runs last), five
+new CSVs, and a new **Pressure Controls** page under Background. Six existing pages
+were amended so nothing on the site now asserts the uncontrolled ratio without
+qualification: `background-pressure` (which also had a factual error, saying
+near-cage sediment is muddier when in this data it is sandier), `background-ef`,
+`background-pristine`, `background-summary`, `enrichment-summary` and
+`method-revisions`, which gains a sixth section.
+
+## 8. Still open
+
+Item 7's regression normalisation: metal on Al with a non-zero intercept, the
+background as a residual band. It is a different method rather than a correction,
+it would sit beside the EF framework rather than replace it, and it needs its own
+validation. Nothing else in this document is outstanding.
