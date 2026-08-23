@@ -4,9 +4,10 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: dispositions agreed. Ordering steps 1-3 are done. Step 3 found a defect that
-re-specifies D1, written up in [ef-source-bias.md](ef-source-bias.md); D1 is on hold until
-its option is chosen.** Every claim below was re-checked against
+**Status: dispositions agreed. Ordering steps 1-3 are done and shipped. Step 3's defect
+was resolved by option 1 (restrict each fraction's EF reference to one aluminium basis),
+now implemented in the analyses but NOT yet exported or released.** Every claim below was
+re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -282,6 +283,14 @@ pristine validation compares classifiable samples across distance bands, but at
 distance label. Any validation of pristine against distance must be run
 **within source** or it is not a test.
 
+**Resolved by step 4's basis restriction.** Once each fraction is restricted to one
+aluminium basis, the aquaculture bands are homogeneous enough to run the test within a
+single source, and it holds: Mareano goes 12 / 13 / 27 / 49% pristine across the four
+bands and Vannmiljo 16 / 18 / 29% across the three it spans. Both rise monotonically, so
+the gradient is not a source artefact after all. Written out as
+`refined_pristine_validation_source.csv`; the site caveat added in step 2 can be lifted
+when that ships.
+
 The reviewer's two further points stand and are adopted as limitations: Norwegian
 farms sit in sheltered, organic-rich, periodically anoxic fjords, so part of the
 ≈13× Mo near-cage ratio may be fjord redox geochemistry co-located with farms
@@ -292,15 +301,27 @@ experienced. Both go in the limitations note; neither is a quick fix.
 
 ### Item 11: smaller reporting issues (split three ways)
 
-**Non-detects (upstream, and answerable).** Not mentioned on the refined pages,
-but not unhandled: slim step 8 sets `below_loq`, step 11 `below_loq_num`, and
-`method.lod` / `method.loq` survive into the refined `method` table. What is true
-is that the refined `measurement` table does not carry a censoring flag, so the
-background analyses cannot condition on it even though the information exists
-one generation up. Given Se and Mo sit near typical detection limits, this
-matters for them specifically. Action: carry `below_loq` into the refined
-measurement table at `refine-01-restructure.R` and report the censored share per
-element and fraction. Cheap, and it closes the question rather than caveating it.
+**Non-detects. The paragraph that stood here was wrong**, and the correction is
+worse than the original claim. It said the censoring flag existed one generation
+up and only needed carrying into refined. It does not exist one generation up:
+`clean-02-clean.R` **removes** below-LOQ rows outright, as a documented rule
+alongside the range and validity failures, so merged and refined never had them.
+
+That rule is right for contamination screening and wrong for background
+estimation, because a background is the low end of the distribution and
+non-detects are evidence about exactly that end. Measured from the slim
+databases, which still carry the flags: **SE 68.6%** and **MO 52.2%** of
+measurements removed, then nothing else above 4.3%. For Mareano, which supplies
+94-99% of the bulk Mo and Se reference, 86% of Mo and 70% of Se went, so the
+published "90th-percentile background" sat at about the **98th percentile** of
+the real distribution.
+
+Resolved by **withholding** Se and Mo background and pristine verdicts, on the
+principle already adopted for the aluminium basis: where the reference is not
+trustworthy, issue none. Their concentrations are still published. The gate is a
+measured share against a 20% limit, frozen in `inst/extdata/loq-censoring/`. It
+does not touch the near-cage Mo and Se enrichment, which removing low offshore
+values suppresses rather than inflates.
 
 **Per-site map averaging (adopted as wording).** Correct. The maps average across
 years and depths, so the strict-rule map applies thresholds to averages and is a
@@ -355,11 +376,18 @@ dataset is rebuilt three times.
    reference pools incompatible aluminium measurements and is 2-3x too high for
    every non-Mareano sample.
 4. **D1 + item 9 + item 11 censoring**, together: one rebuild of the background
-   suite, one re-export, one release. **Now gated on a decision**: which of the
-   three options in [ef-source-bias.md](ef-source-bias.md) §4 the bulk EF
-   reference takes. That decision sets what D1 builds, so it comes first. The
-   same rebuild should carry the AL/FE method rows into refined, which step 3
-   found are dropped at `refine-01-restructure.R`.
+   suite, one re-export, one release. **Option 1 chosen and built** (see
+   [ef-source-bias.md](ef-source-bias.md) §6): each fraction's EF reference is
+   restricted to one aluminium basis, inferred per sample from Fe/Al, and samples
+   off it are left unclassified. It lives in
+   `R/analysis-refined-shared-basis.R` so the EF analysis, the pristine synthesis
+   and the flat export cannot disagree about it. **Not yet released**: the site
+   pages, the re-export and the release are still to do, and items 9 and 11
+   should land in the same pass so the dataset is rebuilt once.
+
+   The basis restriction does not need a database rebuild, because `normaliser`
+   already carries Fe and Al. Item 11's censoring still does, and that rebuild
+   should also carry the AL/FE method rows into refined.
 5. **Item 4** sensitivity columns.
 6. **D3**, the two summary pages, written once against final numbers.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's

@@ -1,0 +1,9 @@
+axis,band,n,pct_classifiable
+distance to aquaculture,<1km,25365,2
+distance to aquaculture,1-5km,16830,9
+distance to aquaculture,5-20km,12020,8
+distance to aquaculture,>20km,14897,90
+distance to coast,<1km,60170,14
+distance to coast,1-10km,18584,68
+distance to coast,10-50km,20786,84
+distance to coast,>50km,15846,96

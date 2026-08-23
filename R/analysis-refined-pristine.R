@@ -26,8 +26,9 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   #
   # Outputs -> data/analysis/background/ (gitignored):
   #   refined_pristine_summary.csv     per element x fraction: % classifiable, % pristine (both rules)
-  #   refined_pristine_coverage.csv    % classifiable (has Al) by distance band  (the data gap)
+  #   refined_pristine_coverage.csv    % classifiable by distance band  (the data gap)
   #   refined_pristine_validation.csv  % pristine by distance band, among classifiable samples
+  #   refined_pristine_validation_source.csv  the same, WITHIN each source (the confounding test)
   #   refined_pristine_meta.csv        one-row config
 
   db_path <- refined_db_path(db_dir)
@@ -42,18 +43,21 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     mutate(symbol = as.character(symbol), cat = as.character(cat))
   bg  <- rd("refined_ef_background.csv")      |> select(symbol, cat, bg_ratio_al)
   off <- rd("refined_background_compare.csv") |> select(symbol, cat, p90_off = p90_off10)
-  mix <- rd("refined_mixture_components.csv") |> select(symbol, cat, threshold)
+  mix <- rd("refined_mixture_components.csv") |> select(symbol, cat, threshold, usable)
 
   # ── Measurements + criteria + the two grain-size-controlled flags ────────────
   con <- dbConnect(SQLite(), db_path)
   on.exit(dbDisconnect(con), add = TRUE)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
-           si.dist_to_coast, si.dist_to_aquaculture
+           si.dist_to_coast, si.dist_to_aquaculture,
+           n.fe AS norm_fe, n.al AS norm_al, d.source AS source
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
+    JOIN dataset d   ON d.dataset_id   = e.dataset_id
+    LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
     WHERE me.value_std > 0 AND me.outlier_flag IS NULL")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk", sieve_um_std == 63 ~ "sieved63",
                            sieve_um_std == 20 ~ "sieved20", TRUE ~ NA_character_)) |>
@@ -62,17 +66,33 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     left_join(off, by = c("symbol", "cat")) |>
     left_join(mix, by = c("symbol", "cat")) |>
     mutate(
-      EF          = if_else(!is.na(ratio_al) & !is.na(bg_ratio_al) & bg_ratio_al > 0,
+      al_basis = refined_al_basis(norm_fe, norm_al),
+      on_basis = refined_on_basis(al_basis, cat),
+      # a sample off its fraction's adopted aluminium basis, or with no Fe to place it, is
+      # left unclassified rather than divided by a reference from a different measurement
+      # basis. See R/analysis-refined-shared-basis.R and docs/ef-source-bias.md.
+      # a withheld element gets no verdict at all: over half its measurements were deleted
+      # below the LOQ, so its "background" is an upper tail. See
+      # R/analysis-refined-shared-censoring.R and inst/extdata/loq-censoring/README.md.
+      withheld = symbol %in% refined_withheld_elements(),
+      EF          = if_else(!withheld & on_basis & !is.na(ratio_al) &
+                              !is.na(bg_ratio_al) & bg_ratio_al > 0,
                             ratio_al / bg_ratio_al, NA_real_),
       classifiable = !is.na(EF),
       pristine_ef  = if_else(classifiable, EF < 1, NA),
+      # an unusable mixture threshold (no second population for it to bound) is not
+      # applied: the criterion drops out rather than being enforced with a number that
+      # marks nothing. A group with no mixture fit at all still has no strict verdict.
+      mix_ok = case_when(is.na(usable)  ~ NA,
+                         !usable        ~ TRUE,
+                         TRUE           ~ value_std < threshold),
       pristine_strict = if_else(classifiable,
-                          (EF < 1) & (value_std < threshold) & (value_std < p90_off), NA))
+                          (EF < 1) & mix_ok & (value_std < p90_off), NA))
 
   # ── Summary per element x fraction ───────────────────────────────────────────
   summary_tbl <- m |>
     group_by(symbol, cat) |>
-    summarise(n = n(),
+    summarise(withheld = any(withheld), n = n(),
               pct_classifiable = round(100 * mean(classifiable)),
               n_classifiable   = sum(classifiable),
               pct_ef     = round(100 * mean(pristine_ef, na.rm = TRUE)),
@@ -105,12 +125,35 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     select(axis, band, n_class, ef, strict) |>
     pivot_longer(c(ef, strict), names_to = "rule", values_to = "pct_pristine")
 
-  meta <- tibble(rule_ef = "EF<1 (grain-size-controlled); unclassified where Al absent",
+  meta <- tibble(rule_ef = "EF<1 (grain-size-controlled); unclassified where Al absent or off the fraction's Al basis",
                  rule_strict = "EF<1 AND below mixture threshold AND below offshore P90",
                  fallback = "none (no raw-concentration fallback; confounded, dropped)",
+                 al_basis_used = paste(sprintf("%s=%s", names(refined_ef_basis()),
+                                               refined_ef_basis()), collapse = "; "),
                  min_n = MIN_N)
 
+  # ── The distance validation, run WITHIN each source ──────────────────────────
+  # The aquaculture bands are not sampled by the same programmes (the near ones are
+  # largely Vannmiljo, the far ones Mareano), so a gradient across them pooled over
+  # sources could be a difference between programmes wearing a distance label. Repeating
+  # it inside one source is the test that settles it; both sources that span more than one
+  # band show the same rise, so the gradient is not a source artefact.
+  validation_source <- m |>
+    filter(cat == "bulk", classifiable, !is.na(dist_to_aquaculture)) |>
+    mutate(band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
+    group_by(source, band) |>
+    summarise(n = n(),
+              pct_ef     = round(100 * mean(pristine_ef, na.rm = TRUE)),
+              pct_strict = round(100 * mean(pristine_strict, na.rm = TRUE)),
+              .groups = "drop") |>
+    filter(n >= MIN_N) |>
+    group_by(source) |>
+    filter(n_distinct(band) >= 2) |>
+    ungroup() |>
+    arrange(source, band)
+
   write_csv(summary_tbl, file.path(adir, "refined_pristine_summary.csv"))
+  write_csv(validation_source, file.path(adir, "refined_pristine_validation_source.csv"))
   write_csv(coverage,    file.path(adir, "refined_pristine_coverage.csv"))
   write_csv(validation,  file.path(adir, "refined_pristine_validation.csv"))
   write_csv(meta,        file.path(adir, "refined_pristine_meta.csv"))
@@ -118,12 +161,14 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   if (verbose) {
     # ── Console summary ──────────────────────────────────────────────────────────
     cat("pristine classification written to", adir, "\n\n")
-    cat("% classifiable (has Al) and % pristine among classifiable (bulk):\n")
+    cat("% classifiable (has Al, on the fraction's Al basis) and % pristine among them (bulk):\n")
     summary_tbl |> filter(cat == "bulk", reliable) |>
       select(symbol, n, pct_classifiable, n_classifiable, pct_ef, pct_strict) |>
       as.data.frame() |> print(row.names = FALSE)
     cat("\nthe data gap: % classifiable by distance to aquaculture:\n")
     coverage |> filter(axis == "distance to aquaculture") |> as.data.frame() |> print(row.names = FALSE)
+    cat("\nthe same validation WITHIN each source (is the gradient a source artefact?):\n")
+    validation_source |> as.data.frame() |> print(row.names = FALSE)
     cat("\nvalidation (classifiable only): % pristine by distance to aquaculture:\n")
     validation |> filter(axis == "distance to aquaculture") |>
       pivot_wider(names_from = rule, values_from = pct_pristine) |> as.data.frame() |> print(row.names = FALSE)
