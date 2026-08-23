@@ -57,7 +57,12 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
     JOIN dataset d   ON d.dataset_id   = e.dataset_id
+    -- the normaliser table holds one row per subsample PER FRACTION CLASS, so this
+    -- join must match frac_class too. Without it a subsample carrying both a bulk and
+    -- a sieved normaliser duplicates its measurements and can attach the wrong
+    -- fraction's aluminium, which corrupts the basis test and every ratio built on it.
     LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
+                          AND n.frac_class   = me.frac_class
     WHERE me.value_std > 0 AND me.outlier_flag IS NULL")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk", sieve_um_std == 63 ~ "sieved63",
                            sieve_um_std == 20 ~ "sieved20", TRUE ~ NA_character_)) |>
@@ -74,8 +79,13 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
       # a withheld element gets no verdict at all: over half its measurements were deleted
       # below the LOQ, so its "background" is an upper tail. See
       # R/analysis-refined-shared-censoring.R and inst/extdata/loq-censoring/README.md.
+      # a group whose metal aluminium does not predict gets no verdict either: metal/Al
+      # is not a grain-size control there, whatever form the normalisation takes. See
+      # R/analysis-refined-shared-normalisability.R and
+      # inst/extdata/normalisability/README.md.
       withheld = symbol %in% refined_withheld_elements(),
-      EF          = if_else(!withheld & on_basis & !is.na(ratio_al) &
+      unnormalisable = !refined_normalisable(symbol, cat),
+      EF          = if_else(!withheld & !unnormalisable & on_basis & !is.na(ratio_al) &
                               !is.na(bg_ratio_al) & bg_ratio_al > 0,
                             ratio_al / bg_ratio_al, NA_real_),
       classifiable = !is.na(EF),
@@ -92,7 +102,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   # ── Summary per element x fraction ───────────────────────────────────────────
   summary_tbl <- m |>
     group_by(symbol, cat) |>
-    summarise(withheld = any(withheld), n = n(),
+    summarise(withheld = any(withheld), unnormalisable = any(unnormalisable), n = n(),
               pct_classifiable = round(100 * mean(classifiable)),
               n_classifiable   = sum(classifiable),
               pct_ef     = round(100 * mean(pristine_ef, na.rm = TRUE)),
@@ -112,11 +122,18 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
                 strict = round(100 * mean(pristine_strict, na.rm = TRUE)), .groups = "drop") |>
       mutate(axis = axis)
   }
+  # The coverage figure answers "where is the aluminium missing?", so it must be computed
+  # only over groups that could be classified at all. Including a group whose verdict is
+  # withheld everywhere (manganese, the sieved fractions, Se and Mo) would mix "no
+  # aluminium here" with "no verdict for this element anywhere" and read as a worse data
+  # gap than there is. Same restriction on the validation, for the same reason.
+  eligible <- m |> filter(!withheld, !unnormalisable)
+
   banded <- bind_rows(
-    m |> filter(!is.na(dist_to_aquaculture)) |>
+    eligible |> filter(!is.na(dist_to_aquaculture)) |>
       mutate(band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
       by_band("distance to aquaculture"),
-    m |> mutate(band = cut(dist_to_coast, CO_BREAKS, labels = CO_LABELS)) |>
+    eligible |> mutate(band = cut(dist_to_coast, CO_BREAKS, labels = CO_LABELS)) |>
       by_band("distance to coast"))
 
   coverage <- banded |> select(axis, band, n, pct_classifiable)
