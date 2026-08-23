@@ -218,6 +218,7 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [merge-pipeline.md](docs/merge-pipeline.md) | union, dedup rules, finalise, outlier flagging, summary |
 | [refined-pipeline.md](docs/refined-pipeline.md) | refined mart schema, steps, resolved/open decisions |
 | [refined-review-response.md](docs/refined-review-response.md) | external review of the refined site: dispositions, decisions, ordering |
+| [ef-source-bias.md](docs/ef-source-bias.md) | why the bulk EF background is not comparable across sources, and the options |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |

@@ -4,9 +4,9 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: dispositions agreed. Ordering steps 1 and 2 are shipped (multised-refined
-v0.7.6 and v0.7.7, both site text only); step 3 is next.** Every claim below was re-checked
-against
+**Status: dispositions agreed. Ordering steps 1-3 are done. Step 3 found a defect that
+re-specifies D1, written up in [ef-source-bias.md](ef-source-bias.md); D1 is on hold until
+its option is chosen.** Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -21,7 +21,7 @@ flagging at merge step 4, LOQ handling at slim step 8); those are marked
 
 | # | Decision | Consequence |
 |---|----------|-------------|
-| D1 | **EF gets a second reference.** Keep the offshore median as the headline, add the offshore P90 of metal/Al alongside it, and report both everywhere. | Touches `analysis_refined_background_ef()`, `analysis_refined_pristine()`, `export_refined_dataset()`, three site pages, the dataset download. New release. |
+| D1 | **EF gets a second reference.** Keep the offshore median as the headline, add the offshore P90 of metal/Al alongside it, and report both everywhere. **Superseded in part by step 3**, which showed the bulk reference is pooled over incompatible aluminium measurements, so a second percentile of the same pool inherits the same error. The bulk reference must be stratified or restricted first; see [ef-source-bias.md](ef-source-bias.md) §4 for the three options. The P90 reference is still wanted, computed within whatever stratification is chosen. | Touches `analysis_refined_background_ef()`, `analysis_refined_pristine()`, `export_refined_dataset()`, three site pages, the dataset download. New release. |
 | D2 | **Fe is a reference only, never an enrichment normaliser.** Norwegian fish feed contains iron, so Fe near a farm is partly the pressure being measured. It stays in the grain-size comparison with an explicit callout. | Site text only. `background-gsnorm.qmd` gains a callout; no CSV or figure changes. |
 | D3 | **The two summary pages wait** for D1 to land, so they are not written against numbers that are about to move. | Deferred, spec in §5. |
 
@@ -136,7 +136,21 @@ concern is real for aggressive outlier rules and does not apply to this one.
 Action: state the criterion and the 0.36% on the background pages, so the next
 reader does not have to ask. No change to the rule.
 
-### Item 6: cross-source Al comparability (adopted and escalated)
+### Item 6: cross-source Al comparability (adopted, escalated, now measured)
+
+**Resolved as a diagnostic in step 3. Full write-up in
+[ef-source-bias.md](ef-source-bias.md); the summary below is what the review response
+originally said, and it understated the problem.**
+
+What step 3 established, beyond the estimate below: the spread is not geology (it does not
+shrink when the sea area is held fixed), it is confined to the **bulk** fraction, and it is
+in the aluminium rather than the metal. Mareano's bulk Al runs about 1.6% against 5-6% for
+the other sources, with iron barely differing, which is the signature of a partial acid
+extraction rather than a total digestion. Under the pooled reference the same seabed comes
+out 97% adequate for cobalt if ICES-DOME measured it and 41% if Mareano did; under
+per-source references every group lands at 35-48%. The sieved fractions are clean.
+
+
 
 **This is the most serious item in the review, and it is worse than the review
 suggests.** The reviewer flagged it as a theoretical risk from digestion
@@ -334,9 +348,18 @@ dataset is rebuilt three times.
    `enrichment-map.qmd`. Item 4's *sensitivity columns* remain at step 5, and item
    11's *censoring* remains at step 4; only the wording moved here.
 3. **Item 6**, the source-stratified EF table. Read-only, no verdict changes,
-   but its result may change what D1 should do. **Next.**
+   but its result may change what D1 should do. **Done.** It did change it:
+   `refined_ef_source.csv` and `refined_ef_region.csv` are added to
+   `analysis_refined_background_ef()`, the four existing outputs are byte-identical,
+   and the finding is in [ef-source-bias.md](ef-source-bias.md). The bulk EF
+   reference pools incompatible aluminium measurements and is 2-3x too high for
+   every non-Mareano sample.
 4. **D1 + item 9 + item 11 censoring**, together: one rebuild of the background
-   suite, one re-export, one release.
+   suite, one re-export, one release. **Now gated on a decision**: which of the
+   three options in [ef-source-bias.md](ef-source-bias.md) §4 the bulk EF
+   reference takes. That decision sets what D1 builds, so it comes first. The
+   same rebuild should carry the AL/FE method rows into refined, which step 3
+   found are dropped at `refine-01-restructure.R`.
 5. **Item 4** sensitivity columns.
 6. **D3**, the two summary pages, written once against final numbers.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's
