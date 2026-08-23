@@ -78,7 +78,7 @@ export_data(generation = "refined", source = NULL,
 - `create_db()` covers **all five generations**. `source` is required for the
   per-source generations (pilot/slim/clean) and must be `NULL` for
   merged/refined.
-- `analyze_data()` covers **all 25 analyses** (6 clean, 13 merged, 6 refined);
+- `analyze_data()` covers **all 27 analyses** (6 clean, 13 merged, 8 refined);
   `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
   module for it. Most modules hold one analysis; `background` holds six.
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
