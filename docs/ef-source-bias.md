@@ -247,10 +247,14 @@ and undone (item 10). It holds:
 
 | Band    | Mareano n | Mareano % pristine | Vannmiljø n | Vannmiljø % pristine |
 |---------|----------:|-------------------:|------------:|---------------------:|
-| < 1 km  | 46        | 11                 | 118         | 14                   |
-| 1-5 km  | 940       | 12                 | 498         | 17                   |
-| 5-20 km | 670       | 29                 | 145         | 26                   |
-| > 20 km | 12,561    | 49                 | (none)      |                      |
+| < 1 km  | 41        | 12                 | 101         | 16                   |
+| 1-5 km  | 812       | 13                 | 458         | 18                   |
+| 5-20 km | 559       | 27                 | 129         | 29                   |
+| > 20 km | 11,537    | 49                 | (none)      |                      |
+
+(As written by `refined_pristine_validation_source.csv`, which scopes rows the same way the
+rest of the pristine synthesis does; the sharper figures quoted while this was still an
+ad-hoc query did not apply the `value_std > 0` filter.)
 
 Both programmes show the same monotone rise. **The distance gradient is not a source
 artefact**, and the site's step 2 caveat that it could only be read as consistency can be

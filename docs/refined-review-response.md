@@ -285,8 +285,8 @@ distance label. Any validation of pristine against distance must be run
 
 **Resolved by step 4's basis restriction.** Once each fraction is restricted to one
 aluminium basis, the aquaculture bands are homogeneous enough to run the test within a
-single source, and it holds: Mareano goes 11 / 12 / 29 / 49% pristine across the four
-bands and Vannmiljo 14 / 17 / 26% across the three it spans. Both rise monotonically, so
+single source, and it holds: Mareano goes 12 / 13 / 27 / 49% pristine across the four
+bands and Vannmiljo 16 / 18 / 29% across the three it spans. Both rise monotonically, so
 the gradient is not a source artefact after all. Written out as
 `refined_pristine_validation_source.csv`; the site caveat added in step 2 can be lifted
 when that ships.
