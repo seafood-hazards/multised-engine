@@ -83,6 +83,17 @@ the standardised unit). Where a (subsample, fraction) has >1 method row for a
 normaliser (FE 4.6%, AL/CORG 0.2%), the values are **mean-collapsed** (as the analyses
 did). This *is* the "remove FE/AL/CORG from measurement" step, done without loss.
 
+> **Joining it: always match `frac_class` too.**
+> ```sql
+> LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
+>                       AND n.frac_class   = me.frac_class
+> ```
+> 2,936 subsamples carry both a bulk and a sieved normaliser row, so a join on
+> `subsample_id` alone fans those measurements out into two and can attach the wrong
+> fraction's aluminium. Three analyses did exactly that between v0.9.0 and v0.9.5
+> (`background_ef`, `pristine`, `regression`); the export always had it right, and the
+> export-vs-analysis check in [analysis.md](analysis.md) is what caught it.
+
 **`measurement`** — one row per (subsample, target element): `frac_class`
 (`bulk`/`sieved`), `value_std`, `ratio_fe`, `ratio_al`, `ratio_corg` (target /
 normaliser at the same subsample+fraction), `sieve_um_std` / `sieve_class` (NULL for
