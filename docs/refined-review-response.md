@@ -4,10 +4,8 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: dispositions agreed. Ordering steps 1-3 are done and shipped. Step 3's defect
-was resolved by option 1 (restrict each fraction's EF reference to one aluminium basis),
-now implemented in the analyses but NOT yet exported or released.** Every claim below was
-re-checked against
+**Status: ordering steps 1-4 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0
+and v0.9.0). Steps 5-7 remain.** Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -385,11 +383,24 @@ dataset is rebuilt three times.
    pages, the re-export and the release are still to do, and items 9 and 11
    should land in the same pass so the dataset is rebuilt once.
 
-   The basis restriction does not need a database rebuild, because `normaliser`
-   already carries Fe and Al. Item 11's censoring still does, and that rebuild
-   should also carry the AL/FE method rows into refined.
-5. **Item 4** sensitivity columns.
-6. **D3**, the two summary pages, written once against final numbers.
+   **Done, v0.9.0**, all four in one release with one re-export, as intended.
+   The basis restriction needed no database rebuild after all, because
+   `normaliser` already carries Fe and Al. Item 11 needed none either, for a
+   worse reason: the below-LOQ rows are deleted at clean step 2, so there was no
+   flag to carry and Se and Mo verdicts are withheld instead.
+
+   Carrying the AL/FE method rows into refined is still undone, and is the one
+   piece of step 4 that does need a rebuild. It is not blocking anything: the
+   aluminium basis is inferred from Fe/Al rather than read from a method field,
+   which is what made the rest of this possible.
+
+   The release also carries the Method Revisions page, which was not in the
+   original ordering. It reconciles the four changes against what the site said
+   before, generated from the v0.8.0 outputs frozen in
+   `inst/extdata/method-baseline/`.
+5. **Item 4** sensitivity columns. **Next.**
+6. **D3**, the two summary pages, written once against final numbers. Now that
+   the Method Revisions page exists, these are the last pages outstanding.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's
    matched-fjord and temporal-alignment analyses.
 
