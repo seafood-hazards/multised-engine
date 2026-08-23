@@ -4,8 +4,9 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: ordering steps 1-4 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0
-and v0.9.0). Steps 5-7 remain.** Every claim below was re-checked against
+**Status: ordering steps 1-5 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
+v0.9.0 and v0.9.1). Only step 6 (the two summary pages) and the deferred step 7 remain.**
+Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -104,6 +105,16 @@ Two claims, and they need separating.
 The convenience-sample point is right and unfixable: five monitoring programmes
 with regulation-driven sampling do not give percentiles of the seabed. It goes
 in the caveat box, phrased as the reviewer put it.
+
+The pseudo-replication point is right about the mechanism, and step 5 verified
+the size. The reviewer's inference that revisited sites are "typically the
+monitored, i.e. pressured ones" **holds**: a site sampled in four or more years
+sits a median 0.75 km from the nearest farm against 1.96 km for a site sampled
+once, and 17% are more than 10 km offshore against 27% of the singles.
+Reweighting one-value-per-site moves the offshore bulk P90 down 4% for CO and
+ZN, 15% for CU and **32% for MN**, always downward. The headline stays per
+measurement and the site-weighted column is published beside it, since the
+differences do not make a uniform case for switching. Original wording follows.
 
 The pseudo-replication point is right about the mechanism and unverified about
 the size. `site.repeat_group` and `site.n_years` exist and the percentile tables
@@ -398,7 +409,9 @@ dataset is rebuilt three times.
    original ordering. It reconciles the four changes against what the site said
    before, generated from the v0.8.0 outputs frozen in
    `inst/extdata/method-baseline/`.
-5. **Item 4** sensitivity columns. **Next.**
+5. **Item 4** sensitivity columns. **Done, v0.9.1.**
+   `refined_background_sitewise.csv` and `refined_repeat_pressure.csv`; the
+   headline weighting is unchanged and the sensitivity is published beside it.
 6. **D3**, the two summary pages, written once against final numbers. Now that
    the Method Revisions page exists, these are the last pages outstanding.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's
