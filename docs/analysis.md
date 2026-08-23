@@ -105,9 +105,14 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_background_ef()`       | enrichment factor |
 | `background` | `analysis_refined_background_mixture()`  | distribution-mixture background |
 | `background` | `analysis_refined_pristine()`            | pristine-classification synthesis |
+| `background` | `analysis_refined_method_changes()`      | pre/post comparison for the Method Revisions page |
 
 The `background` module is a single ordered suite: each script builds on the
-previous one, and the six map onto the six background pages of multised-refined.
+previous one, and steps 1-6 map onto the six background pages of multised-refined.
+Step 7 derives nothing of its own: it reads the frozen pre-revision baseline in
+`inst/extdata/method-baseline/` alongside what steps 1-6 have just written, so the
+Method Revisions page shows generated numbers rather than typed ones. It must run
+last.
 
 ## Export
 

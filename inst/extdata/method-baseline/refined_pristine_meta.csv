@@ -1,0 +1,2 @@
+rule_ef,rule_strict,fallback,min_n
+EF<1 (grain-size-controlled); unclassified where Al absent,EF<1 AND below mixture threshold AND below offshore P90,"none (no raw-concentration fallback; confounded, dropped)",30
