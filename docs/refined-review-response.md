@@ -301,15 +301,27 @@ experienced. Both go in the limitations note; neither is a quick fix.
 
 ### Item 11: smaller reporting issues (split three ways)
 
-**Non-detects (upstream, and answerable).** Not mentioned on the refined pages,
-but not unhandled: slim step 8 sets `below_loq`, step 11 `below_loq_num`, and
-`method.lod` / `method.loq` survive into the refined `method` table. What is true
-is that the refined `measurement` table does not carry a censoring flag, so the
-background analyses cannot condition on it even though the information exists
-one generation up. Given Se and Mo sit near typical detection limits, this
-matters for them specifically. Action: carry `below_loq` into the refined
-measurement table at `refine-01-restructure.R` and report the censored share per
-element and fraction. Cheap, and it closes the question rather than caveating it.
+**Non-detects. The paragraph that stood here was wrong**, and the correction is
+worse than the original claim. It said the censoring flag existed one generation
+up and only needed carrying into refined. It does not exist one generation up:
+`clean-02-clean.R` **removes** below-LOQ rows outright, as a documented rule
+alongside the range and validity failures, so merged and refined never had them.
+
+That rule is right for contamination screening and wrong for background
+estimation, because a background is the low end of the distribution and
+non-detects are evidence about exactly that end. Measured from the slim
+databases, which still carry the flags: **SE 68.6%** and **MO 52.2%** of
+measurements removed, then nothing else above 4.3%. For Mareano, which supplies
+94-99% of the bulk Mo and Se reference, 86% of Mo and 70% of Se went, so the
+published "90th-percentile background" sat at about the **98th percentile** of
+the real distribution.
+
+Resolved by **withholding** Se and Mo background and pristine verdicts, on the
+principle already adopted for the aluminium basis: where the reference is not
+trustworthy, issue none. Their concentrations are still published. The gate is a
+measured share against a 20% limit, frozen in `inst/extdata/loq-censoring/`. It
+does not touch the near-cage Mo and Se enrichment, which removing low offshore
+values suppresses rather than inflates.
 
 **Per-site map averaging (adopted as wording).** Correct. The maps average across
 years and depths, so the strict-rule map applies thresholds to averages and is a

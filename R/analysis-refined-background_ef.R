@@ -149,6 +149,11 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
            # too much of the distribution was deleted below the LOQ for the reference to
            # mean anything; see R/analysis-refined-shared-censoring.R
            withheld = as.character(symbol) %in% refined_withheld_elements()) |>
+    # a withheld element keeps its row and its n, so a reader sees that it exists and why
+    # it is blank, but publishes no EF figure that would be read as a verdict
+    mutate(across(c(ef_p50, ef_p90, pct_lt1, pct_1_2, pct_2_5, pct_gt5,
+                    ef_p50_p90ref, pct_lt1_p90ref),
+                  ~ if_else(withheld, NA_real_, as.numeric(.x)))) |>
     arrange(symbol, cat)
 
   # ── 5. EF vs distance to aquaculture (Norway) ────────────────────────────────
