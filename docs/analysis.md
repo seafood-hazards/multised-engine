@@ -106,6 +106,7 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_background_mixture()`  | distribution-mixture background |
 | `background` | `analysis_refined_pristine()`            | pristine-classification synthesis |
 | `background` | `analysis_refined_pressure_controls()`   | controls on the near-cage pressure gradient (time alignment, municipality matching) |
+| `background` | `analysis_refined_regression()`          | regression normalisation as a check on the ratio, and whether Al predicts each metal |
 | `background` | `analysis_refined_method_changes()`      | pre/post comparison for the Method Revisions page |
 
 The `background` module is a single ordered suite: each script builds on the
@@ -120,7 +121,14 @@ municipality instead of being the national >20 km pool. It feeds no verdict; it
 feeds the Pressure Controls page and the caveats on the pages that use the
 gradient as a yardstick.
 
-Step 8 derives nothing of its own: it reads the frozen pre-revision baseline in
+Step 8 is the other diagnostic. It fits `metal ~ a + b * Al` on the same offshore
+reference the EF uses, so the two are comparable, and answers two questions the EF
+cannot ask about itself: whether the intercept the ratio assumes away is really
+zero, and whether aluminium predicts the metal at all. The second turned out to
+matter more: R2 is about 0.5 for Co, Cu and Zn in bulk and under 0.1 for
+everything else, sieved fractions included. Diagnostic only, no verdict leaves it.
+
+Step 9 derives nothing of its own: it reads the frozen pre-revision baseline in
 `inst/extdata/method-baseline/` alongside what the earlier steps have just
 written, so the Method Revisions page shows generated numbers rather than typed
 ones. It must run last.
