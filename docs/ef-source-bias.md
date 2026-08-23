@@ -135,8 +135,11 @@ worth adding. Three options, in the order I would defend them:
    a common scale. It needs a conversion factor between the two bases that we do not have
    and cannot derive from these data alone.
 
-Whichever is chosen, the sieved fractions need no stratification and should keep the
-pooled reference: splitting them would lose rows for no gain.
+**Option 1 was chosen.** How it was implemented, and what it cost, is §6.
+
+The claim above that the sieved fractions need no stratification turned out to be wrong,
+and §6 corrects it: they looked consistent only because they are already mostly one basis,
+and their strata differ by 1.7 to 3.0x just as bulk's do.
 
 Two upstream gaps to close either way:
 
@@ -157,3 +160,98 @@ Two upstream gaps to close either way:
   ride on the cross-source reference. It stands.
 - **The aluminium coverage finding** of step 2, which is about missing Al, not mismeasured
   Al.
+
+
+## 6. Implementing option 1
+
+### Placing each sample
+
+There is no digestion field, so the basis is inferred per sample from **Fe/Al**. Both
+elements are lithogenic and both track grain size, so their ratio is close to grain-size
+free, while an acid extraction depresses aluminium far more than iron. Crustal Fe/Al is
+about 0.5; the cut is at **1.0**, and above it aluminium is under-recovered.
+
+| Source    | n (bulk) | Fe/Al < 0.5 | 0.5-1.0 | >= 1.0 |
+|-----------|---------:|------------:|--------:|-------:|
+| ICES-DOME | 3,688    | 1,476       | 1,790   | 422    |
+| Mareano   | 3,251    | 0           | 4       | 3,247  |
+| Vannmiljø | 322      | 6           | 5       | 311    |
+| MUDAB     | 251      | 21          | 196     | 34     |
+
+Mareano is 99.9% above the cut and Vannmiljø 97%, so both Norwegian programmes are on the
+extraction basis; MUDAB is 86% below it. The reason to trust the cut is ICES-DOME, which
+straddles it: splitting that one source at Fe/Al = 1 separates its metal/Al by 1.7 to 2.5x.
+A single source does not split itself that way by geography, so the cut is finding a
+protocol.
+
+The three strata are `extraction`, `total`, and `unplaced` where no iron was reported.
+
+### One basis per fraction
+
+A single global basis is not possible: bulk is 53% extraction while the sieved fractions
+are 42-48% total. Each fraction therefore adopts the basis that carries its data, and
+everything else is left unclassified.
+
+| Fraction | Adopted    | n on it | % of fraction | offshore rows | rows < 1 km from a farm |
+|----------|------------|--------:|--------------:|--------------:|------------------------:|
+| bulk     | extraction | 16,329  | 53%           | 13,325        | **164**                 |
+| sieved63 | total      | 5,468   | 48%           | 2,152         | 0                       |
+| sieved20 | total      | 7,551   | 42%           | 5,944         | 0                       |
+
+Bulk had to be the extraction basis: the total-basis stratum has **no** near-cage samples
+at all (against 164), no selenium reference and five molybdenum rows. The cost of that
+choice is that bulk aluminium is acid-leachable, so **bulk EF is internally comparable but
+not comparable with literature EF values**. That belongs on the page, and it is in the meta
+file.
+
+Cross-fraction comparison was never valid anyway, since the fractions are never pooled.
+
+### What it fixed
+
+The source spread, before and after, bulk. `bg_rel` is the source's own offshore reference
+over the adopted one; `% adequate` is under the adopted reference.
+
+| Element | Source    | bg_rel before | bg_rel after | % adequate before | % adequate after |
+|---------|-----------|--------------:|-------------:|------------------:|-----------------:|
+| CO      | Mareano   | 1.04          | **1.00**     | 41                | 47               |
+| CO      | ICES-DOME | 0.30          | 0.52         | 97                | 74               |
+| CU      | Mareano   | 1.15          | **1.02**     | 22                | 42               |
+| CU      | ICES-DOME | 0.37          | 0.48         | 84                | 82               |
+| MN      | Mareano   | 1.21          | **1.01**     | 32                | 48               |
+| MN      | ICES-DOME | 0.61          | 0.83         | 78                | 46               |
+| ZN      | Mareano   | 1.10          | **1.00**     | 20                | 45               |
+| ZN      | ICES-DOME | 0.49          | 0.81         | 80                | 56               |
+
+The bulk EF medians move to 1.01-1.23 and the adequate shares to 39-48%, which is what a
+median reference over one coherent population has to give. A residual gap remains on
+ICES-DOME's extraction-basis subsets, which are 40 to 244 rows and pan-European against
+Mareano's Norwegian shelf, so some of it is the regional difference the region check could
+never rule out.
+
+### What it cost
+
+Bulk classifiable share, before and after: CO 84 to 62%, CU 24 to **11%**, MN 89 to 46%,
+MO 66 to 55%, SE 98 to 97%, ZN 26 to **11%**. Copper and zinc lose most, because their
+bulk rows are heavily ICES-DOME and MUDAB on the total basis.
+
+Near-cage bulk classifiable rows fall from about 400 to **164**, since 234 of them are
+Vannmiljø samples with no iron reported and so cannot be placed. Reporting iron alongside
+aluminium would recover those, which strengthens the recommendation already made about
+Vannmiljø's aluminium.
+
+### The unexpected dividend
+
+Restricting to one basis made the aquaculture bands homogeneous enough to run the distance
+validation **within a single source**, which the review response had listed as necessary
+and undone (item 10). It holds:
+
+| Band    | Mareano n | Mareano % pristine | Vannmiljø n | Vannmiljø % pristine |
+|---------|----------:|-------------------:|------------:|---------------------:|
+| < 1 km  | 46        | 11                 | 118         | 14                   |
+| 1-5 km  | 940       | 12                 | 498         | 17                   |
+| 5-20 km | 670       | 29                 | 145         | 26                   |
+| > 20 km | 12,561    | 49                 | (none)      |                      |
+
+Both programmes show the same monotone rise. **The distance gradient is not a source
+artefact**, and the site's step 2 caveat that it could only be read as consistency can be
+lifted. It is written out as `refined_pristine_validation_source.csv`.

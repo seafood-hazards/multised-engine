@@ -109,7 +109,8 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "pristine_strict",         "",           "Pristine under the conservative rule: EF < 1 AND below the mixture threshold AND below the offshore P90. Empty where not classifiable.",
     "background_p90",          "",           "TRUE where the concentration is below the offshore P90 for its element and fraction (the Global Background definition). Not grain-size controlled.",
     "background_mixture",      "",           "TRUE where the concentration is below the distribution-mixture threshold separating the background from the enriched population. Not grain-size controlled.",
-    "bg_ratio_al",             "",           "Reference used for ef: the offshore background element/Al ratio for this element and fraction.",
+    "al_basis",                "",           "Inferred aluminium measurement basis for this subsample, from Fe/Al: 'total', 'extraction' (acid-leachable, which under-reports Al), or 'unplaced' where iron was not measured. Only samples on the basis their fraction adopted (bulk: extraction; sieved: total) receive an ef and a pristine verdict; see the Enrichment Factor page.",
+    "bg_ratio_al",             "",           "Reference used for ef: the offshore background element/Al ratio for this element and fraction, computed within the adopted aluminium basis.",
     "p90_off",                 "mg/kg",      "Reference used for background_p90: the offshore P90 concentration for this element and fraction.",
     "mixture_threshold",       "mg/kg",      "Reference used for background_mixture: the mixture-model threshold for this element and fraction."
   )
@@ -173,7 +174,14 @@ add_background_flags <- function(df, out_dir) {
                  !is.na(value_mgkg) & value_mgkg > 0,
       # the verdicts are taken from the unrounded EF: rounding first would push
       # values just under 1 up to 1.000 and flip them out of pristine
-      ef_raw = if_else(in_scope & !is.na(ratio_al) & !is.na(bg_ratio_al) & bg_ratio_al > 0,
+      # the aluminium basis gate: a sample off its fraction's adopted basis, or with no Fe
+      # to place it, gets no EF and so no pristine verdict, rather than being divided by a
+      # reference from a different measurement basis. Same rule as the analyses, from
+      # R/analysis-refined-shared-basis.R; the finding is in docs/ef-source-bias.md.
+      al_basis = refined_al_basis(fe_mgkg, al_mgkg),
+      on_al_basis = refined_on_basis(al_basis, fraction),
+      ef_raw = if_else(in_scope & on_al_basis & !is.na(ratio_al) &
+                         !is.na(bg_ratio_al) & bg_ratio_al > 0,
                        ratio_al / bg_ratio_al, NA_real_),
       classifiable    = !is.na(ef_raw),
       pristine_ef     = if_else(classifiable, ef_raw < 1, NA),
@@ -188,10 +196,10 @@ add_background_flags <- function(df, out_dir) {
       background_mixture = if_else(in_scope, value_mgkg < mixture_threshold, NA),
       # the references, blanked where they were not applied, so a row never shows a
       # threshold it was not judged against
-      bg_ratio_al       = if_else(in_scope, bg_ratio_al, NA_real_),
+      bg_ratio_al       = if_else(in_scope & on_al_basis, bg_ratio_al, NA_real_),
       p90_off           = if_else(in_scope, p90_off, NA_real_),
       mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_)) |>
-    select(-in_scope, -ef_raw) |>
+    select(-in_scope, -ef_raw, -on_al_basis) |>
     check_ef_consistent()
 }
 

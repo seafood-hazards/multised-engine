@@ -4,9 +4,10 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: dispositions agreed. Ordering steps 1-3 are done. Step 3 found a defect that
-re-specifies D1, written up in [ef-source-bias.md](ef-source-bias.md); D1 is on hold until
-its option is chosen.** Every claim below was re-checked against
+**Status: dispositions agreed. Ordering steps 1-3 are done and shipped. Step 3's defect
+was resolved by option 1 (restrict each fraction's EF reference to one aluminium basis),
+now implemented in the analyses but NOT yet exported or released.** Every claim below was
+re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -282,6 +283,14 @@ pristine validation compares classifiable samples across distance bands, but at
 distance label. Any validation of pristine against distance must be run
 **within source** or it is not a test.
 
+**Resolved by step 4's basis restriction.** Once each fraction is restricted to one
+aluminium basis, the aquaculture bands are homogeneous enough to run the test within a
+single source, and it holds: Mareano goes 11 / 12 / 29 / 49% pristine across the four
+bands and Vannmiljo 14 / 17 / 26% across the three it spans. Both rise monotonically, so
+the gradient is not a source artefact after all. Written out as
+`refined_pristine_validation_source.csv`; the site caveat added in step 2 can be lifted
+when that ships.
+
 The reviewer's two further points stand and are adopted as limitations: Norwegian
 farms sit in sheltered, organic-rich, periodically anoxic fjords, so part of the
 ≈13× Mo near-cage ratio may be fjord redox geochemistry co-located with farms
@@ -355,11 +364,18 @@ dataset is rebuilt three times.
    reference pools incompatible aluminium measurements and is 2-3x too high for
    every non-Mareano sample.
 4. **D1 + item 9 + item 11 censoring**, together: one rebuild of the background
-   suite, one re-export, one release. **Now gated on a decision**: which of the
-   three options in [ef-source-bias.md](ef-source-bias.md) §4 the bulk EF
-   reference takes. That decision sets what D1 builds, so it comes first. The
-   same rebuild should carry the AL/FE method rows into refined, which step 3
-   found are dropped at `refine-01-restructure.R`.
+   suite, one re-export, one release. **Option 1 chosen and built** (see
+   [ef-source-bias.md](ef-source-bias.md) §6): each fraction's EF reference is
+   restricted to one aluminium basis, inferred per sample from Fe/Al, and samples
+   off it are left unclassified. It lives in
+   `R/analysis-refined-shared-basis.R` so the EF analysis, the pristine synthesis
+   and the flat export cannot disagree about it. **Not yet released**: the site
+   pages, the re-export and the release are still to do, and items 9 and 11
+   should land in the same pass so the dataset is rebuilt once.
+
+   The basis restriction does not need a database rebuild, because `normaliser`
+   already carries Fe and Al. Item 11's censoring still does, and that rebuild
+   should also carry the AL/FE method rows into refined.
 5. **Item 4** sensitivity columns.
 6. **D3**, the two summary pages, written once against final numbers.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's
