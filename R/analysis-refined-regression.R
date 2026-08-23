@@ -58,7 +58,12 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
+    -- the normaliser table holds one row per subsample PER FRACTION CLASS, so this
+    -- join must match frac_class too. Without it a subsample carrying both a bulk and
+    -- a sieved normaliser duplicates its measurements and can attach the wrong
+    -- fraction's aluminium, which corrupts the basis test and every ratio built on it.
     LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
+                          AND n.frac_class   = me.frac_class
     WHERE me.outlier_flag IS NULL AND me.value_std > 0
       AND me.ratio_al IS NOT NULL AND me.ratio_al > 0
       AND n.al IS NOT NULL AND n.al > 0
@@ -91,6 +96,20 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
            mean_value = mean(df$value_std))
   }
 
+  # Two robustness measures beside the fit, because the D4 rule below turns on them.
+  # An R2 computed on the offshore reference alone is attenuated by its restricted
+  # range, so a low value there is not on its own evidence that the normaliser fails.
+  # Spearman's rho over EVERY on-basis row answers that objection: it uses the full
+  # range of aluminium and is a rank measure, so neither restricted range nor the
+  # skew of these distributions can flatten it.
+  assoc <- m |>
+    group_by(symbol, cat) |>
+    summarise(n_all = n(),
+              rho = suppressWarnings(stats::cor(value_std, norm_al, method = "spearman")),
+              r2_all = suppressWarnings(stats::cor(value_std, norm_al)^2),
+              r2_log = suppressWarnings(stats::cor(log10(value_std), log10(norm_al))^2),
+              .groups = "drop")
+
   fits <- ref |>
     group_by(symbol, cat) |>
     filter(n() >= MIN_N) |>
@@ -103,9 +122,19 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
       # the ratio is carrying a constant it should not.
       intercept_pct_of_mean = round(100 * intercept / mean_value),
       withheld = symbol %in% withheld) |>
+    left_join(assoc, by = c("symbol", "cat")) |>
+    # D4: a verdict needs a normaliser that predicts the metal. Both measures must
+    # clear their limit. They agree perfectly on this data (no group passes one and
+    # fails the other), and any R2 cut in 0.10-0.46 or rho cut in 0.47-0.65 gives the
+    # same three groups, so the partition is not an artefact of where the line is put.
+    mutate(normalisable = !is.na(r2) & !is.na(rho) &
+             r2 >= refined_r2_limit() & rho >= refined_rho_limit()) |>
     mutate(across(c(intercept, intercept_se, slope, slope_se, r2, resid_sd,
-                    resid_p90, mean_value), ~ signif(.x, 4)),
+                    resid_p90, mean_value, rho, r2_all, r2_log), ~ signif(.x, 4)),
            across(c(intercept_p, slope_p), ~ signif(.x, 3)))
+
+  # ── 2b. The frozen rule must still describe the data it was cut from ────────
+  check_normalisability(fits, verbose = verbose)
 
   # ── 3. Apply the fit to every on-basis sample, and score it both ways ────────
   scored <- m |>

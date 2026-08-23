@@ -84,7 +84,12 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
     JOIN dataset d   ON d.dataset_id   = e.dataset_id
+    -- the normaliser table holds one row per subsample PER FRACTION CLASS, so this
+    -- join must match frac_class too. Without it a subsample carrying both a bulk and
+    -- a sieved normaliser duplicates its measurements and can attach the wrong
+    -- fraction's aluminium, which corrupts the basis test and every ratio built on it.
     LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
+                          AND n.frac_class   = me.frac_class
     WHERE me.outlier_flag IS NULL AND me.ratio_al IS NOT NULL AND me.ratio_al > 0
   ")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk",
@@ -148,17 +153,31 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
            cat = factor(cat, levels = CATS), reliable = n >= MIN_N,
            # too much of the distribution was deleted below the LOQ for the reference to
            # mean anything; see R/analysis-refined-shared-censoring.R
-           withheld = as.character(symbol) %in% refined_withheld_elements()) |>
-    # a withheld element keeps its row and its n, so a reader sees that it exists and why
+           withheld = as.character(symbol) %in% refined_withheld_elements(),
+           # D4: dividing by aluminium is only a grain-size control where aluminium
+           # predicts the metal, which it does for CO/CU/ZN in bulk and nowhere else;
+           # see R/analysis-refined-shared-normalisability.R
+           unnormalisable = !refined_normalisable(as.character(symbol),
+                                                  as.character(cat)),
+           no_verdict = withheld | unnormalisable) |>
+    # a blanked group keeps its row and its n, so a reader sees that it exists and why
     # it is blank, but publishes no EF figure that would be read as a verdict
     mutate(across(c(ef_p50, ef_p90, pct_lt1, pct_1_2, pct_2_5, pct_gt5,
                     ef_p50_p90ref, pct_lt1_p90ref),
-                  ~ if_else(withheld, NA_real_, as.numeric(.x)))) |>
+                  ~ if_else(no_verdict, NA_real_, as.numeric(.x)))) |>
     arrange(symbol, cat)
 
   # ── 5. EF vs distance to aquaculture (Norway) ────────────────────────────────
+  # D4 applies here too, and this is the sharp end of it. "The near-cage enrichment
+  # survives grain-size control" only means something where the control does something.
+  # Dividing molybdenum by an aluminium it is uncorrelated with (rho = 0.00) leaves its
+  # gradient essentially untouched, which reads as the signal surviving a test it never
+  # took. Only groups whose normaliser predicts the metal appear on this gradient; the
+  # raw near/far ratios for the rest are on the Pressure-Based Background page, where
+  # they belong, and are not dressed up as grain-size controlled.
   ef_pressure <- ef |>
-    filter(!is.na(dist_to_aquaculture)) |>
+    filter(!is.na(dist_to_aquaculture),
+           refined_normalisable(as.character(symbol), as.character(cat))) |>
     mutate(aq_bin = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
     group_by(symbol, cat, aq_bin) |>
     summarise(n = n(), ef_p50 = signif(median(EF), 3), .groups = "drop") |>
@@ -280,8 +299,11 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
     mutate(symbol = factor(symbol, levels = elem_levels), cat = factor(cat, levels = CATS),
            bg_ratio_al = signif(bg_ratio_al, 4)) |>
     mutate(withheld = as.character(symbol) %in% refined_withheld_elements(),
+           unnormalisable = !refined_normalisable(as.character(symbol),
+                                                  as.character(cat)),
            bg_ratio_al_p90 = signif(bg_ratio_al_p90, 4)) |>
-    select(symbol, cat, al_basis, n_bg, bg_ratio_al, bg_ratio_al_p90, withheld) |>
+    select(symbol, cat, al_basis, n_bg, bg_ratio_al, bg_ratio_al_p90, withheld,
+           unnormalisable) |>
     arrange(symbol, cat)
 
   meta <- tibble(normaliser = "Al", background = sprintf("offshore >%d km median of metal/Al", DIST_BG),

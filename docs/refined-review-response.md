@@ -4,9 +4,8 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: the whole ordering is done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
-v0.9.0, v0.9.1, v0.9.2, v0.9.3 and v0.9.4). One new decision came out of step 7 and is open;
-see §9.**
+**Status: the whole ordering is done and shipped (multised-refined v0.7.6 through v0.9.5).
+The one new decision that came out of step 7, D4, was taken and is implemented; see §9.**
 Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
@@ -635,7 +634,7 @@ with a regression would move published numbers slightly and change no conclusion
 The fit's R2 says something the EF page cannot say about itself: **aluminium
 normalises only three of our groups.** About half the variation of cobalt, copper
 and zinc in bulk, under a tenth of manganese, molybdenum and selenium, and under
-0.08 in **every** sieved group, down to 0.00003 for zinc sieved20, whose slope is
+0.09 in **every** sieved group, down to 0.00004 for zinc sieved20, whose slope is
 not distinguishable from zero. Copper sieved20 has a significantly *negative*
 slope: more aluminium, less copper.
 
@@ -645,20 +644,98 @@ variation is left for aluminium to track. And for manganese, molybdenum and
 selenium, metal / Al in bulk is close to metal divided by an unrelated number,
 whatever form the normalisation takes.
 
-## 9. The one decision this leaves open
+## 9. D4: a verdict needs a normaliser that works (adopted, v0.9.5)
 
-**D4 (open): should a verdict be withheld where the normaliser does not predict the
-metal?** The site already withholds verdicts on two grounds, both adopted in this
-response: where the aluminium basis is wrong (step 4) and where most measurements
-fell below the limit of quantification (step 4). The same principle points at a
-third: manganese in bulk, and every sieved group, receive EF and pristine verdicts
-computed by dividing by a variable that explains under a tenth of their variation.
+**Decision: withhold the enrichment and pristine verdicts where aluminium does not
+predict the element.** This is the third withholding ground, alongside the wrong
+aluminium basis and below-LOQ censoring, and it follows the same principle: where
+the reference cannot be trusted, issue none.
 
-It is recorded and not acted on. Acting on it would withdraw the manganese bulk and
-all sieved verdicts from the pristine tables and the dataset download, which is a
-larger cut than anything in this response so far, and it is a judgement about how
-much explanatory power is enough rather than a defect to fix. Both the Regression
-Normalisation page and the Enrichment Summary state the position and say it is
-unsettled.
+### The rule
+
+Both measures must clear their limit:
+
+| Measure | Limit | Computed over |
+|---|---|---|
+| `r2` | >= 0.30 | OLS R2 of metal on Al over the offshore reference, the rows the EF reference itself uses |
+| `rho` | >= 0.50 | Spearman's rho over every on-basis row |
+
+`rho` was added after a check that changed the rule. An R2 on the offshore reference
+alone is attenuated by that reference's restricted range, so a low value there is not
+on its own evidence that the normaliser fails. Copper sieved63 is the case: R2 0.003
+on the reference against 0.102 on the full range. Its rho of 0.46 still falls short,
+so the group is withheld either way, but without the check the rule would have rested
+on a statistic that can be argued with.
+
+**The two measures agree completely.** No group passes one and fails the other, and
+the limits could be moved anywhere in 0.10-0.46 (`r2`) or 0.47-0.65 (`rho`) without
+changing the partition, so the answer does not depend on where the line was drawn.
+
+Frozen in `inst/extdata/normalisability/`, on the `loq-censoring` precedent: it is a
+rule, so it should not move silently under a rebuild, and the EF (step 4) and pristine
+(step 6) analyses that read it run before the regression analysis (step 8) that
+measures it. `check_normalisability()` closes the drift risk by comparing the frozen
+table against what step 8 has just computed, and reports on every run.
+
+### What it cost
+
+Verdicts survive for **cobalt, copper and zinc in bulk** and nowhere else. About
+16,700 of the 28,000 previously classifiable measurements lose theirs; 11,266 keep
+them. Concentrations, offshore references, distributions and the two non-normalised
+verdicts (`background_p90`, `background_mixture`, which use no aluminium) are
+unaffected for every group.
+
+### What it corrected
+
+**A published claim was withdrawn.** The site reported that the near-cage enrichment
+of molybdenum and selenium survives grain-size control. It survives Al normalisation,
+but only because Al is uncorrelated with those elements (rho 0.00 and 0.15), so the
+normalisation changes almost nothing. A signal cannot survive a test that was never
+applied. Their raw near-cage ratios are unaffected and stay on the pressure page; the
+grain-size-control claim does not. `refined_ef_pressure.csv` is now restricted to
+normalisable groups for the same reason: an EF gradient for an element Al does not
+predict is not a grain-size-controlled result, whatever it looks like.
+
+**Two checks got better rather than worse**, which is the outcome a sound restriction
+should produce. The pristine share across the four distance-to-farm bands is now
+2 / 9 / 22 / 49%, against 15 / 15 / 28 / 49% before. And the coverage figure, once
+restricted to groups that could be classified at all, reads 0 / 6 / 5 / **84%**
+instead of 1 / 6 / 4 / 79%: it now measures the aluminium gap alone rather than mixing
+it with "this element has no verdict anywhere".
 
 Nothing else in this document is outstanding.
+
+---
+
+## 10. A join bug found while implementing D4
+
+Implementing D4 meant running the documented export-vs-analysis check again, and it
+failed on one group: cobalt bulk came out 62% classifiable from
+`refined_pristine_summary.csv` and 63% from the flat dataset.
+
+The cause was in the analyses, not the export. `normaliser` has grain
+**(subsample_id, frac_class)**, which `refined-pipeline.md` states plainly, and
+**2,936 subsamples carry both a bulk and a sieved row**. Three analyses joined it on
+`subsample_id` alone:
+
+- `analysis_refined_background_ef()`
+- `analysis_refined_pristine()`
+- `analysis_refined_regression()`
+
+so those measurements fanned out into two rows, one of which could carry the *other*
+fraction's aluminium and therefore be placed on the wrong measurement basis. It dates
+from v0.9.0, when `n.fe` / `n.al` were first pulled into those queries for the basis
+test. `export_refined_dataset()` had the `AND nz.frac_class = m.frac_class` clause
+from the start, which is why the two sides disagreed and why the check found it.
+
+**Effect on published numbers: small.** Inflated denominators, mostly in the sieved20
+fractions (for example zinc sieved20 2,248 to 2,178 rows), cobalt bulk 5,513 to 5,403,
+and cobalt's classifiable share moving 62% to 63%. **No verdict share moved**: cobalt,
+copper and zinc in bulk stay at 48/47, 44/44 and 43/43 percent. D4's partition is
+unchanged too, and slightly cleaner: the three qualifying groups are the same and the
+gap below them widens, since two more sieved rank correlations fall below zero once the
+duplicates are gone.
+
+All 20 groups now agree between the export and the analysis. The join requirement is
+written into `refined-pipeline.md` beside the table definition, where the next person
+to add a normaliser column will meet it.

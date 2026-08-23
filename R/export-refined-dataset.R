@@ -104,7 +104,7 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "dist_to_coast_km",        "km",         "Great-circle distance from the site to the nearest coastline.",
     "dist_to_aquaculture_km",  "km",         "Distance to the nearest marine aquaculture farm (Norway only; empty elsewhere).",
     "outlier_flag",            "",           "Distributional outlier marker (high / low); empty = kept. The analyses exclude flagged rows.",
-    "ef",                      "",           "Enrichment factor: (element/Al) divided by the offshore background (element/Al) for the same element and fraction. EF < 1 means at or below background. Empty where aluminium is missing.",
+    "ef",                      "",           "Enrichment factor: (element/Al) divided by the offshore background (element/Al) for the same element and fraction. EF < 1 means at or below background. Empty where aluminium is missing, where the sample is off its fraction's aluminium basis, or where aluminium does not predict that element (see the row on which groups get an ef).",
     "classifiable",            "",           "TRUE where an EF could be computed, so a pristine verdict exists. FALSE otherwise; the two pristine columns are then empty.",
     "pristine_ef",             "",           "Pristine under the permissive rule: EF < 1. Empty where not classifiable.",
     "pristine_strict",         "",           "Pristine under the conservative rule: EF < 1 AND below the mixture threshold AND below the offshore P90. Empty where not classifiable.",
@@ -112,6 +112,7 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "background_mixture",      "",           "TRUE where the concentration is below the distribution-mixture threshold separating the background from the enriched population. Not grain-size controlled.",
     "al_basis",                "",           "Inferred aluminium measurement basis for this subsample, from Fe/Al: 'total', 'extraction' (acid-leachable, which under-reports Al), or 'unplaced' where iron was not measured. Only samples on the basis their fraction adopted (bulk: extraction; sieved: total) receive an ef and a pristine verdict; see the Enrichment Factor page.",
     "(no column: Se and Mo)",  "",           "Selenium and molybdenum carry no ef, pristine or background verdict at all: over half their measurements (Se 68.6%, Mo 52.2%) were below the limit of quantification and removed upstream, so what survives is an upper tail rather than a background. Their concentrations are published; only the verdicts are withheld.",
+    "(no column: which groups get an ef)", "", "ef and the pristine columns exist only for cobalt, copper and zinc in the BULK fraction. Aluminium predicts those three (R-squared 0.46-0.58) and predicts nothing else: manganese, molybdenum and selenium in bulk, and every sieved fraction of every element, sit at 0.10 or below, so metal/Al there is not a grain-size control. Concentrations, and the non-normalised background_p90 and background_mixture verdicts, are published for every group as before.",
     "ef_p90ref",               "",           "The same enrichment factor against the second reference: the offshore 90th percentile of element/Al rather than its median. A larger denominator, so more permissive, and it makes ef < 1 mean 'below the offshore P90', which is how background_p90 and the Global Background page define background. Reported beside ef so the spread between the two references is visible.",
     "pristine_ef_p90ref",      "",           "TRUE where ef_p90ref < 1. The permissive rule read against the second reference; pristine_ef keeps its original definition so an earlier download stays a subset of this one.",
     "bg_ratio_al",             "",           "Reference used for ef: the offshore background element/Al ratio for this element and fraction, computed within the adopted aluminium basis.",
@@ -191,7 +192,14 @@ add_background_flags <- function(df, out_dir) {
       # R/analysis-refined-shared-basis.R; the finding is in docs/ef-source-bias.md.
       al_basis = refined_al_basis(fe_mgkg, al_mgkg),
       on_al_basis = refined_on_basis(al_basis, fraction),
-      ef_raw = if_else(in_scope & on_al_basis & !is.na(ratio_al) &
+      # D4, the normalisability gate: metal/Al is only a grain-size control where
+      # aluminium predicts the metal, which it does for CO/CU/ZN in bulk and nowhere
+      # else. Those groups get no EF and so no pristine verdict. It gates ONLY the
+      # aluminium-derived columns: background_p90 and background_mixture use no
+      # aluminium and are unaffected. See inst/extdata/normalisability/README.md.
+      normalisable = refined_normalisable(element, fraction),
+      al_ok = in_scope & on_al_basis & normalisable,
+      ef_raw = if_else(al_ok & !is.na(ratio_al) &
                          !is.na(bg_ratio_al) & bg_ratio_al > 0,
                        ratio_al / bg_ratio_al, NA_real_),
       classifiable    = !is.na(ef_raw),
@@ -208,21 +216,21 @@ add_background_flags <- function(df, out_dir) {
       ef = signif(ef_raw, 6),
       # the second reference from D1, reported beside the headline one. The existing ef /
       # pristine_ef columns keep their definition so an earlier download stays a subset.
-      ef_p90ref_raw = if_else(in_scope & on_al_basis & !is.na(ratio_al) &
+      ef_p90ref_raw = if_else(al_ok & !is.na(ratio_al) &
                                 !is.na(bg_ratio_al_p90) & bg_ratio_al_p90 > 0,
                               ratio_al / bg_ratio_al_p90, NA_real_),
       ef_p90ref = signif(ef_p90ref_raw, 6),
       pristine_ef_p90ref = if_else(!is.na(ef_p90ref_raw), ef_p90ref_raw < 1, NA),
-      bg_ratio_al_p90 = if_else(in_scope & on_al_basis, bg_ratio_al_p90, NA_real_),
+      bg_ratio_al_p90 = if_else(al_ok, bg_ratio_al_p90, NA_real_),
       background_p90     = if_else(in_scope, value_mgkg < p90_off, NA),
       background_mixture = if_else(in_scope, value_mgkg < mixture_threshold, NA),
       # the references, blanked where they were not applied, so a row never shows a
       # threshold it was not judged against
-      bg_ratio_al       = if_else(in_scope & on_al_basis, bg_ratio_al, NA_real_),
+      bg_ratio_al       = if_else(al_ok, bg_ratio_al, NA_real_),
       p90_off           = if_else(in_scope, p90_off, NA_real_),
       mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_)) |>
     select(-in_scope, -ef_raw, -ef_p90ref_raw, -on_al_basis, -mix_ok, -mixture_usable,
-           -withheld) |>
+           -withheld, -normalisable, -al_ok) |>
     check_ef_consistent()
 }
 

@@ -121,12 +121,16 @@ municipality instead of being the national >20 km pool. It feeds no verdict; it
 feeds the Pressure Controls page and the caveats on the pages that use the
 gradient as a yardstick.
 
-Step 8 is the other diagnostic. It fits `metal ~ a + b * Al` on the same offshore
+Step 8 also decides **which groups get a verdict at all** (D4). It fits `metal ~ a + b * Al` on the same offshore
 reference the EF uses, so the two are comparable, and answers two questions the EF
 cannot ask about itself: whether the intercept the ratio assumes away is really
 zero, and whether aluminium predicts the metal at all. The second turned out to
 matter more: R2 is about 0.5 for Co, Cu and Zn in bulk and under 0.1 for
-everything else, sieved fractions included. Diagnostic only, no verdict leaves it.
+everything else, sieved fractions included. Those three groups are therefore the
+only ones the EF and pristine steps classify. The rule itself is frozen in
+`inst/extdata/normalisability/` and read through
+`R/analysis-refined-shared-normalisability.R`, because steps 4 and 6 consume it
+and run first; step 8 recomputes it and warns if the frozen table has gone stale.
 
 Step 9 derives nothing of its own: it reads the frozen pre-revision baseline in
 `inst/extdata/method-baseline/` alongside what the earlier steps have just
