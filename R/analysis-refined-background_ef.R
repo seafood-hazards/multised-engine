@@ -100,7 +100,18 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
   background <- m |>
     filter(dist_to_coast > DIST_BG, on_basis) |>
     group_by(symbol, cat) |>
-    summarise(n_bg = n(), bg_ratio_al = median(ratio_al), .groups = "drop") |>
+    summarise(n_bg = n(), bg_ratio_al = median(ratio_al),
+              # the second reference. EF < 1 against the MEDIAN of the offshore
+              # population fails half of that population by construction, which is why
+              # about half of everything comes out adequate: the number is arithmetic
+              # before it is ecology. Against the P90 of the same population, EF < 1 means
+              # "below the offshore 90th percentile", which is the background definition
+              # the other pages already use, so the two references also expose an
+              # inconsistency the site was carrying. The P90 reference is the LARGER
+              # denominator and therefore the more permissive of the two; both are
+              # reported so the spread between them is visible instead of one being
+              # presented as the answer.
+              bg_ratio_al_p90 = quantile(ratio_al, .9, names = FALSE), .groups = "drop") |>
     filter(n_bg >= MIN_N) |>
     mutate(al_basis = unname(EF_BASIS[cat]))
 
@@ -113,8 +124,10 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
   # ── 3. EF per row ────────────────────────────────────────────────────────────
   ef <- m |>
     filter(on_basis) |>
-    inner_join(background |> select(symbol, cat, bg_ratio_al), by = c("symbol", "cat")) |>
+    inner_join(background |> select(symbol, cat, bg_ratio_al, bg_ratio_al_p90),
+               by = c("symbol", "cat")) |>
     mutate(EF = ratio_al / bg_ratio_al,
+           EF_p90ref = ratio_al / bg_ratio_al_p90,
            ef_class = cut(EF, c(-Inf, 1, 2, 5, Inf),
                           labels = c("<1", "1-2", "2-5", ">5")))
 
@@ -128,9 +141,14 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
               pct_1_2 = round(100 * mean(EF >= 1 & EF < 2)),
               pct_2_5 = round(100 * mean(EF >= 2 & EF < 5)),
               pct_gt5 = round(100 * mean(EF >= 5)),
+              ef_p50_p90ref = signif(median(EF_p90ref), 3),
+              pct_lt1_p90ref = round(100 * mean(EF_p90ref < 1)),
               .groups = "drop") |>
     mutate(symbol = factor(symbol, levels = elem_levels),
-           cat = factor(cat, levels = CATS), reliable = n >= MIN_N) |>
+           cat = factor(cat, levels = CATS), reliable = n >= MIN_N,
+           # too much of the distribution was deleted below the LOQ for the reference to
+           # mean anything; see R/analysis-refined-shared-censoring.R
+           withheld = as.character(symbol) %in% refined_withheld_elements()) |>
     arrange(symbol, cat)
 
   # ── 5. EF vs distance to aquaculture (Norway) ────────────────────────────────
@@ -256,10 +274,14 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
   bg_out <- background |>
     mutate(symbol = factor(symbol, levels = elem_levels), cat = factor(cat, levels = CATS),
            bg_ratio_al = signif(bg_ratio_al, 4)) |>
-    select(symbol, cat, al_basis, n_bg, bg_ratio_al) |>
+    mutate(withheld = as.character(symbol) %in% refined_withheld_elements(),
+           bg_ratio_al_p90 = signif(bg_ratio_al_p90, 4)) |>
+    select(symbol, cat, al_basis, n_bg, bg_ratio_al, bg_ratio_al_p90, withheld) |>
     arrange(symbol, cat)
 
   meta <- tibble(normaliser = "Al", background = sprintf("offshore >%d km median of metal/Al", DIST_BG),
+                 background_2 = sprintf("offshore >%d km P90 of metal/Al (second reference; larger denominator, so more permissive, and it makes EF<1 mean 'below the offshore P90' as the other pages define background)", DIST_BG),
+                 headline = "the median reference; the P90 one is reported beside it as ef_*_p90ref",
                  ef_lt1 = "adequate / at-or-below local background", min_n = MIN_N,
                  al_basis_rule = sprintf("per sample: Fe/Al >= %.1f -> extraction, else total, no Fe -> unplaced",
                                          FE_AL_CUT),

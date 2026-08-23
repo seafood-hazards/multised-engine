@@ -110,6 +110,7 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "background_p90",          "",           "TRUE where the concentration is below the offshore P90 for its element and fraction (the Global Background definition). Not grain-size controlled.",
     "background_mixture",      "",           "TRUE where the concentration is below the distribution-mixture threshold separating the background from the enriched population. Not grain-size controlled.",
     "al_basis",                "",           "Inferred aluminium measurement basis for this subsample, from Fe/Al: 'total', 'extraction' (acid-leachable, which under-reports Al), or 'unplaced' where iron was not measured. Only samples on the basis their fraction adopted (bulk: extraction; sieved: total) receive an ef and a pristine verdict; see the Enrichment Factor page.",
+    "(withheld elements)",     "",           "Selenium and molybdenum carry no ef, pristine or background verdict at all: over half their measurements (Se 68.6%, Mo 52.2%) were below the limit of quantification and removed upstream, so what survives is an upper tail rather than a background. Their concentrations are published; only the verdicts are withheld.",
     "bg_ratio_al",             "",           "Reference used for ef: the offshore background element/Al ratio for this element and fraction, computed within the adopted aluminium basis.",
     "p90_off",                 "mg/kg",      "Reference used for background_p90: the offshore P90 concentration for this element and fraction.",
     "mixture_threshold",       "mg/kg",      "Reference used for background_mixture: the mixture-model threshold for this element and fraction."
@@ -172,8 +173,12 @@ add_background_flags <- function(df, out_dir) {
   df |>
     left_join(ref, by = c("element", "fraction")) |>
     mutate(
+      # over half of these elements' measurements were deleted below the LOQ, so their
+      # background is an upper tail: no background or pristine verdict is published for
+      # them. See inst/extdata/loq-censoring/README.md.
+      withheld = element %in% refined_withheld_elements(),
       in_scope = fraction %in% CATS & is.na(outlier_flag) &
-                 !is.na(value_mgkg) & value_mgkg > 0,
+                 !is.na(value_mgkg) & value_mgkg > 0 & !withheld,
       # the verdicts are taken from the unrounded EF: rounding first would push
       # values just under 1 up to 1.000 and flip them out of pristine
       # the aluminium basis gate: a sample off its fraction's adopted basis, or with no Fe
@@ -204,7 +209,7 @@ add_background_flags <- function(df, out_dir) {
       bg_ratio_al       = if_else(in_scope & on_al_basis, bg_ratio_al, NA_real_),
       p90_off           = if_else(in_scope, p90_off, NA_real_),
       mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_)) |>
-    select(-in_scope, -ef_raw, -on_al_basis, -mix_ok, -mixture_usable) |>
+    select(-in_scope, -ef_raw, -on_al_basis, -mix_ok, -mixture_usable, -withheld) |>
     check_ef_consistent()
 }
 

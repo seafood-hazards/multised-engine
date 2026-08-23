@@ -71,7 +71,12 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
       # a sample off its fraction's adopted aluminium basis, or with no Fe to place it, is
       # left unclassified rather than divided by a reference from a different measurement
       # basis. See R/analysis-refined-shared-basis.R and docs/ef-source-bias.md.
-      EF          = if_else(on_basis & !is.na(ratio_al) & !is.na(bg_ratio_al) & bg_ratio_al > 0,
+      # a withheld element gets no verdict at all: over half its measurements were deleted
+      # below the LOQ, so its "background" is an upper tail. See
+      # R/analysis-refined-shared-censoring.R and inst/extdata/loq-censoring/README.md.
+      withheld = symbol %in% refined_withheld_elements(),
+      EF          = if_else(!withheld & on_basis & !is.na(ratio_al) &
+                              !is.na(bg_ratio_al) & bg_ratio_al > 0,
                             ratio_al / bg_ratio_al, NA_real_),
       classifiable = !is.na(EF),
       pristine_ef  = if_else(classifiable, EF < 1, NA),
@@ -87,7 +92,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   # ── Summary per element x fraction ───────────────────────────────────────────
   summary_tbl <- m |>
     group_by(symbol, cat) |>
-    summarise(n = n(),
+    summarise(withheld = any(withheld), n = n(),
               pct_classifiable = round(100 * mean(classifiable)),
               n_classifiable   = sum(classifiable),
               pct_ef     = round(100 * mean(pristine_ef, na.rm = TRUE)),
