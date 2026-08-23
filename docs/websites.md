@@ -168,7 +168,14 @@ Gotchas:
 
 The refined DB and its pristine/background work. One database
 (`multised_refined.sqlite`, with aquaculture folded in), so pages share a single
-`_db-setup.qmd`. Pages: DB Design (`db-schema-refined`, `refined-tables`), the
-six Background analyses (`background`, `-gsnorm`, `-mixture`, `-pressure`,
-`-map`, `-ef`, `-pristine`), `enrichment-map`, and Downloads
+`_db-setup.qmd`. Pages: DB Design (`db-schema-refined`, `refined-tables`);
+**Background** (`background`, `-gsnorm`, `-mixture`, `-pressure`, `-map`,
+`-summary`); **Enrichment** (`background-ef`, `background-pristine`,
+`enrichment-map`, `enrichment-summary`); `method-revisions`; EFSA Submission
+(`efsa-format`, `efsa-submission`, and their `-v2` pair); and Downloads
 (`download-database`, `download-dataset`).
+
+The two `-summary` pages are synthesis, not analysis: they recompute nothing and
+read only the CSVs the analysis pages write, so they cannot disagree with their
+sources. Keep it that way. A number a summary needs that no CSV holds belongs in
+the pipeline, not typed into the page.
