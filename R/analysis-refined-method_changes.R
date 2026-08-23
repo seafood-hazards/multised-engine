@@ -11,8 +11,10 @@ analysis_refined_method_changes <- function(db_dir = multised_db_dir(),
                                             out_dir = multised_analysis_dir(),
                                             verbose = TRUE) {
   # Outputs -> data/analysis/background/ (gitignored):
-  #   refined_method_changes.csv  long: measure x element x fraction, before / after
+  #   refined_method_changes.csv       long: measure x element x fraction, before / after
   #   refined_method_changes_meta.csv  what the two sides are
+  #   refined_censoring.csv            the below-LOQ share behind the withheld verdicts,
+  #                                    copied out of inst/extdata so the site can show it
 
   adir <- file.path(out_dir, "background")
   dir.create(adir, recursive = TRUE, showWarnings = FALSE)
@@ -99,8 +101,13 @@ analysis_refined_method_changes <- function(db_dir = multised_db_dir(),
                     "a second EF reference (offshore P90) reported beside the median"),
     source = "generated from inst/extdata/method-baseline/, not typed")
 
-  write_csv(changes, file.path(adir, "refined_method_changes.csv"))
-  write_csv(meta,    file.path(adir, "refined_method_changes_meta.csv"))
+  censoring <- refined_censoring_table(source_filter = NULL) |>
+    as_tibble() |>
+    mutate(withheld = source == "ALL" & pct_censored > refined_censoring_limit())
+
+  write_csv(changes,   file.path(adir, "refined_method_changes.csv"))
+  write_csv(meta,      file.path(adir, "refined_method_changes_meta.csv"))
+  write_csv(censoring, file.path(adir, "refined_censoring.csv"))
 
   if (verbose) {
     cat("method-change comparison written to", adir, "\n\n")
