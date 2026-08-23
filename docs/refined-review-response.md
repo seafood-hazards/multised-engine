@@ -4,8 +4,8 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: ordering steps 1-5 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
-v0.9.0 and v0.9.1). Only step 6 (the two summary pages) and the deferred step 7 remain.**
+**Status: ordering steps 1-6 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
+v0.9.0, v0.9.1 and v0.9.2). Only the deferred step 7 remains.**
 Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
@@ -414,12 +414,19 @@ dataset is rebuilt three times.
    headline weighting is unchanged and the sensitivity is published beside it.
 6. **D3**, the two summary pages, written once against final numbers. Now that
    the Method Revisions page exists, these are the last pages outstanding.
+   **Done, v0.9.2.** `background-summary.qmd` and `enrichment-summary.qmd`, each
+   the last item of its navbar menu, plus entries on the home page. No pipeline
+   change and no new assets: everything either sits in a summary CSV already or
+   is derived in the page from those CSVs by a stated rule (the convergence
+   indicator, and the confirmed / no-signal reading of the held-out aquaculture
+   check). The three amendments in §5 are all carried. Two things came out of
+   writing them, in §6 below.
 7. Deferred to separate work: item 7 (regression normalisation), item 10's
    matched-fjord and temporal-alignment analyses.
 
 ---
 
-## 5. The two summary pages (deferred, spec retained)
+## 5. The two summary pages (shipped, v0.9.2)
 
 Part 2 of the review specifies `background-summary.qmd` and
 `enrichment-summary.qmd`, each as the last item of its navbar menu, assembled
@@ -438,3 +445,48 @@ Three amendments follow from the dispositions above:
 
 The reviewer's rule that a number missing from a summary CSV must be added to the
 pipeline rather than typed into the page is adopted without exception.
+
+---
+
+## 6. What writing the summary pages added
+
+Two things that only became visible once the four background estimates were put
+in one table.
+
+**The estimates converge much better than any single page suggested.** The
+convergence indicator is the ratio of the largest to the smallest of the
+estimates that share units: global P90, offshore P90 at 10 and 20 km, the
+Norwegian >20 km band, and the mixture threshold where the fit separates. Across
+all estimates it runs from 1.03 to 7.19. Dropping the global P90 alone collapses
+it: in bulk, cobalt 1.01, selenium 1.35, copper 1.48, zinc 1.50, molybdenum 1.51.
+Four definitions resting on different assumptions, one distributional rather than
+spatial and one Norwegian, land in the same place for every bulk element but
+manganese. That is a stronger statement than any of the four pages could make on
+its own, and it is the answer to the reviewer's question of how much to trust a
+background value.
+
+It also sharpens item 8. The global P90 is not a background for copper, zinc or
+molybdenum; it is a percentile of the coast. For molybdenum the spread is 7.19
+across all estimates and 1.51 without it.
+
+The two exceptions are manganese in bulk (2.45) and the sieved20 fraction
+(manganese 4.45, zinc 3.39), where the mixture threshold sits far below every
+spatial estimate and dropping the global P90 does not help. For manganese that is
+not a defect: the mixture finds the lower mode of a distribution and the far band
+is a place with no farm nearby, and for a redox-mobile element that precipitates
+offshore those need not coincide.
+
+**The strict rule has quietly stopped mattering.** Once step 4 made the mixture
+criterion drop out where the fit does not separate, rather than apply anyway, the
+strict share equals the EF share in nine of the eleven reliable groups and
+differs by one point and four points in the other two. The reviewer's item 2 example, cobalt at
+20% strict against 56% EF, no longer exists: it is 47% against 48%. The item
+stands as presentation (the strict rule is EF plus two raw-concentration screens,
+not three peers) but it no longer changes a number, and the Enrichment Summary
+says so rather than repeating a warning that has expired.
+
+One correction went out with the pages: the classifiability caption on
+`background-pristine.qmd` still read "about 2% ... against about 90%", the
+pre-restriction figures. The figure itself has drawn 1% and 79% since v0.9.0,
+because restricting the reference to one aluminium basis removed samples from
+the classifiable set. Only the caption was stale.
