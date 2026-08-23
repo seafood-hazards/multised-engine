@@ -20,6 +20,14 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
   # EF pages. Fractions bulk/sieved63/sieved20; outliers dropped; groups with < MIN_N or
   # with no clear two-population separation are flagged.
   #
+  # k IS NOT ASSUMED. Fixing k at 2 guarantees a threshold whether or not the data holds
+  # two populations, so k = 1, 2 and 3 are each fitted and compared by BIC. Where k = 1
+  # wins there is no second population for the threshold to bound, and the threshold is
+  # marked NOT USABLE: it is still reported, because it is informative to see how far off
+  # it was, but it is dropped from the strict pristine rule rather than applied as if it
+  # meant something. Where k = 3 wins the two-component threshold is kept, with the better
+  # k on the record.
+  #
   # Outputs -> data/analysis/background/ (gitignored):
   #   refined_mixture_components.csv  per element x fraction: the fitted components + threshold
   #   refined_mixture_hist.csv        log10 histogram bins (bulk) for the figure
@@ -71,8 +79,39 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
 
     # separated: both weights non-trivial and means apart by >= a pooled sd
     separated <- min(lambda) >= 0.05 && (mu[2] - mu[1]) >= mean(sigma)
-    list(mu = mu, sigma = sigma, lambda = lambda, threshold = thr, separated = separated)
+    list(mu = mu, sigma = sigma, lambda = lambda, threshold = thr, separated = separated,
+         ll = f$ll)
   }
+
+  # ── The same EM for an arbitrary k, used only to score k = 1 and k = 3 ───────
+  # The k = 2 fit above keeps its own deterministic two-init search so the published
+  # threshold does not move for reasons unrelated to this comparison; this one supplies
+  # the log-likelihoods the BIC needs either side of it.
+  em_k <- function(x, k, iters = 300, tol = 1e-7) {
+    x <- x[is.finite(x)]
+    if (k == 1) return(sum(dnorm(x, mean(x), sd(x), log = TRUE)))
+    mu <- quantile(x, (seq_len(k) - 0.5) / k, names = FALSE)
+    sigma <- rep(sd(x) / k, k); lambda <- rep(1 / k, k); ll_old <- -Inf
+    for (i in seq_len(iters)) {
+      d <- vapply(seq_len(k), function(j) lambda[j] * dnorm(x, mu[j], sigma[j]),
+                  numeric(length(x)))
+      tot <- rowSums(d); tot[tot < .Machine$double.xmin] <- .Machine$double.xmin
+      r <- d / tot
+      sk <- colSums(r)
+      lambda <- sk / length(x)
+      mu <- colSums(r * x) / sk
+      sigma <- sqrt(vapply(seq_len(k),
+                           function(j) sum(r[, j] * (x - mu[j])^2) / sk[j], numeric(1)))
+      sigma[sigma < 1e-3] <- 1e-3
+      ll <- sum(log(tot))
+      if (is.finite(ll) && abs(ll - ll_old) < tol) break
+      ll_old <- ll
+    }
+    ll_old
+  }
+
+  # BIC for a k-component 1-D normal mixture: k means + k sds + (k-1) free weights.
+  mix_bic <- function(ll, k, n) -2 * ll + (3 * k - 1) * log(n)
 
   # ── 1. Pull chemistry, categorise by fraction ────────────────────────────────
   con <- dbConnect(SQLite(), db_path)
@@ -90,7 +129,12 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
   groups <- m |> group_by(symbol, cat) |> filter(n() >= MIN_N) |> group_split()
 
   components <- map_dfr(groups, function(g) {
-    f <- em2(log10(g$value_std))
+    lv <- log10(g$value_std)
+    f <- em2(lv)
+    bic <- c(mix_bic(em_k(lv, 1), 1, length(lv)),
+             mix_bic(f$ll,        2, length(lv)),
+             mix_bic(em_k(lv, 3), 3, length(lv)))
+    k_best <- which.min(bic)
     tibble(symbol = g$symbol[1], cat = g$cat[1], n = nrow(g),
            lambda_bg = round(f$lambda[1], 3),
            gm_bg = signif(10^f$mu[1], 4),           # background geometric mean (mg/kg)
@@ -98,8 +142,13 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
            gm_en = signif(10^f$mu[2], 4),           # enriched geometric mean (mg/kg)
            sd_en_log = round(f$sigma[2], 3),
            threshold = signif(10^f$threshold, 4),   # background upper bound (mg/kg)
-           pct_bg = round(100 * mean(log10(g$value_std) < f$threshold)),
-           separated = f$separated)
+           pct_bg = round(100 * mean(lv < f$threshold)),
+           separated = f$separated,
+           bic_k1 = round(bic[1]), bic_k2 = round(bic[2]), bic_k3 = round(bic[3]),
+           k_best = k_best,
+           # one population means nothing for the threshold to bound; two that are not
+           # meaningfully apart means the same in practice
+           usable = k_best >= 2L && f$separated)
   }) |>
     mutate(symbol = factor(symbol, levels = elem_levels), cat = factor(cat, levels = CATS)) |>
     arrange(symbol, cat)
@@ -120,7 +169,9 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
 
   meta <- tibble(model = "2-component Gaussian mixture (EM) on log10(value_std)",
                  min_n = MIN_N, basis = "raw value_std (mg/kg)",
-                 threshold = "crossover between the two components (background upper bound)")
+                 threshold = "crossover between the two components (background upper bound)",
+                 k_selection = "k = 1, 2, 3 each fitted; k_best is the lowest BIC",
+                 usable = "k_best >= 2 AND the two components separated; an unusable threshold is reported but dropped from the strict pristine rule")
 
   # ── 4. Write ─────────────────────────────────────────────────────────────────
   write_csv(components, file.path(out_dir, "refined_mixture_components.csv"))
@@ -132,7 +183,8 @@ analysis_refined_background_mixture <- function(db_dir = multised_db_dir(),
     cat("distribution-mixture background written to", out_dir, "\n\n")
     cat("bulk: background geom-mean, threshold (mg/kg), % background, separated:\n")
     components |> filter(cat == "bulk") |>
-      select(symbol, n, gm_bg, threshold, pct_bg, separated) |> as.data.frame() |> print(row.names = FALSE)
+      select(symbol, n, gm_bg, threshold, pct_bg, separated, k_best, usable) |>
+      as.data.frame() |> print(row.names = FALSE)
   }
 
   invisible(out_dir)

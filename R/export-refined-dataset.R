@@ -163,9 +163,11 @@ add_background_flags <- function(df, out_dir) {
 
   ref <- rd(need[["bg"]],  c("symbol", "cat", "bg_ratio_al")) |>
     full_join(rd(need[["off"]], c("symbol", "cat", "p90_off10")), by = c("symbol", "cat")) |>
-    full_join(rd(need[["mix"]], c("symbol", "cat", "threshold")), by = c("symbol", "cat")) |>
+    full_join(rd(need[["mix"]], c("symbol", "cat", "threshold", "usable")),
+              by = c("symbol", "cat")) |>
     rename(element = symbol, fraction = cat,
-           p90_off = p90_off10, mixture_threshold = threshold)
+           p90_off = p90_off10, mixture_threshold = threshold,
+           mixture_usable = usable)
 
   df |>
     left_join(ref, by = c("element", "fraction")) |>
@@ -185,9 +187,12 @@ add_background_flags <- function(df, out_dir) {
                        ratio_al / bg_ratio_al, NA_real_),
       classifiable    = !is.na(ef_raw),
       pristine_ef     = if_else(classifiable, ef_raw < 1, NA),
+      # an unusable mixture threshold is not applied; see the Distribution-Mixture page
+      mix_ok = case_when(is.na(mixture_usable) ~ NA,
+                         !mixture_usable       ~ TRUE,
+                         TRUE                  ~ value_mgkg < mixture_threshold),
       pristine_strict = if_else(classifiable,
-                                (ef_raw < 1) & (value_mgkg < mixture_threshold) &
-                                  (value_mgkg < p90_off), NA),
+                                (ef_raw < 1) & mix_ok & (value_mgkg < p90_off), NA),
       # 6 significant digits, not 3 decimals: at 3 dp an EF of 0.9996 prints as
       # 1.000 next to pristine_ef = TRUE, and a reader checking `ef < 1` gets a
       # different answer from the flag. Asserted below.
@@ -199,7 +204,7 @@ add_background_flags <- function(df, out_dir) {
       bg_ratio_al       = if_else(in_scope & on_al_basis, bg_ratio_al, NA_real_),
       p90_off           = if_else(in_scope, p90_off, NA_real_),
       mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_)) |>
-    select(-in_scope, -ef_raw, -on_al_basis) |>
+    select(-in_scope, -ef_raw, -on_al_basis, -mix_ok, -mixture_usable) |>
     check_ef_consistent()
 }
 

@@ -43,7 +43,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     mutate(symbol = as.character(symbol), cat = as.character(cat))
   bg  <- rd("refined_ef_background.csv")      |> select(symbol, cat, bg_ratio_al)
   off <- rd("refined_background_compare.csv") |> select(symbol, cat, p90_off = p90_off10)
-  mix <- rd("refined_mixture_components.csv") |> select(symbol, cat, threshold)
+  mix <- rd("refined_mixture_components.csv") |> select(symbol, cat, threshold, usable)
 
   # ── Measurements + criteria + the two grain-size-controlled flags ────────────
   con <- dbConnect(SQLite(), db_path)
@@ -75,8 +75,14 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
                             ratio_al / bg_ratio_al, NA_real_),
       classifiable = !is.na(EF),
       pristine_ef  = if_else(classifiable, EF < 1, NA),
+      # an unusable mixture threshold (no second population for it to bound) is not
+      # applied: the criterion drops out rather than being enforced with a number that
+      # marks nothing. A group with no mixture fit at all still has no strict verdict.
+      mix_ok = case_when(is.na(usable)  ~ NA,
+                         !usable        ~ TRUE,
+                         TRUE           ~ value_std < threshold),
       pristine_strict = if_else(classifiable,
-                          (EF < 1) & (value_std < threshold) & (value_std < p90_off), NA))
+                          (EF < 1) & mix_ok & (value_std < p90_off), NA))
 
   # ── Summary per element x fraction ───────────────────────────────────────────
   summary_tbl <- m |>

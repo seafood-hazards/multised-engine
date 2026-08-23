@@ -1,0 +1,17 @@
+axis,band,n_class,rule,pct_pristine
+distance to aquaculture,<1km,398,ef,28
+distance to aquaculture,<1km,398,strict,13
+distance to aquaculture,1-5km,1587,ef,12
+distance to aquaculture,1-5km,1587,strict,9
+distance to aquaculture,5-20km,938,ef,30
+distance to aquaculture,5-20km,938,strict,21
+distance to aquaculture,>20km,13365,ef,34
+distance to aquaculture,>20km,13365,strict,26
+distance to coast,<1km,8458,ef,47
+distance to coast,<1km,8458,strict,37
+distance to coast,1-10km,12551,ef,62
+distance to coast,1-10km,12551,strict,54
+distance to coast,10-50km,17532,ef,50
+distance to coast,10-50km,17532,strict,42
+distance to coast,>50km,15195,ef,50
+distance to coast,>50km,15195,strict,41

@@ -1,0 +1,2 @@
+model,min_n,basis,threshold
+2-component Gaussian mixture (EM) on log10(value_std),100,raw value_std (mg/kg),crossover between the two components (background upper bound)
