@@ -4,8 +4,9 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: dispositions drafted, awaiting sign-off. No pipeline or site change has
-been made yet.** Every claim below was re-checked against
+**Status: dispositions agreed. Ordering steps 1 and 2 are shipped (multised-refined
+v0.7.6 and v0.7.7, both site text only); step 3 is next.** Every claim below was re-checked
+against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
 
@@ -322,9 +323,18 @@ Items 1, 9 and 11 all change `pristine_strict`, so they land together or the
 dataset is rebuilt three times.
 
 1. **D2**, the Fe callout. Site text only, no dependencies, can go immediately.
+   **Done, v0.7.6.** `background-gsnorm.qmd` carries the callout; no number moved,
+   because the EF and pristine analyses already used `ratio_al` only.
 2. **Item 8** text correction and **items 2, 3, 10, 11** wording. Site text only.
+   **Done, v0.7.7**, and it absorbed two neighbouring text-only actions that had no
+   reason to wait for their own release: item 5's outlier criterion and share, and
+   item 4's convenience-sample and repeat-site caveats. Seven pages changed
+   (`background`, `background-pristine`, `background-mixture`, `background-map`,
+   `enrichment-map`, `download-dataset`, `index`), plus the item 11 null guard on
+   `enrichment-map.qmd`. Item 4's *sensitivity columns* remain at step 5, and item
+   11's *censoring* remains at step 4; only the wording moved here.
 3. **Item 6**, the source-stratified EF table. Read-only, no verdict changes,
-   but its result may change what D1 should do.
+   but its result may change what D1 should do. **Next.**
 4. **D1 + item 9 + item 11 censoring**, together: one rebuild of the background
    suite, one re-export, one release.
 5. **Item 4** sensitivity columns.
