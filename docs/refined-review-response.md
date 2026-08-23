@@ -4,8 +4,9 @@ Working response to
 [multised-refined-summary-pages-and-review.md](multised-refined-summary-pages-and-review.md)
 (external reviewer, August 2026, read of the published multised-refined site).
 
-**Status: ordering steps 1-6 are done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
-v0.9.0, v0.9.1 and v0.9.2). Only the deferred step 7 remains.**
+**Status: the whole ordering is done and shipped (multised-refined v0.7.6, v0.7.7, v0.8.0,
+v0.9.0, v0.9.1, v0.9.2, v0.9.3 and v0.9.4). One new decision came out of step 7 and is open;
+see §9.**
 Every claim below was re-checked against
 `data/db/multised_refined.sqlite` and `data/analysis/background/`; where the
 review and the data disagree, the data is quoted.
@@ -436,8 +437,10 @@ dataset is rebuilt three times.
 
    Item 7's **sub-point is done in the same release**: the note that a sieved
    fraction is already a grain-size control, so Al-normalising inside one controls
-   grain size twice, is on the EF page. The regression normalisation itself is
-   still outstanding and is the last item in this document.
+   grain size twice, is on the EF page.
+
+   **Item 7's regression normalisation is done, v0.9.4**, and it answered its own
+   question in the negative while turning up a larger one. See §8.
 
 ---
 
@@ -597,9 +600,65 @@ near-cage sediment is muddier when in this data it is sandier), `background-ef`,
 `background-pristine`, `background-summary`, `enrichment-summary` and
 `method-revisions`, which gains a sixth section.
 
-## 8. Still open
+## 8. Ordering step 7, part two: the ratio was not the problem
 
-Item 7's regression normalisation: metal on Al with a non-zero intercept, the
-background as a residual band. It is a different method rather than a correction,
-it would sit beside the EF framework rather than replace it, and it needs its own
-validation. Nothing else in this document is outstanding.
+`analysis_refined_regression()` (background step 8) fits `metal = a + b * Al` by
+OLS on exactly the EF reference population, offshore and on the fraction's adopted
+aluminium basis, so the two methods are compared on the same rows. It reports the
+intercept test, the fit quality, both verdicts, and the held-out aquaculture
+gradient under each. The **Regression Normalisation** page carries it.
+
+### The intercept, which was the question
+
+| Element (bulk) | intercept | % of mean | p | R2 |
+|---|---:|---:|---:|---:|
+| CU | -0.22 | -2% | 0.37 | 0.556 |
+| CO | 1.57 | 18% | <1e-40 | 0.584 |
+| ZN | 17.2 | 30% | <1e-90 | 0.464 |
+| MN | 170 | 34% | 1e-7 | **0.037** |
+| MO | -0.49 | -30% | 0.20 | 0.097 |
+| SE | 1.12 | 78% | <1e-23 | 0.012 |
+
+**For copper the intercept is not distinguishable from zero.** Copper is the element
+the EF pages lean on hardest, and for it the ratio's assumption is met. Cobalt and
+zinc have real but moderate intercepts, so the ratio over-corrects their low-Al
+samples, which is the failure mode the review described.
+
+And it does not matter much. Scored on the same rows, the regression band and the
+EF P90 reference agree within a few points in every group, and the regression line
+is 2 to 27 points more permissive than the EF median reference, the 27 belonging to
+manganese. Both track the aquaculture gradient identically. **Replacing the ratio
+with a regression would move published numbers slightly and change no conclusion.**
+
+### The larger finding, which was not the question
+
+The fit's R2 says something the EF page cannot say about itself: **aluminium
+normalises only three of our groups.** About half the variation of cobalt, copper
+and zinc in bulk, under a tenth of manganese, molybdenum and selenium, and under
+0.08 in **every** sieved group, down to 0.00003 for zinc sieved20, whose slope is
+not distinguishable from zero. Copper sieved20 has a significantly *negative*
+slope: more aluminium, less copper.
+
+Two consequences. The sieved result is the quantified version of item 7's
+sub-point: a sieved fraction is already a grain-size control, so little texture
+variation is left for aluminium to track. And for manganese, molybdenum and
+selenium, metal / Al in bulk is close to metal divided by an unrelated number,
+whatever form the normalisation takes.
+
+## 9. The one decision this leaves open
+
+**D4 (open): should a verdict be withheld where the normaliser does not predict the
+metal?** The site already withholds verdicts on two grounds, both adopted in this
+response: where the aluminium basis is wrong (step 4) and where most measurements
+fell below the limit of quantification (step 4). The same principle points at a
+third: manganese in bulk, and every sieved group, receive EF and pristine verdicts
+computed by dividing by a variable that explains under a tenth of their variation.
+
+It is recorded and not acted on. Acting on it would withdraw the manganese bulk and
+all sieved verdicts from the pristine tables and the dataset download, which is a
+larger cut than anything in this response so far, and it is a judgement about how
+much explanatory power is enough rather than a defect to fix. Both the Regression
+Normalisation page and the Enrichment Summary state the position and say it is
+unsettled.
+
+Nothing else in this document is outstanding.

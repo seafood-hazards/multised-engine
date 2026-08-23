@@ -37,7 +37,8 @@ analysis_module_table <- function() {
     "refined", "background",      5L, "analysis_refined_background_mixture",
     "refined", "background",      6L, "analysis_refined_pristine",
     "refined", "background",      7L, "analysis_refined_pressure_controls",
-    "refined", "background",      8L, "analysis_refined_method_changes"
+    "refined", "background",      8L, "analysis_refined_regression",
+    "refined", "background",      9L, "analysis_refined_method_changes"
   )
 }
 # The refined flat-dataset export used to sit here as a "download" module. It
