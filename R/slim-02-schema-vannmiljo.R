@@ -52,6 +52,8 @@ CREATE TABLE method (
   method    TEXT,
   lod       REAL,
   loq       REAL,
+  extraction       TEXT,
+  extraction_class INTEGER,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",

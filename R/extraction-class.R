@@ -99,11 +99,36 @@ extraction_canon <- function(x, source) {
     # ICP-MS), which say nothing about digestion, and 44% of it is "Unknown"
     "Vannmiljø" = "UNK",
     stop("no extraction mapping for source '", source, "'", call. = FALSE))
+  # a branch that ignores `x` returns a scalar, so recycle before subsetting:
+  # otherwise `out[blank] <- ` writes past the end and leaves NA behind.
+  out <- rep_len(out, length(x))
   out[blank] <- "UNK"
   out
 }
 
-# ── 3. Drift check ───────────────────────────────────────────────────────────
+# ── 3. Conflicting extractions within one measurement ────────────────────────
+
+#' Collapse an extraction that disagrees with itself
+#'
+#' Call inside a `group_by()` over the columns that identify ONE measurement. Where a
+#' source reports the same measurement under two analysis-method rows that differ only
+#' in the digestion, the extraction is not knowable and every row in the group becomes
+#' `"UNK"`.
+#'
+#' This is not hypothetical: MUDAB reports six target measurements twice, once under
+#' `HF-CB` (a total digestion) and once under `HNO` (a partial one), with identical
+#' values. Both cannot be right, and nothing in the source says which is. Withholding
+#' matches how the project treats every other untrustworthy reference.
+#'
+#' It also protects the row count. Extraction is part of method identity, so without
+#' this the two rows take different `method_id`s, survive the `distinct()` that mints
+#' the measurement table, and the measurement is silently counted twice.
+#' @noRd
+extraction_unambiguous <- function(extraction) {
+  if (length(unique(extraction)) > 1) rep("UNK", length(extraction)) else extraction
+}
+
+# ── 4. Drift check ───────────────────────────────────────────────────────────
 
 #' Warn if a source has produced codes the frozen table does not know
 #'

@@ -232,18 +232,32 @@ slim_transform_mudab <- function(con_src) {
            year, date = measurement_date, time = measurement_time)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
+  # MUDAB records the digestion chemistry in `chemical_treatment`, using the ICES
+  # METCX vocabulary verbatim, so it needs no translation. It is part of method
+  # identity for the same reason as in ICES-DOME: see R/slim-01-transform-ices-dome.R.
+  # The grouping is the measurement identity used at step 9 below, spelled out because
+  # subsample_id does not exist yet: it is a function of event_id and the two layer
+  # boundaries. See extraction_unambiguous() for why six MUDAB measurements need it.
+  df_slim <- df_slim %>%
+    mutate(extraction = extraction_canon(chemical_treatment, "MUDAB")) %>%
+    group_by(sample_no, sediment_no, parameter, measured_value, unit, matrix,
+             measurement_basis, data_qualifier, event_id,
+             layer_upper_boundary, layer_lower_boundary) %>%
+    mutate(extraction = extraction_unambiguous(extraction)) %>%
+    ungroup()
+
   df_method <- df_slim %>%
     distinct(parameter, measurement_method_code,
              accreditation, analytical_laboratory,
              internal_qa_detection_limit, internal_qa_quantification_limit,
-             expanded_uncertainty_pct) %>%
+             expanded_uncertainty_pct, extraction) %>%
     mutate(method_id = row_number())
 
   df_slim <- df_slim %>%
     inner_join(df_method, by = c("parameter", "measurement_method_code",
                                   "accreditation", "analytical_laboratory",
                                   "internal_qa_detection_limit", "internal_qa_quantification_limit",
-                                  "expanded_uncertainty_pct"))
+                                  "expanded_uncertainty_pct", "extraction"))
 
   df_method <- df_method %>%
     left_join(df_code_lookup %>%
@@ -252,9 +266,10 @@ slim_transform_mudab <- function(con_src) {
     left_join(df_code_lookup %>%
                 filter(category_code == "ICESCL_RLABO")  %>%
                 distinct(analytical_laboratory = code, analytical_laboratory_description = code_name)) %>%
+    mutate(extraction_class = extraction_efsa_class(extraction)) %>%
     select(method_id, symbol = parameter, lab = analytical_laboratory, lab_name = analytical_laboratory_description,
            lod = internal_qa_detection_limit, loq = internal_qa_quantification_limit, uncertainty = expanded_uncertainty_pct,
-           method = measurement_method_code,  method_description)
+           method = measurement_method_code,  method_description, extraction, extraction_class)
 
   # ── 8. Build subsample table ───────────────────────────────────────────────
   df_subsample <- df_slim %>%

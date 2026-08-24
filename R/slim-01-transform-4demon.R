@@ -125,8 +125,15 @@ slim_transform_4demon <- function(con_src) {
     rename(method_id_old = method_id) %>%
     inner_join(df_method, by = c("parameter", "method_code"))
 
+  # `method_code` is programme_instrument_sieve (e.g. Monit3_OES/MS_63) and encodes no
+  # chemistry, so the extraction is UNK for all but the one code that names an acid
+  # outright. It is already part of the distinct() above, so the class follows from it.
+  # See R/extraction-class.R.
   df_method <- df_method %>%
-    select(method_id, symbol = parameter, method = method_code)
+    mutate(extraction = extraction_canon(method_code, "4Demon"),
+           extraction_class = extraction_efsa_class(extraction)) %>%
+    select(method_id, symbol = parameter, method = method_code,
+           extraction, extraction_class)
 
   # ── 8. Build subsample table ───────────────────────────────────────────────
   df_subsample <- df_slim %>%

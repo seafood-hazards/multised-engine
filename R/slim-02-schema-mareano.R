@@ -51,6 +51,8 @@ CREATE TABLE method (
   lab       TEXT,
   lld       REAL,
   comment   TEXT,
+  extraction       TEXT,
+  extraction_class INTEGER,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",

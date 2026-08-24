@@ -90,15 +90,24 @@ slim_transform_mareano <- function(con_src) {
            year = start_year, date = start)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
+  # Mareano states the digestion in prose rather than a code, in `method2`: every
+  # target element reads "on samples from partial extraction by 7 M HNO3 in
+  # autoclave". "Partial" and "HNO3" point the same way, so EFSA class 2.
+  # See R/extraction-class.R.
+  df_slim <- df_slim %>%
+    mutate(extraction = extraction_canon(method2, "Mareano"))
+
   df_method <- df_slim %>%
-    distinct(symbol, method = method1, lab = institute, lld, comment) %>%
-    mutate(method_id = row_number()) %>%
-    select(method_id, symbol, method, lab, lld, comment)
+    distinct(symbol, method = method1, lab = institute, lld, comment, extraction) %>%
+    mutate(method_id = row_number(),
+           extraction_class = extraction_efsa_class(extraction)) %>%
+    select(method_id, symbol, method, lab, lld, comment, extraction, extraction_class)
 
   df_slim <- df_slim %>%
     inner_join(
-      df_method %>% rename(method1 = method, institute = lab),
-      by = c("symbol", "method1", "institute", "lld", "comment")
+      df_method %>% rename(method1 = method, institute = lab) %>%
+        select(-extraction_class),
+      by = c("symbol", "method1", "institute", "lld", "comment", "extraction")
     )
 
   # ── 8. Build subsample table ───────────────────────────────────────────────

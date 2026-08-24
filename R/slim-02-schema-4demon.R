@@ -48,6 +48,8 @@ CREATE TABLE method (
   method_id          INTEGER NOT NULL,
   symbol             TEXT    NOT NULL,
   method             TEXT,
+  extraction         TEXT,
+  extraction_class   INTEGER,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",
