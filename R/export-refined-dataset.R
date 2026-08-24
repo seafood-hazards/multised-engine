@@ -11,6 +11,67 @@
 # the thresholds come from the refined background analyses' CSVs, so the analyses
 # must have been run first. See add_background_flags() at the foot of this file.
 
+#' The rows both refined exports are built from
+#'
+#' Factored out so the flat dataset and the EFSA submission table cannot disagree
+#' about scope, references or verdicts: they select different columns from one frame,
+#' rather than each running its own pull. Carries more columns than the flat dataset
+#' publishes; the EFSA table needs the method, the limits and the location names.
+#'
+#' @param analysis_dir The analysis root (NOT its `download/` subdirectory), because
+#'   `add_background_flags()` reads the background module's CSVs from under it.
+#' @noRd
+refined_export_base <- function(db_dir = multised_db_dir(),
+                                analysis_dir = multised_analysis_dir()) {
+  con <- dbConnect(SQLite(), refined_db_path(db_dir))
+  on.exit(dbDisconnect(con), add = TRUE)
+  as_tibble(dbGetQuery(con, "
+    SELECT m.source                    AS source,
+           si.latitude                 AS latitude,
+           si.longitude                AS longitude,
+           si.country                  AS country,
+           si.municipality             AS municipality,
+           si.sea_name                 AS sea_name,
+           e.year                      AS year,
+           e.date                      AS date,
+           sub.depth_from              AS depth_from_cm,
+           sub.depth_to                AS depth_to_cm,
+           m.symbol                    AS element,
+           m.frac_class                AS frac_class,
+           m.sieve_um_std              AS sieve_um_std,
+           m.value_std                 AS value_mgkg,
+           m.value_sd                  AS value_sd,
+           m.n_rep                     AS n_rep,
+           m.ratio_al                  AS ratio_al,
+           nz.al                       AS al_mgkg,
+           nz.fe                       AS fe_mgkg,
+           nz.corg                     AS corg_mgkg,
+           sub.fines_lt63              AS fines_pct,
+           si.dist_to_coast            AS dist_to_coast_km,
+           si.dist_to_aquaculture      AS dist_to_aquaculture_km,
+           m.outlier_flag              AS outlier_flag,
+           me.method                   AS method,
+           me.lod                      AS lod,
+           me.loq                      AS loq,
+           me.limit_unit               AS limit_unit,
+           me.extraction               AS extraction,
+           me.extraction_class         AS extraction_class
+    FROM measurement m
+      JOIN subsample sub ON sub.subsample_id = m.subsample_id
+      JOIN event e       ON e.event_id       = sub.event_id
+      JOIN site si       ON si.site_id       = e.site_id
+      LEFT JOIN normaliser nz
+             ON nz.subsample_id = m.subsample_id
+            AND nz.frac_class   = m.frac_class
+      -- method_id is unique in `method` and populated on every measurement, so this
+      -- is 1:1 and cannot fan the rows out the way the normaliser join once did.
+      LEFT JOIN method me ON me.method_id = m.method_id")) |>
+    # a single readable fraction token (bulk / sieved63 / sieved20 / ...)
+    mutate(fraction = if_else(frac_class == "bulk", "bulk",
+                              paste0("sieved", as.integer(sieve_um_std)))) |>
+    add_background_flags(out_dir = analysis_dir)
+}
+
 export_refined_dataset <- function(db_dir = multised_db_dir(),
                                      out_dir = multised_analysis_dir(),
                                      verbose = TRUE) {
@@ -27,54 +88,17 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
   #   multised_refined_dataset.tsv.gz   the flat dataset (tab-separated, gzip)
   #   refined_dataset_dictionary.csv    column -> description (drives the site page)
 
-  db_path <- refined_db_path(db_dir)
+  out_dir_root <- out_dir
   out_dir <- file.path(out_dir, "download")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   # ── 1. Pull and denormalise ──────────────────────────────────────────────────
-  con <- dbConnect(SQLite(), db_path)
-  df <- as_tibble(dbGetQuery(con, "
-    SELECT m.source                    AS source,
-           si.latitude                 AS latitude,
-           si.longitude                AS longitude,
-           e.year                      AS year,
-           sub.depth_from              AS depth_from_cm,
-           sub.depth_to                AS depth_to_cm,
-           m.symbol                    AS element,
-           m.frac_class                AS frac_class,
-           m.sieve_um_std              AS sieve_um_std,
-           m.value_std                 AS value_mgkg,
-           m.ratio_al                  AS ratio_al,
-           nz.al                       AS al_mgkg,
-           nz.fe                       AS fe_mgkg,
-           nz.corg                     AS corg_mgkg,
-           sub.fines_lt63              AS fines_pct,
-           si.dist_to_coast            AS dist_to_coast_km,
-           si.dist_to_aquaculture      AS dist_to_aquaculture_km,
-           m.outlier_flag              AS outlier_flag,
-           me.extraction               AS extraction,
-           me.extraction_class         AS extraction_class
-    FROM measurement m
-      JOIN subsample sub ON sub.subsample_id = m.subsample_id
-      JOIN event e       ON e.event_id       = sub.event_id
-      JOIN site si       ON si.site_id       = e.site_id
-      LEFT JOIN normaliser nz
-             ON nz.subsample_id = m.subsample_id
-            AND nz.frac_class   = m.frac_class
-      -- method_id is unique in `method` and populated on every measurement, so this
-      -- is 1:1 and cannot fan the rows out the way the normaliser join once did.
-      LEFT JOIN method me ON me.method_id = m.method_id")) |>
-    # a single readable fraction token (bulk / sieved63 / sieved20 / ...)
-    mutate(fraction = if_else(frac_class == "bulk", "bulk",
-                              paste0("sieved", as.integer(sieve_um_std))))
-  dbDisconnect(con)
-
-  # ── 1b. Background references and the pristine / background verdicts ──────────
-  # The verdicts are not stored in the database: they are the refined background
+  # Shared with the EFSA submission table; see refined_export_base() above. The
+  # verdicts are not stored in the database: they are the refined background
   # analyses' own output, and the reference values live in their CSVs. Joining them
-  # here is what keeps this file agreeing with the site's Background and Pristine
+  # there is what keeps this file agreeing with the site's Background and Pristine
   # Classification pages, rather than re-deriving thresholds that would drift.
-  df <- add_background_flags(df, out_dir = dirname(out_dir))
+  df <- refined_export_base(db_dir = db_dir, analysis_dir = out_dir_root)
 
   df <- df |>
     select(source, latitude, longitude, year, depth_from_cm, depth_to_cm,

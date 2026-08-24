@@ -188,7 +188,7 @@ computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
 
 ## 8. Phases
 
-Status: phases 1-3 done. Phases 4-5 outstanding.
+Status: phases 1-4 done. Phase 5 (docs and site) outstanding.
 
 **Phase 1, freeze the mapping. Done.** `inst/extdata/extraction-class/` holding the
 code table and a README recording the judgement calls of §4, plus
@@ -224,8 +224,12 @@ new evidence on Vannmiljø's unrecorded digestion are in
 [ef-source-bias.md](ef-source-bias.md) section 7. No change to
 `refined_ef_basis()` is made here.
 
-**Phase 4, the superset export.** Build §6 as a new export, reusing
-`export_refined_dataset()`'s scope rules so the two cannot disagree.
+**Phase 4, the superset export. Done.** `export_data("refined", format = "efsa")`
+writes `multised_efsa_submission.tsv.gz` and its dictionary: 58 columns, of which
+the first 42 reproduce the workbook's `dataReported` sheet in its own order so the
+block can be pasted straight in. Both exports are cut from `refined_export_base()`,
+one pull with the verdicts already joined, so they cannot disagree. Term codes are
+frozen in the export rather than read from the workbook at run time.
 
 **Phase 5, docs and site.** `CLAUDE.md` docs map, `slim-pipeline.md` step 1
 column map, `refined-pipeline.md`, and a page on multised-refined.

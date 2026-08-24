@@ -70,8 +70,8 @@ analyze_data(generation, module = NULL, steps = NULL,
              db_dir = multised_db_dir(),
              out_dir = multised_analysis_dir(), verbose = TRUE)
 
-export_data(generation = "refined", source = NULL,
-            db_dir = multised_db_dir(),
+export_data(generation = "refined", format = c("dataset", "efsa"),
+            source = NULL, db_dir = multised_db_dir(),
             out_dir = multised_analysis_dir(), verbose = TRUE)
 ```
 
@@ -83,9 +83,13 @@ export_data(generation = "refined", source = NULL,
   module for it. Most modules hold one analysis; `background` holds six.
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
   column dictionary. It derives nothing of its own, which is why it is not an
-  analysis module; `refined` is the only generation with one. It does carry the
-  pristine / background verdicts, joined from the `background` module's CSVs, so
-  **`analyze_data("refined")` must have run first** or it errors.
+  analysis module; `refined` is the only generation with one. `format` picks
+  which: `dataset` (the flat analysis dataset) or `efsa` (the submission table,
+  the superset of EFSA's reporting workbook and its extraction spec, see
+  [efsa-submission.md](docs/efsa-submission.md)). Both are cut from one frame, so
+  they cannot disagree. Both carry the pristine / background verdicts, joined
+  from the `background` module's CSVs, so **`analyze_data("refined")` must have
+  run first** or they error.
 - `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
   `analyze_data()` `steps` selects within one module and so requires `module`
   (only `background` has more than one step).

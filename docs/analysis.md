@@ -140,14 +140,18 @@ ones. It must run last.
 ## Export
 
 ```r
-export_data(generation = "refined", source = NULL,
-            db_dir = multised_db_dir(),
+export_data(generation = "refined", format = c("dataset", "efsa"),
+            source = NULL, db_dir = multised_db_dir(),
             out_dir = multised_analysis_dir(), verbose = TRUE)
 ```
 
-| Generation | Function                   | Writes                                                          |
-|------------|----------------------------|-----------------------------------------------------------------|
-| `refined`  | `export_refined_dataset()` | `download/multised_refined_dataset.tsv.gz` + `refined_dataset_dictionary.csv` |
+| Format | Function | Writes |
+|---|---|---|
+| `dataset` | `export_refined_dataset()` | `download/multised_refined_dataset.tsv.gz` + `refined_dataset_dictionary.csv` |
+| `efsa` | `export_efsa_submission()` | `download/multised_efsa_submission.tsv.gz` + `efsa_submission_dictionary.csv` |
+
+Both are cut from `refined_export_base()`, one pull with the background verdicts
+already joined, so they cannot disagree about scope, references or verdicts.
 
 One flat row per target measurement, plus a column dictionary that drives the
 Dataset Download page. Only the refined generation has an export; the five
@@ -183,3 +187,36 @@ background module: group the exported rows by element and fraction and compare
 `check_ef_consistent()` enforces the reason: at 3 decimals, 24 rows with an EF
 just under 1 printed as `1.000` beside `pristine_ef = TRUE`, so the file
 contradicted itself for anyone applying their own cutoff.
+
+### The EFSA submission table
+
+`format = "efsa"` writes the superset of the two things EFSA asked for, which are
+not the same thing: the reporting workbook
+(`data/raw/Mareano/EFSA form-reporting-tool-trace-elements-IMR.xlsx`) and the
+data-extraction spec in [ReplyFHF_TypeDataForEFSA.md](ReplyFHF_TypeDataForEFSA.md).
+See [efsa-submission.md](efsa-submission.md).
+
+**58 columns.** The first 42 reproduce the workbook's `dataReported` sheet in its
+own order, so the block can be pasted straight in; the remaining 16 are the fields
+only the ReplyFHF spec asks for (extraction class, the ordinal depth band, sieve /
+bulk, SD) plus the provenance a reviewer needs. Term codes come from the workbook's
+own catalogue sheets (PARAM, UNIT, EXPRRES, MTX, YESNO, ANLYMD) and are frozen in
+`R/export-efsa-submission.R` rather than read from the xlsx at run time, so a
+replacement form cannot silently change the submission's shape.
+
+What it cannot fill, and why:
+
+| Field | Why |
+|---|---|
+| `accLab` | Only MUDAB records accreditation and it is not carried through the pipeline |
+| `phSed`, `phWater` | No source holds porewater pH; the one sediment pH series is 22 ICES rows outside this scope |
+| `TextureSedClay`, `TextureSedSilt` | Refined carries combined fines, not separate grain-size fractions. `TextureSedSand` is their complement |
+| `hardWater`, `DOC` | Water-column measurands, not sediment |
+| `publicData`, `refPublication`, `confidential` | The submitter's statements, not derived values |
+| `specCode` for iodine | EFSA's own catalogue has no term; the workbook leaves it blank too |
+
+`pristineLoc` is the one field where the answer is stronger than the ask: the spec
+prefers a local-background enrichment factor and warns against Turekian and
+Wedepohl values, which is exactly what `pristine_ef` is. It is subject to D4, so it
+is present on 11,266 of 115,820 rows and empty elsewhere. **An empty verdict is not
+a finding of non-pristine**, and the dictionary says so.
