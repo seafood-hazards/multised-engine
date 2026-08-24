@@ -73,7 +73,12 @@ lacks that table. Key changes vs slim:
   Organic carbon (CORG / TOC\*) stays here too, told apart by `element.category`;
   it is not split into a separate table since the columns would be identical.
 - **method** — columns `method_id`, `symbol`, `method`, `method_description`,
-  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`. Grain-size (composition-symbol)
+  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`, `extraction`, `extraction_class`.
+  The last two are the digestion chemistry and EFSA's class for it; they pass
+  through unchanged, because slim step 1 already mapped every source onto the ICES
+  METCX vocabulary (see [efsa-submission.md](efsa-submission.md)). A slim database
+  built before those columns existed defaults to `UNK`, which is what "recorded no
+  digestion" means. Grain-size (composition-symbol)
   methods are dropped (`grain_size_fraction` has no `method_id`, so nothing is
   orphaned). `method` is mapped to the ICES-DOME vocabulary (MUDAB already uses it;
   Mareano `ICP-AES`→`ICP-OES`, `LECO-analyser`→`CNA`; Vannmiljø ISO/NS standard

@@ -98,8 +98,14 @@ measurements in every source, so extraction attaches wherever it is recorded:
 
 | Outcome | Rows | Share |
 |---|---|---|
-| Real class (ICES + MUDAB + Mareano) | 59,675 | **51.5%** |
+| From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,675 | **51.5%** |
 | Class 3 by default (Vannmiljø + 4Demon) | 56,145 | 48.5% |
+
+Two figures get quoted and they measure different things. **51.5%** is the share of
+rows *from a source that records the digestion*. **51.3%** (59,381 rows) is the share
+whose code is not `UNK`, which is the same set minus the 294 rows where a recording
+source left the field blank or where `extraction_unambiguous()` withheld it. The site
+quotes the second, because "recorded" there means a usable code.
 
 ## 4. The mapping
 
