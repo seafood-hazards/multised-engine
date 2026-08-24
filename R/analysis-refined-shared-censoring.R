@@ -25,7 +25,7 @@ refined_censoring_limit <- function() 20
 #' @return A data frame with `symbol`, `source`, `n_slim`, `n_censored`, `pct_censored`.
 refined_censoring_table <- function(source_filter = "ALL") {
   f <- system.file("extdata", "loq-censoring", "refined_loq_censoring.csv",
-                   package = "multised")
+                   package = "multised.engine")
   if (!nzchar(f))
     f <- file.path("inst", "extdata", "loq-censoring", "refined_loq_censoring.csv")
   if (!file.exists(f))

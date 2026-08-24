@@ -39,7 +39,7 @@ refined_rho_limit <- function() 0.5
 
 refined_normalisability_table <- function() {
   path <- system.file("extdata", "normalisability", "refined_al_normalisability.csv",
-                      package = "multised")
+                      package = "multised.engine")
   if (!nzchar(path)) {
     path <- file.path("inst", "extdata", "normalisability",
                       "refined_al_normalisability.csv")
