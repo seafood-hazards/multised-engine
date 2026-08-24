@@ -224,6 +224,8 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [ef-source-bias.md](docs/ef-source-bias.md) | why the bulk EF background is not comparable across sources, and the options |
 | [inst/extdata/loq-censoring/README.md](inst/extdata/loq-censoring/README.md) | below-LOQ rows are removed at clean step 2; why Se and Mo verdicts are withheld |
 | [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF and pristine verdicts exist only where Al predicts the element (CO/CU/ZN bulk) |
+| [inst/extdata/extraction-class/README.md](inst/extdata/extraction-class/README.md) | the frozen extraction-code table: EFSA extraction class, the ICES METCX vocabulary, the six judgement calls |
+| [efsa-submission.md](docs/efsa-submission.md) | recovering the EFSA optional fields: extraction class (recoverable, 51.5%) and porewater pH (absent everywhere) |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
