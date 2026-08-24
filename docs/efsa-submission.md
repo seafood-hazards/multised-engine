@@ -188,7 +188,7 @@ computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
 
 ## 8. Phases
 
-Status: phase 1 done, phase 2 done.
+Status: phases 1-3 done. Phases 4-5 outstanding.
 
 **Phase 1, freeze the mapping. Done.** `inst/extdata/extraction-class/` holding the
 code table and a README recording the judgement calls of §4, plus
@@ -214,10 +214,15 @@ ride the existing path.
 
 Then rebuild all five generations and re-run `analyze_data("refined")`.
 
-**Phase 3, validate the Al basis.** Cross-tabulate recorded extraction class
-against the Fe/Al-inferred basis on ICES and MUDAB, the two sources that have
-both. Either the inference is corroborated, or `EF_BASIS` needs revising. Both
-outcomes are worth having, and this is the check that could not be run before.
+**Phase 3, validate the Al basis. Done.** The inference is corroborated wherever
+the chemistry is unambiguous, and Mareano's stated 7 M HNO3 partial extraction
+agrees with it on 3,247 of 3,251 samples. It is kept as the operative rule.
+The check also found its blind spot: the cut measures Al under-recovery
+*relative to Fe*, so a digestion that depresses both together still reads
+"total". Full numbers, the one disagreement (375 ICES-DOME nitric rows) and the
+new evidence on Vannmiljø's unrecorded digestion are in
+[ef-source-bias.md](ef-source-bias.md) section 7. No change to
+`refined_ef_basis()` is made here.
 
 **Phase 4, the superset export.** Build §6 as a new export, reusing
 `export_refined_dataset()`'s scope rules so the two cannot disagree.
