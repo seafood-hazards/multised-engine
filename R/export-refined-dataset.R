@@ -51,14 +51,19 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
            sub.fines_lt63              AS fines_pct,
            si.dist_to_coast            AS dist_to_coast_km,
            si.dist_to_aquaculture      AS dist_to_aquaculture_km,
-           m.outlier_flag              AS outlier_flag
+           m.outlier_flag              AS outlier_flag,
+           me.extraction               AS extraction,
+           me.extraction_class         AS extraction_class
     FROM measurement m
       JOIN subsample sub ON sub.subsample_id = m.subsample_id
       JOIN event e       ON e.event_id       = sub.event_id
       JOIN site si       ON si.site_id       = e.site_id
       LEFT JOIN normaliser nz
              ON nz.subsample_id = m.subsample_id
-            AND nz.frac_class   = m.frac_class")) |>
+            AND nz.frac_class   = m.frac_class
+      -- method_id is unique in `method` and populated on every measurement, so this
+      -- is 1:1 and cannot fan the rows out the way the normaliser join once did.
+      LEFT JOIN method me ON me.method_id = m.method_id")) |>
     # a single readable fraction token (bulk / sieved63 / sieved20 / ...)
     mutate(fraction = if_else(frac_class == "bulk", "bulk",
                               paste0("sieved", as.integer(sieve_um_std))))
@@ -75,6 +80,7 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     select(source, latitude, longitude, year, depth_from_cm, depth_to_cm,
            element, fraction, value_mgkg, al_mgkg, fe_mgkg, corg_mgkg,
            fines_pct, dist_to_coast_km, dist_to_aquaculture_km, outlier_flag,
+           extraction, extraction_class,
            al_basis, ef, ef_p90ref, classifiable, pristine_ef, pristine_ef_p90ref,
            pristine_strict,
            background_p90, background_mixture,
@@ -104,6 +110,8 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "dist_to_coast_km",        "km",         "Great-circle distance from the site to the nearest coastline.",
     "dist_to_aquaculture_km",  "km",         "Distance to the nearest marine aquaculture farm (Norway only; empty elsewhere).",
     "outlier_flag",            "",           "Distributional outlier marker (high / low); empty = kept. The analyses exclude flagged rows.",
+    "extraction",              "",           "Digestion chemistry used to liberate the metal, as an ICES METCX code (AQR = aqua regia, HNO = nitric acid, HF-CB = HF total digestion, NON = no extraction, UNK = not reported).",
+    "extraction_class",        "",           "EFSA extraction class derived from the code: 1 = strong (aqua regia or strong acid digestion, aimed at total recovery), 2 = milder (nitric acid, with or without peroxide), 3 = weak or none (no extraction, or not reported). Only ICES-DOME, MUDAB and Mareano record the digestion; Vannmiljo and 4Demon do not, so they are all class 3.",
     "ef",                      "",           "Enrichment factor: (element/Al) divided by the offshore background (element/Al) for the same element and fraction. EF < 1 means at or below background. Empty where aluminium is missing, where the sample is off its fraction's aluminium basis, or where aluminium does not predict that element (see the row on which groups get an ef).",
     "classifiable",            "",           "TRUE where an EF could be computed, so a pristine verdict exists. FALSE otherwise; the two pristine columns are then empty.",
     "pristine_ef",             "",           "Pristine under the permissive rule: EF < 1. Empty where not classifiable.",

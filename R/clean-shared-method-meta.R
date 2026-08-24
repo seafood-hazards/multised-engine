@@ -15,11 +15,16 @@
 #     filled from `method_desc` (the ICES wording) for the mapped canonical codes;
 #   - `lod` / `loq` are converted to mg/kg (matching value_std) and `limit_unit`
 #     set to "mg/kg";
+#   - `extraction` / `extraction_class` (EFSA's digestion class) pass through as slim
+#     set them: the codes are already canonical there, since every source is mapped to
+#     the ICES METCX vocabulary at slim step 1. See R/extraction-class.R;
 #   - columns: method_id, symbol, method, method_description, lab, lab_name, lod,
-#     loq, limit_unit. `comment` (Mareano) and `uncertainty` (MUDAB, unused) drop.
+#     loq, limit_unit, extraction, extraction_class. `comment` (Mareano) and
+#     `uncertainty` (MUDAB, unused) drop.
 
 METHOD_COLS <- c("method_id", "symbol", "method", "method_description",
-                 "lab", "lab_name", "lod", "loq", "limit_unit")
+                 "lab", "lab_name", "lod", "loq", "limit_unit",
+                 "extraction", "extraction_class")
 
 # raw method -> canonical ICES code (only non-identity mappings need listing;
 # codes already in the ICES vocabulary, e.g. AAS / ICP-MS, pass through unchanged)
@@ -78,9 +83,14 @@ standardise_method <- function(method, element) {
   m$method_description <- dplyr::coalesce(m$method_description,
                                           unname(method_desc[m$method]))
 
-  # ensure the optional columns exist
+  # ensure the optional columns exist. extraction defaults to UNK rather than NA: a
+  # slim database built before the column existed recorded no digestion, which is
+  # exactly what UNK means. See R/extraction-class.R.
   for (col in c("lab", "lab_name")) if (!col %in% names(m)) m[[col]] <- NA_character_
   for (col in c("lod", "loq"))      if (!col %in% names(m)) m[[col]] <- NA_real_
+  if (!"extraction" %in% names(m)) m$extraction <- "UNK"
+  if (!"extraction_class" %in% names(m))
+    m$extraction_class <- extraction_efsa_class(m$extraction)
 
   # lod / loq -> mg/kg via the limit_unit mass basis; set limit_unit accordingly
   denom <- unname(.limit_denom[.canon_unit(m$limit_unit)])

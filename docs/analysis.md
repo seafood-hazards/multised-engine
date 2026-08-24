@@ -155,10 +155,11 @@ Dataset Download page. Only the refined generation has an export; the five
 per-source review dumps for the retired pilot sites and are not part of the
 interface.
 
-**25 columns.** Sixteen describe the measurement (location, year, layer,
+**31 columns.** Eighteen describe the measurement (location, year, layer,
 element, fraction, value, the Fe / Al / organic normalisers, the fines, the two
-distances, `outlier_flag`). The other nine are the verdicts, added by
-`add_background_flags()`:
+distances, `outlier_flag`, and `extraction` / `extraction_class`, the digestion
+chemistry and EFSA's class for it). The other thirteen are the verdicts and the
+references behind them, added by `add_background_flags()`:
 
 | Column | Is |
 |---|---|

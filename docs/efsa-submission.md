@@ -71,6 +71,26 @@ later is a one-line change to the frozen table.
 **4Demon** encodes programme, instrument and sieve (`Monit3_OES/MS_63`), not
 chemistry. Only Cu and Zn of the 7 targets are present at all.
 
+### A contradiction the field exposes
+
+Making the extraction part of method identity surfaced something the pipeline had
+been hiding. **MUDAB reports six target measurements twice**, once under `HF-CB`
+(a total digestion) and once under `HNO` (a partial one), with identical values.
+A total and a partial digestion cannot both yield the same number, and nothing in
+the source says which applies.
+
+Before, the two rows collapsed because `chemical_treatment` was not part of the
+method key, so the measurement appeared once and the disagreement was invisible.
+Once extraction joins the key they take different `method_id`s, survive the
+`distinct()` that mints the measurement table, and the measurement is counted
+twice.
+
+`extraction_unambiguous()` withholds rather than guessing: where a measurement's
+rows disagree about the digestion, all of them become `UNK`. That restores the
+row count and matches how the project treats every other untrustworthy
+reference. The same guard runs on ICES-DOME, where it is a no-op today, so a
+later pilot refresh cannot reintroduce the duplication unnoticed.
+
 ### Expected result in the refined database
 
 `measurement.method_id` is populated for **100%** of all 115,820 target
@@ -168,12 +188,16 @@ computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
 
 ## 8. Phases
 
-**Phase 1, freeze the mapping.** `inst/extdata/extraction-class/` holding the
+Status: phase 1 done, phase 2 done.
+
+**Phase 1, freeze the mapping. Done.** `inst/extdata/extraction-class/` holding the
 code table and a README recording the judgement calls of §4, plus
 `R/analysis-refined-shared-extraction.R` to read it. No pipeline change yet.
 
-**Phase 2, propagate.** Add `extraction` (source code) and `extraction_class`
-(1/2/3) to the method table and carry them down:
+**Phase 2, propagate. Done.** Adds `extraction` (canonical code) and
+`extraction_class` (1/2/3) to the method table and carries them down. Merge and
+refine needed no change: both move the method table generically, so the columns
+ride the existing path.
 
 | File | Change |
 |---|---|
