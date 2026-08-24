@@ -95,9 +95,10 @@ export_data(generation = "refined", source = NULL,
   `multised.db_dir`, `multised.analysis_dir`, `multised.raw_dir` and
   `multised.seastamp_dir` options. `seastamp_dir` (`data/seastamp`, called
   `data/geoenrich` before the tool was renamed) is the seastamp reference tree,
-  read by pilot step 4 and clean step 4 only; skip those steps where seastamp is
-  not installed (`create_db("pilot", src, steps = c(1, 5))`, `steps = 1:3` for
-  clean).
+  read by **clean step 4 only**; skip it where seastamp is not installed
+  (`steps = 1:3`). The pilot stage no longer needs seastamp: it declares the five
+  location columns empty and clean fills them (see
+  [clean-pipeline.md](docs/clean-pipeline.md)).
 
 Analyses never modify a pipeline DB, so re-running is always safe; each writes
 to `out_dir/<module>/`.

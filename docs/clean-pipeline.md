@@ -224,12 +224,18 @@ Cross-source portability handled in code: `col_or_false` removal predicate (abse
 
 ## 4. Geo-enrich — `seastamp` and its reference data
 
-Clean step 4 (`clean_geo_enrich()`) and pilot step 4 (`pilot_geo_enrich()`) both
-go through `seastamp_enrich()`, which shells out to the external
-[seastamp](https://github.com/AIQC-Hub/seastamp) CLI. Neither the binary nor its
-reference datasets ship with the package, so these are the two steps that can
-fail for environmental rather than data reasons. Skip them with
-`create_db("clean", src, steps = 1:3)` or `create_db("pilot", src, steps = c(1, 5))`.
+Clean step 4 (`clean_geo_enrich()`) goes through `seastamp_enrich()`, which shells
+out to the external [seastamp](https://github.com/AIQC-Hub/seastamp) CLI. Neither
+the binary nor its reference datasets ship with the package, so this is the one
+step that can fail for environmental rather than data reasons. Skip it with
+`create_db("clean", src, steps = 1:3)`.
+
+**It is also the only step that derives these columns.** Pilot step 4 used to run
+the same tool over every station, but this step UPDATEs all five columns
+unconditionally, so the pilot values were always overwritten. The pilot stage now
+declares them empty (`pilot_geo_blank()`) and the pilot generation needs no
+seastamp at all. Nothing computes from them in between: slim step 4's `area_flag`
+is a lat/lon bounding box, not a location lookup.
 
 The wrapper runs four seastamp commands as one chain and validates every path up
 front, so all five datasets are needed even if only one column is wanted:
@@ -255,16 +261,18 @@ RStudio: its console does not inherit the login shell's `PATH`, so a seastamp th
 Terminal tab finds is often invisible to the console, and the run fails with
 "seastamp not found" despite a working install.
 
-**Pilot vs clean.** The pilot keeps five of the six columns (it drops `depth`),
-and they are transient: clean step 4 recomputes all six from the site table, so
-the clean values are the ones that survive. The stored **pilot** databases were
-rebuilt with seastamp on 2026-08-07 and published to the five pilot sites, so
-they now agree with a fresh build; before that they held values from the old
-sf + rnaturalearth + giscoR implementation that `pilot_geo_enrich()` replaced.
+**Pilot vs clean.** The pilot declares five of the six columns (it drops `depth`)
+and leaves them **empty**; clean step 4 fills them. They were always transient,
+since this step UPDATEs them unconditionally, so the pilot values never survived.
+Deriving them twice was dropped on 2026-08-25, along with the pilot sites' distance
+pages: see `pilot_geo_blank()` and the note at the head of `R/pilot-geo.R`. The
+stored pilot databases still carry the values from the 2026-08-07 seastamp rebuild
+until they are rebuilt.
 
 **Region.** `region = "auto"` in code (seastamp's own default and the accurate
-choice), and what the stored pilot databases now hold, but the stored clean and
-merged databases still hold `"global"` values. `dist_to_coast` moves
+choice), but the stored clean and merged databases still hold `"global"` values.
+This is why rebuilding clean today changes the site table even when nothing about
+the pipeline changed: a fresh build is `auto`, the stored one is `global`. `dist_to_coast` moves
 on every row between the two (median 4.8-11.3% by source, largest shift 93 km),
 `municipality` for 1,884 sites and `country` for 283; `depth` does not project
 and is unchanged. Adopting `auto` therefore needs a deliberate refresh, and will
