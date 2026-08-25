@@ -1,0 +1,32 @@
+code,name_no,name_en,pressure_class,judgement,note
+MOMC,Miljøovervåking akvakulturanlegg,Environmental monitoring of aquaculture facilities,aquaculture,FALSE,The programme EFSA asked for by name: monitoring under and around marine fish farms.
+FOSJ,Overvåking av forurenset sjøbunn,Monitoring of contaminated seabed,pressure,FALSE,Contaminated by definition; the programme exists because the seabed is.
+INDU,Overvåking av påvirkning fra industri,Monitoring of industrial impact,pressure,FALSE,Named industrial source.
+KOMM,Overvåking av påvirkning fra avløp,Monitoring of sewage impact,pressure,FALSE,Named sewage discharge.
+KAVE,Overvåking av påvirkning fra vegtrafikk,Monitoring of road traffic impact,pressure,FALSE,Named road source.
+FLYP,Overvåking av påvirkning fra flyplasser,Monitoring of airport impact,pressure,FALSE,Named airport source.
+JRBN,Overvåking av påvirkning fra jernbane,Monitoring of railway impact,pressure,FALSE,Named railway source.
+DEPO,Overvåking av avrenning fra landdeponi,Monitoring of landfill runoff,pressure,FALSE,Named landfill source.
+EMUD,"Effekter av mudring, utfylling og dumping","Effects of dredging, filling and dumping",pressure,FALSE,Physical disturbance of the seabed as the stated subject.
+MIUR,Miljøgifter i en urban fjord,Contaminants in an urban fjord,pressure,FALSE,Urban fjord; EFSA lists populated areas as non-pristine.
+BAPO,Basisovervåking - påvirka områder,Baseline monitoring - impacted areas,pressure,FALSE,"""Impacted"" is in the programme name."
+MYFO,Myndighetspålagt forurensningsovervåking,Authority-mandated pollution monitoring,pressure,FALSE,"Imposed on an operator by the regulator, so a discharge is presumed."
+TILT,Tiltaksorientert overvåking,Measure-oriented monitoring,pressure,TRUE,Monitoring tied to a remedial measure. Implies a known problem at the site rather than naming the source.
+PROB,Problemkartlegging,Problem mapping,pressure,TRUE,Investigating a suspected problem. The suspicion is the pressure evidence; some surveys will find nothing.
+SOFP,Samordnet overvåking av flere påvirkninger,Coordinated monitoring of several pressures,pressure,TRUE,"Plural pressures in the name, none of them identified."
+AREA,Effekter av planlagt arealbruk,Effects of planned land use,pressure,TRUE,"Baseline for a planned development, so the pressure may post-date the sample."
+MONS,Feltspesifikk miljøovervåking på norsk sokkel,Field-specific monitoring on the Norwegian shelf,pressure,TRUE,"Offshore petroleum field monitoring. Offshore, which EFSA leans pristine, but sited on an installation."
+BARE,Basisovervåking - referanseforhold,Baseline monitoring - reference conditions,reference,FALSE,"A reference-condition programme, the one positive pristine signal in the vocabulary."
+MARE,Kartlegging av miljøgifter i sedimenter - MAREANO,Contaminant mapping in sediments - MAREANO,survey,FALSE,Offshore seabed mapping with no site-specific pressure premise.
+MGKK,Marine grunnkart i kystsonen,Marine base maps in the coastal zone,survey,FALSE,Mapping programme.
+CEMP,Miljøgifter langs norskekysten,Contaminants along the Norwegian coast,survey,FALSE,National status and trend programme.
+MILK,Miljøgifter i kystområdene (MilKys),Contaminants in coastal areas (MilKys),survey,FALSE,National status and trend programme.
+KYST,Kystovervåkingsprogrammet,The coastal monitoring programme,survey,FALSE,National status programme.
+OEKK,Økosystemovervåking i kystvann (ØkoKyst),Ecosystem monitoring in coastal water (OekoKyst),survey,FALSE,Ecosystem status programme.
+LANG,Lange tidsserier,Long time series,survey,FALSE,Trend series; the pressure is whatever the site has.
+YOFJ,Overvåking av Ytre Oslofjord,Monitoring of the Outer Oslofjord,survey,TRUE,"Regional status programme in a populated fjord. Regional rather than site-specific, so not filed as a pressure."
+TILF,Tilførselsprogrammet,The riverine inputs programme,survey,TRUE,Quantifies loads to the sea rather than impact at the sampling point.
+SPFO,Statlig program 1980-2000,State programme 1980-2000,survey,TRUE,A funding envelope rather than a subject; it covered both status and pressure work.
+SCRE,Kartlegging av nye miljøgifter,Screening for new contaminants,survey,FALSE,Screening for substances rather than assessing a site.
+GEOS,Geologi i Oslo-regionen (GEOS),Geology in the Oslo region (GEOS),survey,FALSE,Geological mapping.
+ANNE,Annet,Other,unknown,FALSE,"The source's own residual category, so it carries no information."

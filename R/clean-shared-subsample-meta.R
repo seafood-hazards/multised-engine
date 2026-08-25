@@ -27,11 +27,13 @@
 
 SUBSAMPLE_COLS <- c("subsample_id", "event_id", "depth_from", "depth_to", "depth_flag",
                     "fe_exist", "al_exist", "org_exist", "comp_exist",
-                    "target_frac_class", "target_sieve_um", "fines_lt63", "fines_basis")
+                    "target_frac_class", "target_sieve_um", "target_frac_basis",
+                    "fines_lt63", "fines_basis")
 
 standardise_subsample <- function(subsample) {
   s <- subsample
-  for (col in c("depth_flag", "target_frac_class", "fines_basis")) if (!col %in% names(s)) s[[col]] <- NA_character_
+  for (col in c("depth_flag", "target_frac_class", "target_frac_basis",
+                "fines_basis")) if (!col %in% names(s)) s[[col]] <- NA_character_
   for (col in c("target_sieve_um", "fines_lt63"))    if (!col %in% names(s)) s[[col]] <- NA_real_
   dplyr::select(s, dplyr::all_of(SUBSAMPLE_COLS))
 }

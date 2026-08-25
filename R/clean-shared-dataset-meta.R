@@ -22,6 +22,7 @@ dataset_meta <- tibble::tribble(
 
 DATASET_COLS <- c(
   "dataset_id", "dataset_name", "dataset_code", "dataset_group",
+  "pressure_class",
   "source", "source_type", "url", "doi", "country", "region",
   "institute", "institute_code", "accessed")
 

@@ -18,6 +18,7 @@ CREATE TABLE dataset (
   dataset_code TEXT,
   dataset_name TEXT,
   country      TEXT,
+  pressure_class TEXT,
 
   PRIMARY KEY (dataset_id)
 );",
@@ -52,6 +53,8 @@ CREATE TABLE method (
   method    TEXT,
   lod       REAL,
   loq       REAL,
+  extraction       TEXT,
+  extraction_class INTEGER,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",

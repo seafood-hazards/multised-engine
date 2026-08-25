@@ -73,7 +73,14 @@ lacks that table. Key changes vs slim:
   Organic carbon (CORG / TOC\*) stays here too, told apart by `element.category`;
   it is not split into a separate table since the columns would be identical.
 - **method** — columns `method_id`, `symbol`, `method`, `method_description`,
-  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`. Grain-size (composition-symbol)
+  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`, `extraction`, `extraction_class`,
+  `accredited` (`yes` / `partly` / `no`, NULL where the source does not say, which
+  is ICES-DOME, Vannmiljø and 4Demon entirely; see `R/accreditation.R`).
+  The last two are the digestion chemistry and EFSA's class for it; they pass
+  through unchanged, because slim step 1 already mapped every source onto the ICES
+  METCX vocabulary (see [efsa-submission.md](efsa-submission.md)). A slim database
+  built before those columns existed defaults to `UNK`, which is what "recorded no
+  digestion" means. Grain-size (composition-symbol)
   methods are dropped (`grain_size_fraction` has no `method_id`, so nothing is
   orphaned). `method` is mapped to the ICES-DOME vocabulary (MUDAB already uses it;
   Mareano `ICP-AES`→`ICP-OES`, `LECO-analyser`→`CNA`; Vannmiljø ISO/NS standard
@@ -151,8 +158,11 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
 - **`measurement.matrix` → ICES `SED<µm>` vocabulary** (the sediment fraction the
   chemistry was measured on). ICES-DOME and MUDAB already use it (`SEDtot`,
   `SED2000`, `SED1000`, `SED500`, `SED90`, `SED63`, `SED62`, `SED20`); **4Demon**
-  is remapped (`FS` fine <63 µm → `SED63`, `US` unsieved/bulk → `SEDtot`) and
-  **MUDAB**'s stray `PK_default` sentinel (matrix unrecorded, 6 rows) → NULL.
+  is read from `fraction_range`, its `"<lo>-<hi>"` µm field, as `SED<hi>` (only a
+  range starting at zero is a cutoff, so `63-2000` would be left alone), falling
+  back to the `matrix_code` (`FS` → `SED63`, `US` → `SEDtot`) where there is no
+  range; and **MUDAB**'s stray `PK_default` sentinel (matrix unrecorded, 6 rows)
+  → NULL.
   Mareano / Vannmiljø have no matrix. Shared helper `_shared/matrix_meta.R`
   (`matrix_canon` + `standardise_matrix()`).
 
@@ -185,7 +195,20 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **Sediment fraction** (`_shared/fraction_meta.R`) — the ICES `matrix` gains
   `frac_class` (`bulk` / `sieved`) + `sieve_um` (fine cutoff µm; NULL for bulk) on
   each measurement (bulk = `SEDtot` or a `>= 1000 µm` cutoff; no matrix, i.e.
-  Mareano/Vannmiljø, taken as bulk); `matrix` is kept as provenance. Because
+  Mareano/Vannmiljø, taken as bulk); `matrix` is kept as provenance.
+
+  **`frac_basis` records whether that was read or defaulted**: `reported` where the
+  source gave a matrix, `assumed` where it gave nothing and `bulk` is the fallback.
+  Defaulting to bulk is what EFSA's spec instructs for the submission ("If not
+  reported, there is also this option in the drop-down menu"), so the export stays
+  correct, but 68,079 target measurements rest on it and an EF or background cut
+  should be able to tell the two apart. Mareano and Vannmiljø are `assumed`
+  throughout; ICES-DOME, MUDAB and 4Demon are `reported`. Summarised onto
+  `subsample` as `target_frac_basis`, which is `reported` only where every target
+  row on the subsample is. The grain-size records cannot recover the truth for the
+  assumed sources: see [generation-gaps.md](generation-gaps.md) for the test.
+
+  Because
   bulk/sieved varies between the measurements of one subsample (metals vs organic
   carbon, and even target-vs-target), it is authoritative per-row on `measurement`,
   and summarised onto `subsample` as `target_frac_class` `bulk`/`sieved`/**`mixed`**
@@ -214,7 +237,7 @@ Per-source specifics settled during the rollout:
 | MUDAB     | cm (×1)    | from `matrix` (`PK_default` → NULL → bulk) | `time` dropped; no `src_flag` |
 | Mareano   | cm (×1)    | all `bulk` (confirmed; no `matrix`) | named bins Clay/Silt/Sand/Gravel; `lld`->`lod`; TOC->CORG |
 | Vannmiljø | cm (×1)    | all `bulk` (assumed; no `matrix`) | `date` from `datetime`; `dw`/`C` unit suffix stripped; 221 corrupt depths (>300 cm or inverted) nulled; own GSMF code vocabulary; `gs_corr='invalid'` fractions excluded |
-| 4Demon    | cm (×1)    | from `matrix` (FS/US → sieved/bulk) | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
+| 4Demon    | cm (×1)    | from `fraction_range` (`0-63`→`SED63`, `0-2000`→bulk, also `0-37`/`0-500`/`0-10000`); `matrix_code` FS/US is the fallback | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
 
 Cross-source portability handled in code: `col_or_false` removal predicate (absent
 `src_flag`), `matrix` NA-guard, and `intersect(c("method","lab"))` grouping (absent
@@ -375,6 +398,43 @@ aquaculture data yet).
   each clean `site`, the nearest farm over **all** aquaculture rows (active or
   closed). Computed only for `country_code = 'NOR'` sites (from the geo-enrich step);
   others NULL. Idempotent (resets + recomputes).
+
+  It also adds the nearest **fish farm** specifically: `dist_to_fish_farm`,
+  `fish_farm_mtb_t` and `fish_farm_band`. `dist_to_aquaculture` keeps its meaning
+  (a mussel raft is aquaculture); these are additive, because a fish farm is the
+  pressure the trace-element work is about, and a 780 t farm and a 19,000 t farm at
+  the same distance are not the same pressure.
+
+### Which sites are fish farms, and how big
+
+`fish_farm` and `size_band` are set in the build, not the distance step.
+
+`fish_types` is the licence's species list, and it is noisy: **335 distinct
+entries** across the register, most of them wild organisms recorded against
+research and multi-species licences (herring, tuna, starfish). So the test is a
+**positive list** of the finfish Norway grows in sea cages, and a site is called a
+fish farm only on evidence: `fish_farm = 1` where the licence names one of them
+**and** `placement` is sea or offshore. That gives **2,437 fish farms** of 3,743
+sites; the 96 sea sites with a tonnage licence it excludes are mussels, oysters,
+scallops, urchins and kelp. Cleaner fish (wrasse, lumpfish) are deliberately off
+the list: a salmon licence names salmon anyway, and including them would catch
+wild-capture wrasse holding sites.
+
+Size is **MTB in standard concessions**. Norwegian finfish licences are issued in
+maksimalt tillatt biomasse, and the capacity distribution lands on exact multiples
+of the 780 t concession (780, 1,560, 2,340, 3,120 …), so that is the unit the
+licence is actually written in:
+
+| Band | MTB | Concessions | Sites |
+|---|---|---|---:|
+| `small` | <= 1,560 t | 1-2 | 1,080 |
+| `medium` | <= 3,120 t | 3-4 | 740 |
+| `large` | > 3,120 t | 5+ | 553 |
+| NULL | not a biomass licence | | 64 |
+
+The 64 unsized are sea cages licensed by volume (m3) or head count: still fish
+farms, just of unknown size. `mtb_concessions` (tonnes / 780) is stored beside the
+band.
 
 ---
 

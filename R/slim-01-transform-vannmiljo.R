@@ -54,13 +54,18 @@ slim_transform_vannmiljo <- function(con_src) {
     inner_join(df_base_sample %>% distinct(sample_id), by = "sample_id")
 
   # ── 3. Build dataset table ─────────────────────────────────────────────────
+  # The programme code says why the sample was taken: aquaculture monitoring,
+  # a named pressure, reference conditions, or plain status work. See
+  # R/vannmiljo-pressure.R and inst/extdata/vannmiljo-programmes/.
+  check_vannmiljo_programmes(df_base_activity$activity_id)
   df_dataset <- df_base_activity %>%
     distinct(dataset_code = activity_id, dataset_name = activity_name) %>%
-    mutate(source       = "Vannmilj\u00f8",
-           country      = "Norway",
-           dataset_id   = row_number()) %>%
+    mutate(source         = "Vannmilj\u00f8",
+           country        = "Norway",
+           pressure_class = vannmiljo_pressure_class(dataset_code),
+           dataset_id     = row_number()) %>%
     select(dataset_id, source,
-           dataset_code, dataset_name, country)
+           dataset_code, dataset_name, country, pressure_class)
 
   # ── 4. Build site table (keyed on lat/lon rounded to 3 d.p.) ───────────────
   df_site <- df_base_site %>%
@@ -115,10 +120,17 @@ slim_transform_vannmiljo <- function(con_src) {
            year, datetime = sample_time)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
+  # Vannmiljo records no digestion step. `analysis` holds ISO DETERMINATION standards
+  # (NS-EN ISO 17294-2 is ICP-MS), which say nothing about extraction, and 44% of it
+  # is "Unknown". So every row is UNK, not class 2: Norwegian practice would usually
+  # justify class 2, but that is an assumption about an unrecorded step. See
+  # inst/extdata/extraction-class/README.md.
   df_method <- df_slim %>%
     distinct(symbol = param_id, method = analysis, lod, loq) %>%
-    mutate(method_id = row_number()) %>%
-    select(method_id, symbol, method, lod, loq)
+    mutate(method_id = row_number(),
+           extraction = extraction_canon(method, "Vannmiljø"),
+           extraction_class = extraction_efsa_class(extraction)) %>%
+    select(method_id, symbol, method, lod, loq, extraction, extraction_class)
 
   df_slim <- df_slim %>%
     inner_join(

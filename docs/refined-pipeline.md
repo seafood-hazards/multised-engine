@@ -118,20 +118,29 @@ and the analysis normalises by whatever method it chooses.
 
 Phase 1 is the structural refactor above.
 
-**Phase 2, `extraction_class` / `accredited`: blocked pending source-level data, not
-derivable from what the pipeline holds** (checked 2026-08-02). `extraction_class`
-(strong/mild/weak acid digestion) is a property of the sample-prep digestion, but the
-`method` table records only the analytical *technique* (ICP-MS, AAS, XRF, NAA, ...):
-**0 of 949 method rows mention any digestion acid, and no digestion/extraction column
-exists in any of the five pilot DBs**, so it was never parsed from the sources, not
-merely dropped. Getting it means going back to the original raw source files/APIs to
-see if a sample-prep field is there, and for the aggregators (ICES-DOME) and most
-monitoring databases it is likely not recorded at all, so it would be partial at best.
-`accredited` is the same kind of gap: accreditation status is not a data field, it
-needs an external curated list of accredited labs. Both are **left for now** until (and
-if) the pristine analyses need them and the source data can be revisited. (Technique
-alone does tell XRF/NAA apart as non-destructive total methods, but that is a different
-axis from EFSA's acid-strength classes.)
+**Phase 2, `extraction_class`: done** (2026-08-25). It is now carried on the `method`
+table, all the way from pilot to the export. See
+[efsa-submission.md](efsa-submission.md).
+
+> The 2026-08-02 note here said extraction class was "blocked pending source-level
+> data", on the grounds that **"no digestion/extraction column exists in any of the
+> five pilot DBs"**. That was wrong. It held for the *refined* `method` table, which
+> does record only the analytical technique, but not for the pilot databases: ICES-DOME
+> carries `analysis_method.metcx` (the ICES METCX code for method of chemical
+> extraction) and MUDAB carries `analysis_method.chemical_treatment` in the same
+> vocabulary. The field was there all along and was dropped at **slim step 1**, which
+> builds the method table from `distinct(param, metoa, ...)` and never selects `metcx`.
+> The conclusion was drawn from the wrong end of the pipeline.
+
+Recorded for **51.5%** of the 115,820 target measurements: ICES-DOME and MUDAB record
+it per analysis, Mareano has one stated method for every target element, and Vannmiljø
+and 4Demon record nothing, so they take the `UNK` code and EFSA class 3. The extraction
+is part of method identity, so `method` grew from 949 rows to 983.
+
+`accredited` remains a gap of the kind this one turned out not to be, but a real one:
+only MUDAB records it (46.9% of its target rows, in a messy `true`/`ja`/`y`/`1`
+vocabulary) and it is not carried through the pipeline. See
+[efsa-submission.md](efsa-submission.md) section 9.
 
 ## Websites
 
@@ -150,7 +159,8 @@ axis from EFSA's acid-strength classes.)
 - **`ratio_fines`**: not baked; `fines_lt63` primitive only. **Decided.**
 - **`element` trimming**: reduced to the 7 targets. **Decided.**
 - **Clustering results**: inputs baked, labels not. **Decided.**
-- **Extraction class / accredited**: phase 2 (curated `method` lookups). **Decided.**
+- **Extraction class**: carried on `method` from the sources' own digestion fields,
+  not curated lookups. **Done**, see above. `accredited` is still open.
 
 ## Still open
 

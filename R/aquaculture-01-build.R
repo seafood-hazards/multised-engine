@@ -143,6 +143,37 @@ aquaculture_build <- function(raw_dir = multised_raw_dir(),
   to_tonnes <- function(cap, unit)
     case_when(unit == "TN" ~ cap, unit == "KG" ~ cap / 1000, TRUE ~ NA_real_)
 
+  # ── Which sites are fish farms, and how big ────────────────────────────────
+  # `fish_types` is the licence's species list, and it is long and noisy: 335
+  # distinct entries across the register, most of them wild organisms recorded
+  # against research and multi-species licences (herring, tuna, starfish). So the
+  # test is a POSITIVE list of the finfish Norway actually grows in sea cages: a
+  # site is called a fish farm only on evidence, never by failing to look like
+  # something else.
+  #
+  # Cleaner fish (wrasse, lumpfish) are deliberately absent. They are farmed, but
+  # a salmon licence lists salmon anyway, and including them would catch
+  # wild-capture wrasse holding sites that are not a farm in the sediment sense.
+  FARMED_FINFISH <- c(
+    # salmonids, which are nearly all of it
+    "Atlantic salmon", "Rainbow trout", "Trout", "Arctic char",
+    # marine finfish
+    "Atlantic cod", "Atlantic halibut", "Turbot", "European seabass", "Kingfish",
+    "Spotted wolffish", "Atlantic wolffish", "Northern wolffish",
+    "Saithe", "Pollack", "Haddock")
+
+  names_finfish <- function(species) {
+    vapply(strsplit(ifelse(is.na(species), "", species), ",", fixed = TRUE),
+           function(p) any(trimws(p) %in% FARMED_FINFISH), logical(1))
+  }
+
+  # Norwegian finfish licences are issued in MTB (maksimalt tillatt biomasse), and
+  # the standard concession is 780 t: the capacity distribution lands on exact
+  # multiples of it (780, 1560, 2340, 3120, ...). Reporting size in concessions
+  # rather than raw tonnes is the unit the licence is actually written in, reads
+  # to a Norwegian regulator, and collapses the long tail sensibly.
+  MTB_CONCESSION_T <- 780
+
   aqua <- both |>
     mutate(capacity = suppressWarnings(as.numeric(capacity)),
            longitude = round(ll[, 1], 5), latitude = round(ll[, 2], 5),
@@ -154,9 +185,24 @@ aquaculture_build <- function(raw_dir = multised_raw_dir(),
            county = first_name(county), municipality = first_name(municipality)) |>
     mutate(name = clean_name(name)) |>
     arrange(desc(active), loknr) |>
+    mutate(
+      # a fish farm in the sediment sense: finfish, grown in the sea
+      fish_farm = as.integer(names_finfish(fish_types) &
+                             placement %in% c("sea", "offshore")),
+      # size only where the licence is a biomass one; a sea cage licensed by
+      # volume or head count is still a fish farm, just one of unknown size
+      mtb_concessions = if_else(fish_farm == 1L,
+                                round(capacity_tonnes / MTB_CONCESSION_T, 2),
+                                NA_real_),
+      size_band = case_when(
+        is.na(mtb_concessions)   ~ NA_character_,
+        mtb_concessions <= 2     ~ "small",     # up to 1560 t
+        mtb_concessions <= 4     ~ "medium",    # up to 3120 t
+        TRUE                     ~ "large")) |>
     transmute(aqua_id = row_number(), loknr, name, latitude, longitude,
               start_year, end_year, active, water_type,
               capacity, capacity_unit, capacity_tonnes,
+              fish_farm, mtb_concessions, size_band,
               fish_types, placement, county, municipality)
 
   # ── Write the table ────────────────────────────────────────────────────────

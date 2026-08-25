@@ -1,0 +1,35 @@
+code,description,efsa_class,efsa_label,judgement,organic_solvent,note
+AQR,Aqua regia extraction HNO3:HCL = 1:3,1,strong,FALSE,FALSE,
+HF-C,"'Total' digestion with mineral acids including HF, closed vessel digestion (pressurized decomposition)",1,strong,FALSE,FALSE,
+HF-CB,"'Total' digestion with mineral acids including HF, closed vessel digestion (pressurized decomposition), with complexation of excess HF with H3BO3",1,strong,FALSE,FALSE,
+HF-CM,"'Total' digestion with mineral acids including HF, closed vessel with microwave energy",1,strong,FALSE,FALSE,
+HF-OV,"'Total' digestion with mineral acids including HF, in open vessels, evaporation of excess HF before analysis",1,strong,FALSE,FALSE,
+HNO-HF-HCL,"Nitric acid, hydroflouric acid and hydrochloric acid",1,strong,FALSE,FALSE,
+HNO-HF-PER,"Nitric acid, hydroflouric acid and perchloric acid",1,strong,FALSE,FALSE,
+SAD,Mixture of strong mineral acids without HF (e.g. HClO4 and/or H2SO4 in addition to HNO3),1,strong,FALSE,FALSE,
+TOT,Total extraction method - report in METOA,1,strong,FALSE,FALSE,
+HF-CB~HF-CM,Composite of two HF total digestions,1,strong,FALSE,FALSE,composite code; both parts are class 1
+HNO-CM~LMF-A-L,Composite of nitric acid microwave digestion and lithium metaborate fusion,1,strong,TRUE,FALSE,composite; the fusion component reaches total recovery so the stronger part governs
+LMF-A,Lithium metaborate fusion LiBO2 followed by dissolution in acid,1,strong,TRUE,FALSE,fusion rather than acid digestion so EFSA's wording does not reach it; total recovery is what the class is for
+LMF-A-L,Lithium metaborate fusion LiBO2 followed by dissolution in acid (Lanthanoides),1,strong,TRUE,FALSE,as LMF-A
+ALK,Alkaline fusion digestion,1,strong,TRUE,FALSE,as LMF-A
+HNO,Nitric acid,2,milder,FALSE,FALSE,
+HNO-CM,Nitric acid digestion in closed vessel with microwave energy,2,milder,FALSE,FALSE,
+HNO-CM150,Nitric acid digestion in closed vessel with microwave energy at regulated temperature of 150 C,2,milder,FALSE,FALSE,
+HNO-OV,Nitric acid digestion in open vessels,2,milder,FALSE,FALSE,
+HPX,Hydrogen peroxide,2,milder,FALSE,FALSE,EFSA class 2 names H2O2 explicitly
+NON,None,3,weak-none,FALSE,FALSE,no extraction performed; a positive statement unlike UNK
+UNK,Not reported,3,weak-none,FALSE,FALSE,not an ICES code; added here for sources that record no extraction step at all
+HCL,Hydrochloric acid,3,weak-none,TRUE,FALSE,hydrochloric acid alone appears in no EFSA list; neither a total digestion nor the HNO3 chemistry of class 2
+HSA,Sulfuric acid,3,weak-none,TRUE,FALSE,H2SO4 appears in EFSA class 1 only inside strong mixtures (SAD); alone it is a partial leach
+HAC,Acetic acid,3,weak-none,FALSE,FALSE,weak organic acid leach
+PHO,Treated with dilute phosphoric acid,3,weak-none,FALSE,FALSE,dilute and partial
+SCE,Selective chemical extraction of metal species in particulate phases,3,weak-none,TRUE,FALSE,partial by design
+ACE,Acetone,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+ACH,Acetone/hexane,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+ACD,Acetone/dichloromethane,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+ACPE,Acetone/petroleum ether,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+MHX,Methanol/hexane mixture in acetic acid environment,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+PEN,Pentane,3,weak-none,FALSE,TRUE,organic solvent; on a trace-element row this is a mis-tag
+SOX,Soxhlet method,3,weak-none,FALSE,TRUE,organic solvent extraction; on a trace-element row this is a mis-tag
+SAP,Alkaline saponification,3,weak-none,FALSE,TRUE,organic preparation; on a trace-element row this is a mis-tag
