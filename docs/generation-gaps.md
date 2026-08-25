@@ -538,8 +538,10 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    10, taking coverage from 9.8% to 97.2% of target measurements and from 0.4% to
    99.4% within 1 km of a fish farm. TOC normalisation was tested and rejected;
    PLI was measured and not built, since it adds no coverage over Igeo. Igeo is
-   deliberately **not wired into the pristine verdict**: that is the open decision,
-   and it turns on the texture confounding the step measures on itself.
+   deliberately **not wired into the pristine verdict**. Decided 2026-08-25: the
+   verdicts stay on EF and Igeo is reported alongside them, because the texture
+   confounding the step measures on itself is strong enough in bulk (cobalt rho
+   0.70) that a verdict built on Igeo would be partly a verdict about grain size.
 5. **Then re-cut the exports and the four generation sites**, and re-release.
 
 Steps 1-3 are one unit of work. Step 4 is where the coverage number moves.

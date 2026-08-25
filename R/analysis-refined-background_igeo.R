@@ -24,6 +24,15 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # Section 6 reports what that buys, per fraction and per distance-to-aquaculture band,
   # against what EF manages on the same rows.
   #
+  # THIS STEP DOES NOT ISSUE A VERDICT, and that is a decision rather than an omission
+  # (2026-08-25). The pristine verdicts stay on EF and Igeo is reported alongside them.
+  # Igeo's reach is the argument for promoting it; the texture confounding measured in
+  # section 7 is the argument against, and in bulk it is strong enough (cobalt rho 0.70
+  # against the mud fraction) that a verdict built on Igeo would be partly a verdict
+  # about grain size. Reporting the index without promoting it keeps the coverage
+  # visible to EFSA, who asked for Igeo in EF's absence, without changing what
+  # "pristine" means here. Step 10 therefore sits AFTER the synthesis on purpose.
+  #
   # THE BACKGROUND. B is the offshore (dist_to_coast > DIST_BG km) MEDIAN of the raw
   # concentration, per element and fraction: the same population the EF reference is cut
   # from, so the two indices disagree about method rather than about which samples count

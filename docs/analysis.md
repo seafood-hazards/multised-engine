@@ -145,8 +145,13 @@ speak to at all because Vannmiljø's aquaculture programme carries aluminium on 
 13,996 subsamples.
 
 It is **not wired into the pristine verdict**, and step 10 sits after the synthesis
-deliberately: whether a background-ratio index should carry a verdict is a decision to
-take on the numbers, not a side effect of adding the step.
+deliberately. That was decided on the numbers, 2026-08-25: **the verdicts stay on EF,
+and Igeo is reported alongside them.** Igeo's reach is the argument for it and its lack
+of grain-size control is the argument against, and the confounding measured below is
+strong enough in bulk (cobalt rho 0.70 against the mud fraction) that a verdict built on
+it would be partly a verdict about texture. Reporting the index without promoting it to
+a verdict keeps the coverage visible to EFSA, who asked for Igeo in EF's absence,
+without changing what "pristine" means in this database.
 
 Those numbers include a caveat the step measures on itself. Igeo has no grain-size
 control, so `refined_igeo_confound.csv` correlates it against the mud fraction, with
