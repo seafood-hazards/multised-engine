@@ -355,17 +355,37 @@ does not need the element we do not have.
   offshore percentiles, never T&W (§3). Which percentile becomes B is a
   decision: the median of the offshore reference is the conventional choice; the
   p90 is what EFSA themselves extract for background. Pick one and state it.
-- **Igeo first, PLI second.** Igeo is per-measurement and needs one element;
-  PLI is per-site and multiplies across elements, so with only CO/CU/ZN reliably
-  covered it is thin, and it silently mixes elements of different
-  normalisability. Report PLI at site level with an explicit element list, or
-  not at all.
+- **Igeo first, PLI second. Measured 2026-08-25: build Igeo, do not build PLI.**
+  PLI is the geometric mean of the same `C / B` ratios Igeo uses, so it adds **no
+  coverage at all**, and it costs a great deal: a PLI over three or more elements
+  reaches 12,661 of 48,457 subsamples (26%), against Igeo's ~100% per element. The
+  dominant case is worse than that suggests: 31,608 subsamples carry exactly two
+  of the non-withheld targets, and **30,999 of those are Cu+Zn**, the pair
+  Norwegian monitoring always runs. A two-value geometric mean of Cu and Zn is a
+  less interpretable way of reporting Cu and Zn, and it hides which metal drives
+  it, which is the opposite of what EFSA asked for ("You may decide to dedicate an
+  Excel spread sheet to each trace element"). It would also inherit Igeo's texture
+  confounding and compound it across elements that do not share it (Co rho 0.70
+  against the mud fraction, Zn 0.36).
+
+  If EFSA asks for PLI specifically it is a small addition on the Igeo machinery:
+  restrict to subsamples with >= 3 elements, report the element list beside every
+  value, and say what the 26% covers.
 - **Do not let Igeo quietly re-open the withheld elements.** Se and Mo verdicts
   are withheld for LOQ-censoring reasons ([loq-censoring](../inst/extdata/loq-censoring/README.md))
   that Igeo does not fix. The withholding is orthogonal and must survive.
-- **TOC normalisation is the third option** where Al is absent and the sample is
-  bulk: 90% coverage in exactly the programmes that lack Al. Worth evaluating on
-  the same footing as Igeo, using the D4 method (does TOC predict the metal?).
+- **TOC normalisation: tested and rejected 2026-08-25.** 33.1% of bulk target
+  rows carry TOC and no aluminium, 28,397 measurements, so the coverage prize was
+  real. Put through the same D4 test aluminium had to pass, TOC clears both limits
+  in one group of twenty, and that group is unusable: selenium sieved63, 34
+  offshore rows, an element already withheld because censoring deleted 68.6% of it.
+
+  Everywhere it could matter it fails, and in the way hardest to argue with: the
+  two measures disagree. Copper in bulk is rho 0.60 against R2 0.21; copper
+  sieved63 inverts it, R2 0.37 against rho 0.32. For aluminium the two agreed on
+  every group, which is what made D4 a clean partition. For TOC they pull apart, so
+  no cut makes it a normaliser. Those 28,397 rows stay unnormalised, and Igeo is
+  their only route to a verdict. See `refined_igeo_toc_normaliser.csv`.
 
 ---
 
@@ -514,8 +534,12 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    `normaliser` gains 46 because 4Demon subsamples now span two fractions (bulk
    10 -> 111) instead of being uniformly mislabelled.
 
-4. **Then the refined analyses**: Igeo, then TOC-normalisation evaluation, then
-   PLI if the element coverage justifies it (§6).
+4. ~~**Then the refined analyses**~~ **Done 2026-08-25.** Igeo is background step
+   10, taking coverage from 9.8% to 97.2% of target measurements and from 0.4% to
+   99.4% within 1 km of a fish farm. TOC normalisation was tested and rejected;
+   PLI was measured and not built, since it adds no coverage over Igeo. Igeo is
+   deliberately **not wired into the pristine verdict**: that is the open decision,
+   and it turns on the texture confounding the step measures on itself.
 5. **Then re-cut the exports and the four generation sites**, and re-release.
 
 Steps 1-3 are one unit of work. Step 4 is where the coverage number moves.
