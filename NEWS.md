@@ -1,3 +1,106 @@
+# multised.engine 0.3.2
+
+The source-fidelity release. Five things the sources record and the pipeline was
+discarding now survive to the export, one new analysis reaches almost every
+measurement, and every generation was rebuilt on the corrected geo-enrichment.
+
+**Every database and both exports were rebuilt.** The refined generation now holds
+**115,811** target measurements, nine fewer than `v0.3.1`, and the nine are
+explained below rather than absorbed.
+
+## Source fidelity
+
+Five fields the sources state and the pipeline dropped, each carried from slim
+through to the export:
+
+* **Extraction class**, the EFSA digestion class, mapped from a frozen table under
+  `inst/extdata/extraction-class/`. Recorded for **51.3%** of target measurements
+  (59,372 rows); the rest default to class 3. This is the *recorded* counterpart of
+  the aluminium basis the enrichment work **infers** from Fe/Al, and phase 3 tested
+  one against the other.
+* **Laboratory accreditation**, from the two sources that state it.
+* **Fraction provenance** (`frac_basis`), distinguishing a stated sieve or stated
+  no-sieve from bulk merely *inferred* from a source's silence. Most "bulk" is the
+  latter, and a submitter should be able to tell.
+* **Vannmiljø programme codes** as a stated pressure label, frozen under
+  `inst/extdata/vannmiljo-programmes/` and read only through `R/vannmiljo-pressure.R`.
+* **Fish-farm size**, the nearest farm's licensed biomass and a small/medium/large
+  band, carried onto `site`.
+
+**4Demon's sieve is now read from `fraction_range`**, not its matrix code. This is a
+correctness fix that made a hidden duplicate visible: the dedup key includes
+`frac_class`, so rows mislabelled `sieved63` were compared against the wrong stratum
+and their ICES-DOME re-hosts went unrecognised. Merged loses **17** measurements to
+this, all on the Belgian shelf in 2007 with byte-identical values; refined loses the
+**9** among them that are target elements. Nothing was lost that was not a duplicate.
+
+## Geo-enrichment
+
+* Locations are stamped with **`--partition`**, requiring **seastamp >= 0.16.2**
+  (the polar fix is load-bearing at 81.5 lat). Measured over 26,849 refined sites,
+  seastamp's error bound is 25% for `--region global`, 3% for `--region auto` and
+  **1.32%** for `--partition`. Global is the outlier beyond 10 km, which is exactly
+  where the enrichment reference is drawn.
+
+## New analysis
+
+* **Geo-accumulation index (Igeo)**, background step 10. Coverage goes from 9.8% to
+  **97.2%** of target measurements, and from 0.4% to **99.4%** within 1 km of a fish
+  farm, because Igeo needs no aluminium. The background is the **local** offshore
+  median, not a crustal reference: EFSA warns against Turekian and Wedepohl, and
+  section 3 of `docs/generation-gaps.md` measured why for this data.
+* Igeo is deliberately **not wired into the pristine verdict**. The verdicts stay on
+  EF, because the texture confounding Igeo is strong enough in bulk (cobalt rho 0.70)
+  that a verdict built on it would be partly a verdict about grain size.
+* Igeo is **withheld for selenium and molybdenum**, on the same grounds as their EF:
+  over half of each was deleted below the LOQ, so both ends of the ratio are
+  truncated and the quotient is not an enrichment.
+* TOC normalisation was tested and **rejected**; PLI was measured and **not built**,
+  adding no coverage over Igeo.
+
+## Exports
+
+* The flat dataset goes from **31 to 40 columns** and the EFSA table from **58 to
+  64**, gaining `fraction_basis`, `dist_to_fish_farm_km`, `fish_farm_mtb_t`,
+  `fish_farm_band`, `pressure_class`, `igeo`, `igeo_class` and `igeo_background`.
+  Every column an earlier download carried keeps its name and meaning, so an
+  existing consumer is unaffected.
+* The EFSA `sieve63` field answered `Y` for **31 rows sieved at 90 or 500 µm**,
+  which are coarser than 63 µm, not finer. Both `sieve63` and `bulkAnalysis` now
+  answer `N` there, and `fraction` carries the actual cutoff.
+* A new assertion fails the export if the column dictionary and the written frame
+  disagree in either direction. Adding nine columns is precisely how a dictionary
+  goes stale, and it drives the site's Download page.
+* `export_data(format = "efsa")` is **the pool, not the submission**. EFSA wants
+  representative records, so the submission will be a filtered selection of pristine
+  rows cut later; the export is a superset, which is why every row keeps its verdict
+  columns.
+
+## Decisions recorded
+
+* **D4, normalisability.** An enrichment factor and a pristine verdict exist only
+  where aluminium predicts the element, which holds for **CO, CU and ZN in bulk
+  alone**. An empty verdict is not a finding of non-pristine, and the dictionary
+  now says so.
+* **Porewater pH is dropped entirely.** Absent from all five sources, checked at
+  raw-file level: the only pH anywhere is 22 ICES rows of *sediment* pH.
+
+## Fixes
+
+* The Igeo step returns its output directory, as `analyze_data()` requires.
+* Igeo rounding is now part of the index rather than a display choice, in the shared
+  `R/analysis-refined-shared-igeo.R`. Cutting the unrounded value into classes while
+  publishing the rounded one had put six molybdenum rows in a class their own printed
+  number does not fall in.
+* The step's coverage table and its class shares now apply one rule. The table had
+  always excluded the withheld elements; the class shares had not, so the step
+  published molybdenum and selenium beside a 97.2% figure computed as though they
+  were absent.
+* The package name is corrected in the three frozen-table lookups.
+* `CLAUDE.md` advertised 28 analyses and six background steps; there are **29**
+  (6 clean, 13 merged, 10 refined) and **ten**. It now points at
+  `analysis_modules()` as the executable answer.
+
 # multised.engine 0.3.1
 
 Documentation and publishing only: no pipeline code changed, so a rebuild from
