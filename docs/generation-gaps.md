@@ -550,6 +550,25 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    its old meaning, so an existing consumer keeps working. One correction: the EFSA
    `sieve63` field answered `Y` for the 31 rows sieved at 90 or 500 µm, which are
    coarser than 63 µm, not finer; they now answer `N` to both `sieve63` and
-   `bulkAnalysis`. Sites and the release are what remain.
+   `bulkAnalysis`.
+
+   **Sites and release done 2026-08-25.** The rebuilt databases, analysis CSVs and
+   the flat dataset were re-uploaded onto each existing latest release (slim
+   v0.2.3, clean v0.3.2, merged v0.11.3, refined v0.9.5), 141 assets, rather than
+   cut as new tags. All four sites then re-rendered green and are live.
+
+   Two things the re-render caught. The rebuild left **115,811** target
+   measurements, nine fewer than the 115,820 quoted in four docs here and on the
+   refined Background page; the nine all came from digestion-recording sources, so
+   59,675 -> 59,666 and 59,381 -> 59,372 moved with them. Every derived figure was
+   unchanged (51.5%, 51.3%, the 294-row gap, 414 outliers at 0.36%, 11,266
+   pristine), which is why it went unseen. And slim and clean needed a manual
+   `workflow_dispatch`: their pages did not change, only the data beneath them, and
+   CI fires on a push to main, so a merge-only publish would have left both serving
+   08-07 databases.
+
+   The EFSA export is deliberately **not** on any release: the submission will be a
+   filtered subset of representative pristine records, not the whole table. See
+   [efsa-submission.md](efsa-submission.md) section 7.
 
 Steps 1-3 are one unit of work. Step 4 is where the coverage number moves.
