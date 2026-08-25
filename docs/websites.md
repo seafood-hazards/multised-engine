@@ -38,9 +38,24 @@ Three rules follow, and they are what breaks a site when missed:
 - **The database comes from `releases/latest/download/`**, not a pinned tag. That
   URL does not fall back, so **every release must carry the database as an
   asset** or the next CI render 404s.
-- **Publish the release before pushing `main`.** Push the tag, `gh release
-  create` with the file, then push `main`; the reverse order races the deploy
-  against the upload.
+- **Publish the release before pushing `main`.** Get the asset up first, then
+  push `main`; the reverse order races the deploy against the upload.
+
+  A new tag is usually not needed. The normal move is to **re-upload onto the
+  release that is already Latest** rather than cutting a new one:
+
+  ```bash
+  gh release upload v0.1.29 mareano_pilot.sqlite --clobber \
+     --repo seafood-hazards/mareano-pilot
+  ```
+
+  What matters is only that the file sits on whatever GitHub marks **Latest**,
+  because that is what `releases/latest/download/` resolves to. So re-uploading
+  onto the current Latest is safe, and the failure mode is the opposite one:
+  cutting a *newer* release that does not carry the assets silently moves Latest
+  to an empty release and 404s the next render. The pilot sites have no escape
+  hatch for this: they hard-code the URL, where multised-refined at least honours
+  `DB_RELEASE` to pin an older tag.
 - **Bump the `cacheKey` in `_db-setup.qmd` whenever the database content
   changes.** stratum-sqlite caches the file in the browser under that key, and a
   stale cache surfaces as "no such column".

@@ -1,22 +1,19 @@
-# ── Pilot geo-enrichment ─────────────────────────────────────────────────────
-# Adds dist_to_coast / est_country / country_code / municipality / sea_name to a
-# source's station frame.
+# ── Pilot location columns ───────────────────────────────────────────────────
+# The pilot stage DECLARES the five location columns (dist_to_coast, the nearest
+# country and its code, municipality, sea_name) and leaves them empty. It does not
+# derive them.
 #
-# Replaces the twenty `04_*` scripts (four per source), which reimplemented in R
-# (sf + rnaturalearth + giscoR) the same job the clean stage already did with the
-# seastamp CLI. Both now go through seastamp_enrich(), so the pipeline has one
-# location-annotation path and one set of reference data.
+# It used to. Until 2026-08-25 pilot step 4 ran the seastamp CLI over every station,
+# exactly as clean step 4 does. The values never survived: clean_geo_enrich() UPDATEs
+# all five columns unconditionally, so every pilot value was overwritten. Computing
+# them twice bought nothing and cost two things, a second seastamp dependency in the
+# pilot stage and a second set of numbers that could disagree with the ones that
+# survive. (`pilot_geo_enrich()`, the seastamp implementation, is in git history at
+# the commit that removed it, if the pilot values are ever wanted back.)
 #
-# NOTE: this is a deliberate behaviour change, not a like-for-like conversion.
-# The old sf implementation and seastamp use the same reference datasets but not
-# the same code, so the values differ in detail. They are also transient: the
-# clean stage recomputes all of them with seastamp anyway
-# (clean_geo_enrich()), so routing pilot through the same tool makes the pilot
-# values agree with the ones that survive instead of disagreeing with them.
-#
-# The pilot column names differ from the clean ones, and not uniformly: Mareano
-# and Vannmiljo call the nearest country `country`, while ICES-DOME, MUDAB and
-# 4Demon call it `est_country`. That is carried in the spec rather than assumed.
+# The columns stay because the pilot schema declares them and the slim transforms
+# select them; only the values go. Nothing computes from them in between: slim step
+# 4's `area_flag` is a lat/lon bounding box, not a location lookup.
 
 # Which frame carries the stations for each source, and its coordinate columns.
 pilot_geo_spec <- function(source) {
@@ -37,41 +34,22 @@ pilot_geo_spec <- function(source) {
   )
 }
 
-# Annotate a pilot station frame in place, joining on its coordinate columns.
-#
-# `df` needs no id column: seastamp is run over the frame's DISTINCT coordinates
-# (as the original scripts did) and the result is joined back on longitude /
-# latitude, so repeated stations at one position share a single lookup.
-pilot_geo_enrich <- function(df, lon_col, lat_col,
-                             country_col = "est_country",
-                             seastamp_dir = multised_seastamp_dir(),
-                             seastamp_bin = multised_seastamp_bin(),
-                             region = "auto", verbose = TRUE) {
-  pts <- df |>
-    distinct(.data[[lon_col]], .data[[lat_col]]) |>
-    filter(!is.na(.data[[lon_col]]), !is.na(.data[[lat_col]])) |>
-    mutate(.pt_id = row_number())
-
-  enr <- seastamp_enrich(pts, id_col = ".pt_id",
-                         lon_col = lon_col, lat_col = lat_col,
-                         seastamp_dir = seastamp_dir, seastamp_bin = seastamp_bin,
-                         region = region, verbose = verbose)
-
-  # the nearest-country column is named per source; the rest match the clean names
-  lookup <- pts |>
-    left_join(enr, by = ".pt_id") |>
-    select(all_of(c(lon_col, lat_col)),
-           dist_to_coast, !!country_col := .data$country, country_code,
-           municipality, sea_name)
-
-  out <- df |>
+#' Declare the location columns a source's station frame must carry, all empty
+#'
+#' @param df The station frame named by [pilot_geo_spec()].
+#' @param country_col The frame's own name for the nearest-country column, which is
+#'   `country` for Mareano and Vannmiljo and `est_country` for the other three.
+#' @return `df` with the five location columns present and NA. Any that the source
+#'   already carries under those names are overwritten, so the result does not depend
+#'   on what the raw export happened to include.
+#' @noRd
+pilot_geo_blank <- function(df, country_col = "est_country") {
+  df |>
     select(-any_of(c("dist_to_coast", "est_country", "country", "country_code",
                      "municipality", "sea_name"))) |>
-    left_join(lookup, by = c(lon_col, lat_col))
-
-  if (verbose) {
-    cat(sprintf("  %d distinct positions -> %d station rows annotated\n",
-                nrow(pts), sum(!is.na(out$dist_to_coast))))
-  }
-  out
+    mutate(dist_to_coast = NA_integer_,
+           !!country_col := NA_character_,
+           country_code  = NA_character_,
+           municipality  = NA_character_,
+           sea_name      = NA_character_)
 }
