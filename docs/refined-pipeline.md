@@ -160,7 +160,22 @@ vocabulary) and it is not carried through the pipeline. See
 - **`element` trimming**: reduced to the 7 targets. **Decided.**
 - **Clustering results**: inputs baked, labels not. **Decided.**
 - **Extraction class**: carried on `method` from the sources' own digestion fields,
-  not curated lookups. **Done**, see above. `accredited` is still open.
+  not curated lookups. **Done**, see above.
+- **`accredited`**: carried on `method` the same way, from Mareano's `lld.comment` and
+  MUDAB's `analysis_method.accreditation`, as `yes` / `partly` / `no` with NULL for not
+  reported; `partly` maps to EFSA's `Y`. The other three sources do not record it.
+  **Done**, see [generation-gaps.md](generation-gaps.md) §2.
+- **Igeo and the pristine verdict**: Igeo is computed and reported (background step
+  10) but **does not issue a verdict**; the verdicts stay on EF. It reaches 97.2% of
+  target measurements against EF's 9.8%, and 99.4% within 1 km of a fish farm against
+  0.4%, which is why it exists; but it has no grain-size control, and the confounding
+  is strong enough in bulk (cobalt rho 0.70 against the mud fraction) that a verdict
+  built on it would be partly a verdict about texture. **Decided 2026-08-25.**
+- **TOC as a normaliser**: rejected. It clears the D4 limits in one group of twenty,
+  and that group is selenium sieved63 on 34 rows of a withheld element. **Decided.**
+- **PLI**: not built. Same `C / B` inputs as Igeo so no coverage gain, and a PLI over
+  three or more elements reaches 26% of subsamples where Igeo reaches ~100% per
+  element. **Decided.**
 
 ## Still open
 
