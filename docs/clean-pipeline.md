@@ -73,7 +73,9 @@ lacks that table. Key changes vs slim:
   Organic carbon (CORG / TOC\*) stays here too, told apart by `element.category`;
   it is not split into a separate table since the columns would be identical.
 - **method** — columns `method_id`, `symbol`, `method`, `method_description`,
-  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`, `extraction`, `extraction_class`.
+  `lab`, `lab_name`, `lod`, `loq`, `limit_unit`, `extraction`, `extraction_class`,
+  `accredited` (`yes` / `partly` / `no`, NULL where the source does not say, which
+  is ICES-DOME, Vannmiljø and 4Demon entirely; see `R/accreditation.R`).
   The last two are the digestion chemistry and EFSA's class for it; they pass
   through unchanged, because slim step 1 already mapped every source onto the ICES
   METCX vocabulary (see [efsa-submission.md](efsa-submission.md)). A slim database

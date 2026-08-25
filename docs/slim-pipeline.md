@@ -34,6 +34,14 @@ Seven tables, built by `02_create_tables.R` for every source. Common columns:
   `lab_name`/`method_description`/`uncertainty`. Also `extraction` /
   `extraction_class`: the digestion chemistry and EFSA's class for it, added at
   step 1 from each source's own field and mapped to the ICES METCX vocabulary.
+  `accredited` (Mareano, MUDAB only): whether the analysing laboratory was
+  accredited, `yes` / `partly` / `no`, NULL where the source does not say. Mareano
+  states it in `lld.comment`, mixed in with unrelated notes about a 2013
+  instrument change; MUDAB in `analysis_method.accreditation`, which writes the
+  same answer as `y` / `ja` / `true` / `1`. Both are canonicalised **before** the
+  `distinct()` that mints `method_id`, as `extraction` is, so a spelling does not
+  split a method: on the raw field five otherwise identical MUDAB methods did.
+  See `R/accreditation.R`.
   **The extraction is part of method identity**, so two rows sharing an
   instrument but digested differently get different `method_id`s. See
   [efsa-submission.md](efsa-submission.md) and

@@ -18,13 +18,16 @@
 #   - `extraction` / `extraction_class` (EFSA's digestion class) pass through as slim
 #     set them: the codes are already canonical there, since every source is mapped to
 #     the ICES METCX vocabulary at slim step 1. See R/extraction-class.R;
+#   - `accredited` (yes / partly / no, NA where not reported) is carried where the
+#     source states it, which is Mareano and MUDAB only. See R/accreditation.R;
 #   - columns: method_id, symbol, method, method_description, lab, lab_name, lod,
-#     loq, limit_unit, extraction, extraction_class. `comment` (Mareano) and
-#     `uncertainty` (MUDAB, unused) drop.
+#     loq, limit_unit, extraction, extraction_class, accredited. `comment`
+#     (Mareano, the raw text `accredited` is read from) and `uncertainty` (MUDAB,
+#     unused) drop.
 
 METHOD_COLS <- c("method_id", "symbol", "method", "method_description",
                  "lab", "lab_name", "lod", "loq", "limit_unit",
-                 "extraction", "extraction_class")
+                 "extraction", "extraction_class", "accredited")
 
 # raw method -> canonical ICES code (only non-identity mappings need listing;
 # codes already in the ICES vocabulary, e.g. AAS / ICP-MS, pass through unchanged)
@@ -91,6 +94,9 @@ standardise_method <- function(method, element) {
   if (!"extraction" %in% names(m)) m$extraction <- "UNK"
   if (!"extraction_class" %in% names(m))
     m$extraction_class <- extraction_efsa_class(m$extraction)
+  # only Mareano and MUDAB record it; the rest stay NA, which is "not reported"
+  # rather than "not accredited"
+  if (!"accredited" %in% names(m)) m$accredited <- NA_character_
 
   # lod / loq -> mg/kg via the limit_unit mass basis; set limit_unit accordingly
   denom <- unname(.limit_denom[.canon_unit(m$limit_unit)])

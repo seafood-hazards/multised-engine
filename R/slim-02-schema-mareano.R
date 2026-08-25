@@ -53,6 +53,7 @@ CREATE TABLE method (
   comment   TEXT,
   extraction       TEXT,
   extraction_class INTEGER,
+  accredited TEXT,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",

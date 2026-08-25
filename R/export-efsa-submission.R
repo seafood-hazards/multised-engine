@@ -149,12 +149,17 @@ export_efsa_submission <- function(db_dir = multised_db_dir(),
       # says to fall back to LOQ and say so in the notes.
       LOD = lod, LOQ = loq,
 
+      # accLab is Y for "yes" and for "partly", since EFSA counts a lab running
+      # QA/QC as accredited and a partly accredited lab holds the accreditation;
+      # it is the parameter coverage that is partial. Empty where the source does
+      # not say, which is ICES-DOME, Vannmiljo and 4Demon entirely.
+      accLab = accreditation_efsa_yn(accredited),
+
       # ── not available ─────────────────────────────────────────────────────
-      # accLab: only MUDAB records accreditation and it is not carried through the
-      # pipeline (docs/efsa-submission.md section 9). phSed / phWater: no source has
-      # porewater pH and the one sediment pH series is 22 ICES rows outside this scope
-      # (section 5). hardWater / DOC: water-column measurands, not sediment.
-      accLab = NA_character_, phSed = NA_real_, phWater = NA_real_,
+      # phSed / phWater: no source has porewater pH and the one sediment pH series
+      # is 22 ICES rows outside this scope (docs/efsa-submission.md section 5).
+      # hardWater / DOC: water-column measurands, not sediment.
+      phSed = NA_real_, phWater = NA_real_,
       hardWater = NA_character_, DOC = NA_real_,
 
       # clay and silt are not separable in refined: it carries fines_lt63, the combined
@@ -230,7 +235,7 @@ export_efsa_submission <- function(db_dir = multised_db_dir(),
     "methAnCode",      "Method of Analysis (code)",          "ANLYMD",   "catalogue term; empty where the method maps to Other",
     "LOD",             "Limit of Detection",                 "",         "method lod, mg/kg",
     "LOQ",             "Limit of Quantification",            "",         "method loq, mg/kg",
-    "accLab",          "Accredited Laboratory",              "YESNO",    "NOT AVAILABLE: only MUDAB records accreditation and it is not carried through the pipeline",
+    "accLab",          "Accredited Laboratory",              "YESNO",    "Y where the source states the lab was accredited, including partly accredited; N where it states otherwise; empty where it does not say (ICES-DOME, Vannmiljo, 4Demon)",
     "phSed",           "pH of sediment",                     "",         "NOT AVAILABLE: the only sediment pH in the project is 22 ICES rows outside this scope",
     "TextureSedClay",  "Texture, clay",                      "",         "NOT AVAILABLE: refined carries combined fines, not separate grain-size fractions",
     "TextureSedSilt",  "Texture, silt",                      "",         "NOT AVAILABLE: as clay",
