@@ -39,6 +39,7 @@ refined_export_base <- function(db_dir = multised_db_dir(),
            m.symbol                    AS element,
            m.frac_class                AS frac_class,
            m.sieve_um_std              AS sieve_um_std,
+           m.frac_basis                AS fraction_basis,
            m.value_std                 AS value_mgkg,
            m.value_sd                  AS value_sd,
            m.n_rep                     AS n_rep,
@@ -49,6 +50,10 @@ refined_export_base <- function(db_dir = multised_db_dir(),
            sub.fines_lt63              AS fines_pct,
            si.dist_to_coast            AS dist_to_coast_km,
            si.dist_to_aquaculture      AS dist_to_aquaculture_km,
+           si.dist_to_fish_farm        AS dist_to_fish_farm_km,
+           si.fish_farm_mtb_t          AS fish_farm_mtb_t,
+           si.fish_farm_band           AS fish_farm_band,
+           d.pressure_class            AS pressure_class,
            m.outlier_flag              AS outlier_flag,
            me.method                   AS method,
            me.lod                      AS lod,
@@ -61,6 +66,9 @@ refined_export_base <- function(db_dir = multised_db_dir(),
       JOIN subsample sub ON sub.subsample_id = m.subsample_id
       JOIN event e       ON e.event_id       = sub.event_id
       JOIN site si       ON si.site_id       = e.site_id
+      -- dataset_id is unique in `dataset`, so this is 1:1 and adds no rows. It is
+      -- here for pressure_class, which only Vannmiljo populates.
+      JOIN dataset d     ON d.dataset_id     = e.dataset_id
       LEFT JOIN normaliser nz
              ON nz.subsample_id = m.subsample_id
             AND nz.frac_class   = m.frac_class
@@ -103,13 +111,17 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
 
   df <- df |>
     select(source, latitude, longitude, year, depth_from_cm, depth_to_cm,
-           element, fraction, value_mgkg, al_mgkg, fe_mgkg, corg_mgkg,
-           fines_pct, dist_to_coast_km, dist_to_aquaculture_km, outlier_flag,
+           element, fraction, fraction_basis, value_mgkg, al_mgkg, fe_mgkg, corg_mgkg,
+           fines_pct, dist_to_coast_km, dist_to_aquaculture_km,
+           dist_to_fish_farm_km, fish_farm_mtb_t, fish_farm_band, pressure_class,
+           outlier_flag,
            extraction, extraction_class, accredited,
            al_basis, ef, ef_p90ref, classifiable, pristine_ef, pristine_ef_p90ref,
            pristine_strict,
            background_p90, background_mixture,
-           bg_ratio_al, bg_ratio_al_p90, p90_off, mixture_threshold) |>
+           igeo, igeo_class,
+           bg_ratio_al, bg_ratio_al_p90, p90_off, mixture_threshold,
+           igeo_background) |>
     arrange(element, fraction, source, latitude, longitude)
 
   # ── 2. Write the gzipped TSV ──────────────────────────────────────────────────
@@ -127,6 +139,7 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "depth_to_cm",             "cm",         "Bottom of the sediment layer sampled.",
     "element",                 "",           "Target element symbol: CO, CU, I, MN, MO, SE, ZN.",
     "fraction",                "",           "Sediment fraction: bulk (whole sample) or sieved<n> (< n micrometre sieve cutoff, e.g. sieved63, sieved20).",
+    "fraction_basis",          "",           "Where the fraction label comes from: reported (the source stated the sieve, or stated that none was used) or assumed (the source was silent and bulk was inferred). Roughly three fifths of bulk rows are assumed, so a reader treating bulk as a measured property should filter on this.",
     "value_mgkg",              "mg/kg",      "Standardised element concentration (dry weight), the value all analyses use.",
     "al_mgkg",                 "mg/kg",      "Aluminium concentration for the same subsample and fraction (grain-size normaliser); empty if not measured.",
     "fe_mgkg",                 "mg/kg",      "Iron concentration for the same subsample and fraction (grain-size normaliser); empty if not measured.",
@@ -134,6 +147,10 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "fines_pct",               "%",          "Percentage of material finer than 63 micrometre (the mud fraction, clay + silt); empty if no grain size.",
     "dist_to_coast_km",        "km",         "Great-circle distance from the site to the nearest coastline.",
     "dist_to_aquaculture_km",  "km",         "Distance to the nearest marine aquaculture farm (Norway only; empty elsewhere).",
+    "dist_to_fish_farm_km",    "km",         "Distance to the nearest marine FISH farm, the subset of aquaculture that grows finfish in sea or offshore cages. dist_to_aquaculture_km counts every marine site including shellfish and land-based ones, so this is the column to use for a feed-related pressure (Norway only; empty elsewhere).",
+    "fish_farm_mtb_t",         "t",          "Licensed maximum permitted standing biomass (MTB) of that nearest fish farm, in tonnes. The regulator licenses capacity, not stock, so this is the ceiling rather than what was in the water when the sediment was sampled.",
+    "fish_farm_band",          "",           "Size band of that nearest fish farm, in standard concessions of 780 t MTB: small (<= 2), medium (<= 4), large (> 4). Banding rather than raw tonnage because licences are issued in concession units and the raw figure is not comparable across licence types.",
+    "pressure_class",          "",           "Why the sample was taken, as the data provider itself files it: aquaculture (fish-farm monitoring), pressure (a named or presumed pressure), reference (deliberately unpressured), survey (status or mapping work), unknown (the provider's own residual category). Vannmiljo only; the other four sources do not record a programme, so the column is empty for them. This is stated evidence, independent of the geometric proxies and of EF.",
     "outlier_flag",            "",           "Distributional outlier marker (high / low); empty = kept. The analyses exclude flagged rows.",
     "extraction",              "",           "Digestion chemistry used to liberate the metal, as an ICES METCX code (AQR = aqua regia, HNO = nitric acid, HF-CB = HF total digestion, NON = no extraction, UNK = not reported).",
     "accredited",              "",           "Whether the analysing laboratory was accredited, as the source states it: yes, partly (the lab holds accreditation but not for every parameter), no. Empty where the source does not say, which is ICES-DOME, Vannmiljo and 4Demon entirely.",
@@ -144,6 +161,8 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "pristine_strict",         "",           "Pristine under the conservative rule: EF < 1 AND below the mixture threshold AND below the offshore P90. Empty where not classifiable.",
     "background_p90",          "",           "TRUE where the concentration is below the offshore P90 for its element and fraction (the Global Background definition). Not grain-size controlled.",
     "background_mixture",      "",           "TRUE where the concentration is below the distribution-mixture threshold separating the background from the enriched population. Not grain-size controlled.",
+    "igeo",                    "",           "Geo-accumulation index: log2(concentration / (1.5 * local background)), where the local background is the offshore (> 10 km) median for the same element and fraction. Uses no aluminium, so it is present on about 97% of rows, against 10% for ef. Empty for selenium and molybdenum on the same grounds as their other verdicts: a background censored at the LOQ is in the denominator. It is NOT a verdict and is not part of pristine_ef: in bulk it correlates with grain size strongly enough (cobalt rho 0.70) that a verdict built on it would be partly a verdict about texture. Read it beside ef, not instead of it.",
+    "igeo_class",              "",           "Muller class of igeo: 0 unpolluted (<= 0) through 6 extreme (> 5). The boundaries are Muller's and are kept because they are recognisable, but the meaning is not: here class 2 is above the LOCAL offshore median, not above the continental crust.",
     "al_basis",                "",           "Inferred aluminium measurement basis for this subsample, from Fe/Al: 'total', 'extraction' (acid-leachable, which under-reports Al), or 'unplaced' where iron was not measured. Only samples on the basis their fraction adopted (bulk: extraction; sieved: total) receive an ef and a pristine verdict; see the Enrichment Factor page.",
     "(no column: Se and Mo)",  "",           "Selenium and molybdenum carry no ef, pristine or background verdict at all: over half their measurements (Se 68.6%, Mo 52.2%) were below the limit of quantification and removed upstream, so what survives is an upper tail rather than a background. Their concentrations are published; only the verdicts are withheld.",
     "(no column: which groups get an ef)", "", "ef and the pristine columns exist only for cobalt, copper and zinc in the BULK fraction. Aluminium predicts those three (R-squared 0.46-0.58) and predicts nothing else: manganese, molybdenum and selenium in bulk, and every sieved fraction of every element, sit at 0.10 or below, so metal/Al there is not a grain-size control. Concentrations, and the non-normalised background_p90 and background_mixture verdicts, are published for every group as before.",
@@ -152,8 +171,10 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "bg_ratio_al",             "",           "Reference used for ef: the offshore background element/Al ratio for this element and fraction, computed within the adopted aluminium basis.",
     "bg_ratio_al_p90",         "",           "Reference used for ef_p90ref: the offshore 90th percentile of element/Al for this element and fraction, computed within the adopted aluminium basis.",
     "p90_off",                 "mg/kg",      "Reference used for background_p90: the offshore P90 concentration for this element and fraction.",
-    "mixture_threshold",       "mg/kg",      "Reference used for background_mixture: the mixture-model threshold for this element and fraction."
+    "mixture_threshold",       "mg/kg",      "Reference used for background_mixture: the mixture-model threshold for this element and fraction.",
+    "igeo_background",         "mg/kg",      "Reference used for igeo: the offshore median concentration for this element and fraction. Empty where no igeo was computed, which is where fewer than 30 offshore samples back the reference (iodine in every fraction, selenium in sieved20).",
   )
+  check_dictionary_covers(df, dict)
   write_csv(dict, file.path(out_dir, "refined_dataset_dictionary.csv"))
 
   if (verbose) {
@@ -189,7 +210,8 @@ add_background_flags <- function(df, out_dir) {
 
   need <- c(bg  = "refined_ef_background.csv",       # 04, the EF background ratio
             off = "refined_background_compare.csv",  # 01, the offshore P90
-            mix = "refined_mixture_components.csv")  # 05, the mixture threshold
+            mix = "refined_mixture_components.csv",  # 05, the mixture threshold
+            igb = "refined_igeo_background.csv")     # 10, the Igeo local background
   missing <- need[!file.exists(file.path(adir, need))]
   if (length(missing))
     stop("the refined background analyses have not been run, so the verdict ",
@@ -205,9 +227,12 @@ add_background_flags <- function(df, out_dir) {
     full_join(rd(need[["off"]], c("symbol", "cat", "p90_off10")), by = c("symbol", "cat")) |>
     full_join(rd(need[["mix"]], c("symbol", "cat", "threshold", "usable")),
               by = c("symbol", "cat")) |>
+    full_join(rd(need[["igb"]], c("symbol", "cat", "bg_median", "reliable")),
+              by = c("symbol", "cat")) |>
     rename(element = symbol, fraction = cat,
            p90_off = p90_off10, mixture_threshold = threshold,
-           mixture_usable = usable)
+           mixture_usable = usable,
+           igeo_background = bg_median, igeo_reliable = reliable)
 
   df |>
     left_join(ref, by = c("element", "fraction")) |>
@@ -262,9 +287,22 @@ add_background_flags <- function(df, out_dir) {
       # threshold it was not judged against
       bg_ratio_al       = if_else(al_ok, bg_ratio_al, NA_real_),
       p90_off           = if_else(in_scope, p90_off, NA_real_),
-      mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_)) |>
+      mixture_threshold = if_else(in_scope, mixture_threshold, NA_real_),
+      # Igeo, background step 10. It uses no aluminium, so neither the basis gate nor
+      # D4 applies to it -- that is the whole reason it is here, since it reaches most
+      # of the rows EF cannot. Two gates remain. D1, through `in_scope`: the withheld
+      # elements get no Igeo either, because a background censored at the LOQ sits in
+      # the denominator. And the reference itself: a group whose offshore sample is
+      # thinner than the step's minimum gets no Igeo, since the index would carry the
+      # noise of its own denominator. That is the `reliable` flag the step wrote, read
+      # here rather than recomputed, so this file and the site's Igeo page apply one
+      # rule and not two.
+      igeo_ok = in_scope & !is.na(igeo_reliable) & igeo_reliable,
+      igeo = if_else(igeo_ok, refined_igeo(value_mgkg, igeo_background), NA_real_),
+      igeo_class = if_else(igeo_ok, refined_igeo_class(igeo), NA_character_),
+      igeo_background = if_else(igeo_ok, igeo_background, NA_real_)) |>
     select(-in_scope, -ef_raw, -ef_p90ref_raw, -on_al_basis, -mix_ok, -mixture_usable,
-           -withheld, -normalisable, -al_ok) |>
+           -withheld, -normalisable, -al_ok, -igeo_ok, -igeo_reliable) |>
     check_ef_consistent()
 }
 
@@ -278,4 +316,28 @@ check_ef_consistent <- function(df) {
          "the column disagrees with pristine_ef. Increase the precision in ",
          "add_background_flags().", call. = FALSE)
   df
+}
+
+
+# The dictionary drives the site's Dataset Download page, so a column that reaches
+# the file without a description reaches the reader without one too. Adding a column
+# and forgetting its row is the obvious way for that to happen, so it is an error
+# rather than a silent gap.
+#
+# The dictionary also carries rows whose `column` is a note in brackets rather than a
+# column name -- what Se and Mo do not have, which groups get an EF. Those explain
+# absences, so they have no column to match and are exempt.
+check_dictionary_covers <- function(df, dict) {
+  documented <- dict$column[!grepl("^\\(", dict$column)]
+  undocumented <- setdiff(names(df), documented)
+  orphaned    <- setdiff(documented, names(df))
+  if (length(undocumented))
+    stop("the export writes column(s) the dictionary does not describe: ",
+         paste(undocumented, collapse = ", "),
+         ". Add a row to `dict` in export_refined_dataset().", call. = FALSE)
+  if (length(orphaned))
+    stop("the dictionary describes column(s) the export no longer writes: ",
+         paste(orphaned, collapse = ", "),
+         ". Remove the row from `dict` in export_refined_dataset().", call. = FALSE)
+  invisible(df)
 }

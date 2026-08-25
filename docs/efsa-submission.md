@@ -93,16 +93,16 @@ later pilot refresh cannot reintroduce the duplication unnoticed.
 
 ### Expected result in the refined database
 
-`measurement.method_id` is populated for **100%** of all 115,820 target
+`measurement.method_id` is populated for **100%** of all 115,811 target
 measurements in every source, so extraction attaches wherever it is recorded:
 
 | Outcome | Rows | Share |
 |---|---|---|
-| From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,675 | **51.5%** |
+| From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,666 | **51.5%** |
 | Class 3 by default (Vannmiljø + 4Demon) | 56,145 | 48.5% |
 
 Two figures get quoted and they measure different things. **51.5%** is the share of
-rows *from a source that records the digestion*. **51.3%** (59,381 rows) is the share
+rows *from a source that records the digestion*. **51.3%** (59,372 rows) is the share
 whose code is not `UNK`, which is the same set minus the 294 rows where a recording
 source left the field blank or where `extraction_unambiguous()` withheld it. The site
 quotes the second, because "recorded" there means a usable code.
@@ -173,10 +173,44 @@ the refined database or derivable from it:
 | Time | sampleDate | `event.year` / date |
 | Measurand | traceEl, spec, conc, unit, weight, converted mg/kg dw | `measurement.value_std` / `unit_std` |
 | Method | methAn, **extraction class**, LOD, LOQ, accLab | `method`, extraction **new**, accreditation partial |
-| Sediment | Sieve <63µm, Bulk analysis, ocSed / TOC%, texture clay/silt/sand | `frac_class`, `sieve_um_std`, organic, grain size |
-| Verdict | pristineLoc | `pristine_ef` from the background module |
+| Sediment | Sieve <63µm, Bulk analysis, fracBasis, ocSed / TOC%, texture clay/silt/sand | `frac_class`, `sieve_um_std`, `frac_basis`, organic, grain size |
+| Verdict | pristineLoc, igeo, igeo_class | `pristine_ef` and Igeo from the background module |
+| Pressure | dist_to_fish_farm_km, fish_farm_band, pressure_class | site distances, Vannmiljø programme |
 | Admin | publicData, refPublication, comments, confidentiality | constants / notes |
 | **Empty** | phSed, phWater, hardWater, DOC, SD | not available, see §5 |
+
+Three of those groups were filled in after the source-fidelity rebuild of
+2026-08-25 and are worth calling out, because each answers something the spec
+asks for that the table previously could not.
+
+**`fracBasis`** says whether "Sieve <63µm = N, Bulk analysis = Y" was read off the
+source or inferred from its silence. Around three fifths of the bulk rows are the
+latter. Both answers were already being given; only the difference between them
+was missing, and a submitter should be able to see it.
+
+**`pressure_class`** is the provider's own statement of why the sample was taken.
+The spec asks by name for *"monitoring data of sediment quality over time ... under
+the sea cages"*, and 25,789 Vannmiljø measurements are filed under exactly that
+programme. Until now nothing in the submission table said so; the reader had to
+infer it from a distance. `dist_to_fish_farm_km` and `fish_farm_band` are the
+geometric half of the same question, and narrow `dist_to_aquaculture_km` from
+"any marine aquaculture site" to the finfish farms the spec is about.
+
+**`igeo`** is reported beside `pristineLoc`, not instead of it. `pristineLoc`
+carries a verdict on 9.7% of rows, because it needs aluminium on the right basis
+in a group where aluminium predicts the metal; Igeo needs no aluminium and covers
+97.2%. It is deliberately not a verdict: in bulk it is confounded with grain size
+strongly enough (cobalt ρ 0.70) that a verdict built on it would be partly a
+verdict about texture. See [generation-gaps.md](generation-gaps.md) §6.
+
+### One correction the re-cut made
+
+`sieve63` was `Y` for **any** sieved fraction. That is right for the <20µm rows,
+which the spec explicitly counts as <63µm, and wrong for the 31 rows sieved at 90
+or 500µm: those are coarser than 63µm, so answering `Y` told EFSA the sample was
+finer than it was. They are now `N` to both `sieve63` and `bulkAnalysis`, which is
+the honest pair of answers for a sample that was sieved but not below 63µm, with
+the actual cutoff in `fraction`.
 
 `pristineLoc` is the one field where our answer is stronger than EFSA's ask: the
 ReplyFHF spec explicitly prefers a local-background EF and warns against
@@ -191,6 +225,20 @@ computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
 | D1 | Porewater pH | **Dropped entirely.** Absent from every export; columns present but empty. |
 | D2 | How far to carry extraction | **Full pipeline propagation**, slim through export. |
 | D3 | Which EFSA artefact | **Both, as a superset.** |
+
+(These three are local to this doc. The project-wide D1 and D4 are different
+decisions: LOQ censoring and normalisability.)
+
+### What actually gets submitted
+
+**A representative subset, cut later. Not the whole export.** EFSA wants
+representative records, not the corpus, so the submission will be a filtered
+selection of **pristine** rows, chosen when the submission itself is prepared.
+
+This is why `export_data("refined", format = "efsa")` is not a submission file and
+is not carried on any release. Its job is to be the *pool* that selection is made
+from, which is why it is a superset and why every row keeps its verdict columns.
+Anyone reading the 115,811-row TSV as "the submission" has it backwards.
 
 ## 8. Phases
 

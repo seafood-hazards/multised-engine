@@ -132,7 +132,7 @@ table, all the way from pilot to the export. See
 > builds the method table from `distinct(param, metoa, ...)` and never selects `metcx`.
 > The conclusion was drawn from the wrong end of the pipeline.
 
-Recorded for **51.5%** of the 115,820 target measurements: ICES-DOME and MUDAB record
+Recorded for **51.5%** of the 115,811 target measurements: ICES-DOME and MUDAB record
 it per analysis, Mareano has one stated method for every target element, and Vannmiljø
 and 4Demon record nothing, so they take the `UNK` code and EFSA class 3. The extraction
 is part of method identity, so `method` grew from 949 rows to 983.
@@ -171,6 +171,15 @@ vocabulary) and it is not carried through the pipeline. See
   0.4%, which is why it exists; but it has no grain-size control, and the confounding
   is strong enough in bulk (cobalt rho 0.70 against the mud fraction) that a verdict
   built on it would be partly a verdict about texture. **Decided 2026-08-25.**
+- **Igeo for the withheld elements**: withheld, like every other background statement
+  about selenium and molybdenum. D1 removes over half of both below the LOQ, and the
+  offshore median that Igeo divides by is drawn from what survived, so the denominator
+  is an upper tail and the quotient is not an enrichment. Needing no aluminium rescues
+  Igeo from D4, not from D1. **Settled 2026-08-25** when re-cutting the exports: step
+  10's coverage table had always applied this (`igeo_ok = has_ref & !withheld`) but its
+  class tables had not, so the step published Mo and Se Igeo beside a 97.2% coverage
+  figure computed as though it did not. The class tables now apply the same gate; the
+  headline number is unchanged, because it was always the withheld-excluded one.
 - **TOC as a normaliser**: rejected. It clears the D4 limits in one group of twenty,
   and that group is selenium sieved63 on 34 rows of a withheld element. **Decided.**
 - **PLI**: not built. Same `C / B` inputs as Igeo so no coverage gain, and a PLI over

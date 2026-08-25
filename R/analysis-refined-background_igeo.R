@@ -108,17 +108,15 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
 
   CATS      <- c("bulk", "sieved63", "sieved20")
   DIST_BG   <- 10          # km: offshore subset defining the background median
-  IGEO_K    <- 1.5         # Muller's lithological-variability allowance
+  # the scale itself lives in R/analysis-refined-shared-igeo.R, because the flat
+  # export republishes the same index and must not carry a second copy of the breaks
+  IGEO_K    <- refined_igeo_k()
   AQ_BREAKS <- c(-Inf, 1, 5, 20, Inf)
   AQ_LABELS <- c("<1km", "1-5km", "5-20km", ">20km")
-  MIN_N     <- 30L
+  MIN_N     <- refined_igeo_min_n()
   EF_BASIS  <- refined_ef_basis()
   elem_levels <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
 
-  # Muller's classes, kept for recognisability; see the note above on what they mean here
-  IGEO_BREAKS <- c(-Inf, 0, 1, 2, 3, 4, 5, Inf)
-  IGEO_LABELS <- c("0 unpolluted", "1 unpolluted-moderate", "2 moderate",
-                   "3 moderate-heavy", "4 heavy", "5 heavy-extreme", "6 extreme")
 
   out_dir <- file.path(out_dir, "background")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -168,10 +166,21 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # noise of its own denominator
   usable <- background |> filter(reliable) |> select(symbol, cat, bg_median)
 
+  # The withheld elements get no Igeo, for the same reason they get no EF and no
+  # background verdict: over half of selenium and molybdenum was deleted below the
+  # LOQ, so BOTH ends of the ratio are truncated. The offshore median in the
+  # denominator is an upper tail wearing the name "background", and the surviving
+  # measurements in the numerator are the ones that cleared the limit. The quotient
+  # is not an enrichment. Igeo needing no aluminium rescues it from D4, not from D1.
+  #
+  # The coverage table below has always applied this; `scored` did not, so the class
+  # shares published Mo and Se while the 97.2% coverage figure beside them was
+  # computed as though they were absent. One rule now.
   scored <- m |>
+    filter(!withheld) |>
     inner_join(usable, by = c("symbol", "cat")) |>
-    mutate(igeo = log2(value_std / (IGEO_K * bg_median)),
-           igeo_class = cut(igeo, IGEO_BREAKS, labels = IGEO_LABELS, right = TRUE),
+    mutate(igeo = refined_igeo(value_std, bg_median),
+           igeo_class = refined_igeo_class(igeo),
            aq_band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS, right = FALSE))
 
   # ── 3. Distribution and class shares ─────────────────────────────────────────
@@ -321,6 +330,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     print(as.data.frame(toc_tbl), row.names = FALSE)
   }
 
-  invisible(list(background = background, dist = dist_tbl, coverage = cov_tbl,
-                 confound = confound_tbl, toc = toc_tbl))
+  # analyze_data() reads the return value as the module's output DIRECTORY and calls
+  # list.files() on it, so every analysis function returns out_dir. Returning the
+  # results instead fails the whole module with "invalid 'path' argument".
+  invisible(out_dir)
 }
