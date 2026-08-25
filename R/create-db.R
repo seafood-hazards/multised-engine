@@ -74,10 +74,10 @@ slim_steps <- function(source) {
 #' @param db_dir Directory holding the databases. Defaults to
 #'   [multised_db_dir()].
 #' @param seastamp_dir Directory holding the seastamp reference datasets, used by
-#'   the geo step (clean step 4) and ignored by every
-#'   other generation. Defaults to [multised_seastamp_dir()].
-#' @param seastamp_bin Path to the seastamp executable, used by the same two
-#'   steps. Defaults to [multised_seastamp_bin()], which reads the
+#'   the geo step (clean step 4) and ignored by every other generation.
+#'   Defaults to [multised_seastamp_dir()].
+#' @param seastamp_bin Path to the seastamp executable, used by that same
+#'   step. Defaults to [multised_seastamp_bin()], which reads the
 #'   `multised.seastamp_bin` option, then `SEASTAMP_BIN`, then the `PATH`.
 #' @param out_dir Directory the analysis CSVs are written under. Only the
 #'   merged and refined generations write any: merged steps 2, 4 and 5 and

@@ -12,7 +12,8 @@ seastamp_enrich(
   seastamp_dir = multised_seastamp_dir(),
   seastamp_bin = multised_seastamp_bin(),
   work_dir = file.path(tempdir(), "seastamp"),
-  region = "auto",
+  partition = TRUE,
+  region = if (partition) NULL else "auto",
   verbose = TRUE
 )
 }
@@ -28,17 +29,25 @@ seastamp_enrich(
 
 \item{work_dir}{Scratch directory for the intermediate TSVs.}
 
-\item{region}{seastamp's projection region, \code{"auto"} by default: the
-projection is derived from the points themselves, which is seastamp 0.12.0's
-own default and the accurate choice.
+\item{partition}{Use seastamp's \code{--partition}, the project default (\code{TRUE}).
+The points are split into sub-regions, each measured in its own projection,
+halving until every distance is within 2\% of true. It takes no region of its
+own, so \code{region} must be \code{NULL} when this is \code{TRUE}.
 
-Pass \code{region = "global"} to reproduce the values stored by the pre-0.9.0
-\code{geoenrich} builds. Measured difference between the two over the 27,015
-clean sites: \code{dist_to_coast} moves on every row (median 4.8-11.3\% by
-source, largest single shift 93 km), \code{municipality} is reassigned for 1,884
-sites and \code{country} for 283, while \code{depth} is unchanged everywhere and
-\code{sea_name} changes for 2 sites. \code{depth} does not project, so it cannot
-depend on this.}
+Requires \strong{seastamp >= 0.16.2}, which is checked: \code{--partition} arrived at
+0.14.0, but 0.16.2 fixed it over-estimating distance near the poles and the
+antimeridian, and this project's sites reach 81.5 lat.}
+
+\item{region}{seastamp's projection region, used only when \code{partition} is
+\code{FALSE}. \code{"auto"} derives one projection centre from the points; \code{"global"}
+reproduces the values stored by the pre-0.9.0 \code{geoenrich} builds.
+
+Measured over the 26,849 refined sites, seastamp's own distortion bound is
+\strong{25\%} for \code{global}, \strong{3\%} for \code{auto} and \strong{1.32\%} for \code{partition}. The
+error is proportional, so it is invisible near shore and largest where the
+EF reference is drawn: beyond 10 km, \code{auto} and \code{partition} agree to within
+0.3\%, while \code{global} runs -10\% to +12\% out. \code{depth} does not project, so it
+is unaffected by any of this. See \code{docs/clean-pipeline.md}.}
 
 \item{verbose}{Print progress.}
 }
@@ -63,7 +72,7 @@ pts <- data.frame(site_id = 1:2,
                   latitude  = c(60.39, 59.91))
 seastamp_enrich(pts)
 
-# adopt seastamp's own, more accurate default instead
-seastamp_enrich(pts, region = "auto")
+# reproduce the pre-0.9.0 stored values
+seastamp_enrich(pts, partition = FALSE, region = "global")
 }
 }

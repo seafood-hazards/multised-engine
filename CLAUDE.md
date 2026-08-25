@@ -227,4 +227,5 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
+| [generation-gaps.md](docs/generation-gaps.md) | what each generation drops that the sources record: extraction, sieving, accreditation, pressure labels; Igeo/PLI and farm-size plan |
 | [plan.md](docs/plan.md) | overall project plan |
