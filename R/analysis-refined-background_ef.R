@@ -77,7 +77,7 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
   con <- dbConnect(SQLite(), db_path)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.ratio_al,
-           si.dist_to_coast, si.dist_to_aquaculture, si.sea_name, d.source,
+           si.dist_to_coast, si.dist_to_fish_farm, si.sea_name, d.source,
            n.fe AS norm_fe, n.al AS norm_al
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -167,7 +167,7 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
                   ~ if_else(no_verdict, NA_real_, as.numeric(.x)))) |>
     arrange(symbol, cat)
 
-  # ── 5. EF vs distance to aquaculture (Norway) ────────────────────────────────
+  # ── 5. EF vs distance to fish farm (Norway) ────────────────────────────────
   # D4 applies here too, and this is the sharp end of it. "The near-cage enrichment
   # survives grain-size control" only means something where the control does something.
   # Dividing molybdenum by an aluminium it is uncorrelated with (rho = 0.00) leaves its
@@ -176,14 +176,14 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
   # raw near/far ratios for the rest are on the Pressure-Based Background page, where
   # they belong, and are not dressed up as grain-size controlled.
   ef_pressure <- ef |>
-    filter(!is.na(dist_to_aquaculture),
+    filter(!is.na(dist_to_fish_farm),
            refined_normalisable(as.character(symbol), as.character(cat))) |>
-    mutate(aq_bin = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
-    group_by(symbol, cat, aq_bin) |>
+    mutate(dist_bin = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS)) |>
+    group_by(symbol, cat, dist_bin) |>
     summarise(n = n(), ef_p50 = signif(median(EF), 3), .groups = "drop") |>
     filter(n >= MIN_N) |>
     mutate(symbol = factor(symbol, levels = elem_levels), cat = factor(cat, levels = CATS)) |>
-    arrange(symbol, cat, aq_bin)
+    arrange(symbol, cat, dist_bin)
 
   # ── 6. Is the pooled reference source-biased? ────────────────────────────────
   # Per source: how much of the pooled reference it supplies, what its OWN offshore
@@ -273,7 +273,7 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
     group_by(cat, al_basis) |>
     summarise(n = n(),
               n_offshore = sum(dist_to_coast > DIST_BG, na.rm = TRUE),
-              n_aq_lt1km = sum(!is.na(dist_to_aquaculture) & dist_to_aquaculture < 1),
+              n_farm_lt1km = sum(!is.na(dist_to_fish_farm) & dist_to_fish_farm < 1),
               n_sources  = n_distinct(source),
               .groups = "drop") |>
     group_by(cat) |>
@@ -281,7 +281,7 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
     ungroup() |>
     mutate(adopted = al_basis == unname(EF_BASIS[cat]),
            cat = factor(cat, levels = CATS)) |>
-    select(cat, al_basis, adopted, n, pct_of_frac, n_offshore, n_aq_lt1km, n_sources) |>
+    select(cat, al_basis, adopted, n, pct_of_frac, n_offshore, n_farm_lt1km, n_sources) |>
     arrange(cat, desc(adopted), desc(n))
 
   # the two references side by side, so the size of what the restriction avoided is on
@@ -332,9 +332,9 @@ analysis_refined_background_ef <- function(db_dir = multised_db_dir(),
     cat("EF distribution (bulk): median, P90, and % of samples adequate (EF<1):\n")
     ef_dist |> filter(cat == "bulk", reliable) |>
       select(symbol, n, ef_p50, ef_p90, pct_lt1, pct_gt5) |> as.data.frame() |> print(row.names = FALSE)
-    cat("\nmedian EF by distance to aquaculture (bulk; does near-cage enrichment survive Al-normalisation?):\n")
+    cat("\nmedian EF by distance to fish farm (bulk; does near-cage enrichment survive Al-normalisation?):\n")
     ef_pressure |> filter(cat == "bulk") |>
-      select(symbol, aq_bin, ef_p50) |> pivot_wider(names_from = aq_bin, values_from = ef_p50) |>
+      select(symbol, dist_bin, ef_p50) |> pivot_wider(names_from = dist_bin, values_from = ef_p50) |>
       as.data.frame() |> print(row.names = FALSE)
     cat("\nsource check (bulk): each source's offshore metal/Al against the pooled reference,\n")
     cat("and the % adequate it gets from the pool vs from its own reference:\n")

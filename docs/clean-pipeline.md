@@ -410,8 +410,9 @@ aquaculture data yet).
   whether *that* farm was licensed when the sediment was sampled: the only farm
   identity previously on `site` was `aqua_id`, the nearest aquaculture site of any
   kind, which may be a mussel raft or a land-based smolt plant. The refined
-  pressure analysis keys on `dist_to_fish_farm`; its controls step cannot until the
-  clean, merged and refined DBs are rebuilt to carry this column.
+  pressure analysis and its controls step both key on `dist_to_fish_farm`, and the
+  controls step reads the licence dates through this column. All five clean DBs, the
+  merged DB and the refined DB were rebuilt on 2026-08-26 to carry it.
 
 ### Which sites are fish farms, and how big
 

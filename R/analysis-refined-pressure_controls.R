@@ -18,11 +18,19 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
   #    licensed, during its operation, or after it closed. Only the operating ones are
   #    evidence about farm pressure.
   #
+  # BOTH THE DISTANCE AND THE FARM IDENTITY ARE THE FISH FARM'S. This step used to band on
+  # `dist_to_aquaculture` and take the licence dates from `aqua_id`, the nearest
+  # aquaculture site of ANY kind, which may be a mussel raft or a land-based smolt plant.
+  # It now bands on `dist_to_fish_farm` and reads the dates through `fish_farm_aqua_id`,
+  # so the farm whose lifetime is tested is the farm the distance is measured to. That
+  # column was added to clean step 5 in August 2026, so this step needs a clean DB built
+  # after that date. See the pressure step for what the old axis was picking up.
+  #
   # Neither control is free of its own bias, so the covariate table records how the
   # subsets differ in distance to coast and mud content: matching on municipality does
   # not match on sediment.
   #
-  # Raw value_std (mg/kg), outliers dropped, Norway only (dist_to_aquaculture is
+  # Raw value_std (mg/kg), outliers dropped, Norway only (dist_to_fish_farm is
   # Norwegian). This analysis qualifies the pressure page; it does not replace it, and it
   # feeds no verdict.
   #
@@ -57,17 +65,18 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
   on.exit(dbDisconnect(con), add = TRUE)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.source,
-           si.municipality, si.dist_to_aquaculture, si.dist_to_coast,
-           s.fines_lt63, e.year,
+           si.municipality, si.dist_to_fish_farm, si.dist_to_coast,
+           s.fines_lt63, e.year, d.pressure_class,
            a.start_year, a.end_year, a.active
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
     JOIN element el  ON el.symbol      = me.symbol
-    LEFT JOIN aquaculture a ON a.aqua_id = si.aqua_id
+    JOIN dataset d   ON d.dataset_id   = e.dataset_id
+    LEFT JOIN aquaculture a ON a.aqua_id = si.fish_farm_aqua_id
     WHERE el.category = 'target' AND me.value_std > 0 AND me.outlier_flag IS NULL
-      AND si.dist_to_aquaculture IS NOT NULL
+      AND si.dist_to_fish_farm IS NOT NULL
   ")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk",
                            sieve_um_std == 63 ~ "sieved63",
@@ -75,10 +84,16 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
                            TRUE ~ NA_character_)) |>
     filter(cat %in% CATS) |>
     mutate(
-      band = case_when(dist_to_aquaculture < NEAR_KM ~ "near",
-                       dist_to_aquaculture >= BG_KM ~ "background",
-                       dist_to_aquaculture >= LOCAL_KM ~ "local far",
+      band = case_when(dist_to_fish_farm < NEAR_KM ~ "near",
+                       dist_to_fish_farm >= BG_KM ~ "background",
+                       dist_to_fish_farm >= LOCAL_KM ~ "local far",
                        TRUE ~ "intermediate"),
+      # the far bands are only a background if what is in them is unpressured, and the
+      # raw >20 km pool is not: over half its copper and zinc is Vannmiljo stated-pressure
+      # monitoring. Cleaned exactly as the pressure step cleans it, and only in the FAR
+      # bands: a near-cage sample filed as aquaculture monitoring is the point, not a
+      # contaminant.
+      stated_pressure = !is.na(pressure_class) & pressure_class == "pressure",
       # a farm period only exists where the sample has a year and the farm has a start
       period = case_when(
         is.na(year) | is.na(start_year) ~ NA_character_,
@@ -88,8 +103,8 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
 
   # ── 2. Where the near-farm samples sit in their farm's lifetime ──────────────
   temporal <- m |>
-    filter(dist_to_aquaculture < LOCAL_KM, !is.na(period)) |>
-    mutate(band = if_else(dist_to_aquaculture < NEAR_KM, "<1km", "1-5km")) |>
+    filter(dist_to_fish_farm < LOCAL_KM, !is.na(period)) |>
+    mutate(band = if_else(dist_to_fish_farm < NEAR_KM, "<1km", "1-5km")) |>
     group_by(symbol, cat, band, period) |>
     summarise(n = n(), p50 = signif(median(value_std), 4),
               p90 = signif(p90(value_std), 4),
@@ -99,9 +114,9 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
            reliable = n >= MIN_N) |>
     arrange(symbol, cat, band, period)
 
-  # ── 3. The national background band, unchanged from the pressure page ────────
+  # ── 3. The national background band, as on the pressure page (cleaned) ───────
   bg <- m |>
-    filter(band == "background") |>
+    filter(band == "background", !stated_pressure) |>
     group_by(symbol, cat) |>
     summarise(n_bg = n(), p90_bg = p90(value_std), .groups = "drop")
 
@@ -119,7 +134,8 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
   # ── 5. Control B: match near against local far inside one municipality ───────
   matched_pairs <- function(rows, label) {
     pairs <- rows |>
-      filter(band %in% c("near", "local far"), !is.na(municipality)) |>
+      filter(band %in% c("near", "local far"), !is.na(municipality),
+             band == "near" | !stated_pressure) |>
       group_by(symbol, cat, municipality, band) |>
       summarise(n = n(), p50 = median(value_std), p90 = p90(value_std), .groups = "drop") |>
       pivot_wider(names_from = band, values_from = c(n, p50, p90)) |>
@@ -166,15 +182,15 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
   covariates <- m |>
     filter(cat == "bulk") |>
     mutate(subset = case_when(
-      band == "background" ~ "background (>20 km)",
+      band == "background" & !stated_pressure ~ "background (>20 km)",
       band == "near" & period %in% "pre-farm" ~ "near, pre-farm",
       band == "near" & period %in% "operating" ~ "near, operating",
       band == "near" & period %in% "post-closure" ~ "near, post-closure",
-      band == "local far" ~ "local far (5-20 km)",
+      band == "local far" & !stated_pressure ~ "local far (5-20 km)",
       TRUE ~ NA_character_)) |>
     filter(!is.na(subset)) |>
     distinct(subset, municipality, year, dist_to_coast, fines_lt63, source,
-             dist_to_aquaculture) |>
+             dist_to_fish_farm) |>
     group_by(subset) |>
     summarise(n_samples = n(),
               median_year = median(year, na.rm = TRUE),
@@ -189,8 +205,10 @@ analysis_refined_pressure_controls <- function(db_dir = multised_db_dir(),
                                      "operating: year >= start_year and (active or",
                                      "year <= end_year); post-closure: closed and",
                                      "year > end_year"),
-                 farm_link = "site.aqua_id, the NEAREST farm, which may not be the farm that was there at the time",
-                 scope = "Norway (dist_to_aquaculture), raw value_std, outliers dropped")
+                 farm_link = paste("site.fish_farm_aqua_id, the NEAREST fish farm,",
+                                   "which may not be the farm that was there at the time"),
+                 far_band_excludes = "pressure_class = 'pressure' (stated pressure monitoring)",
+                 scope = "Norway (dist_to_fish_farm), raw value_std, outliers dropped")
 
   # ── 7. Write ────────────────────────────────────────────────────────────────
   write_csv(temporal,   file.path(out_dir, "refined_temporal_alignment.csv"))

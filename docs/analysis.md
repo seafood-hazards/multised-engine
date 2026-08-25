@@ -145,12 +145,26 @@ its numbers against anything older.
   Vannmiljø's aquaculture-monitoring measurements fall within 1 km of a fish farm and
   0.3% beyond 20 km, and all 64 reference-condition measurements are beyond 20 km.
 
-**Step 7 has not moved with it.** Its temporal control needs the identity of the nearest
-*fish farm*, and until August 2026 the only farm id on `site` was `aqua_id`, the nearest
-aquaculture site of any kind. `R/clean-05-aquaculture.R` now also writes
-`fish_farm_aqua_id`, but the clean, merged and refined DBs must be rebuilt before step 7
-can key on it. Until then the two steps are on different axes, and both the Pressure
-Controls page and the Pressure-Based Background page say so.
+**Every refined step moved with it.** Steps 1, 4, 6, 8 and 10 used
+`dist_to_aquaculture` only to *report* coverage against the pressure gradient, never to
+define a background or a verdict (the background is `dist_to_coast`), so switching them
+changed reported coverage and no verdict. The bin column is `dist_bin` everywhere and the
+axis label is `"distance to fish farm"`.
+
+**Step 7 needed the rebuild.** Its temporal control asks whether *that* farm was licensed
+when the sediment was sampled, and until August 2026 the only farm id on `site` was
+`aqua_id`, the nearest aquaculture site of any kind. `R/clean-05-aquaculture.R` now writes
+`fish_farm_aqua_id`; the clean, merged and refined DBs were rebuilt to carry it, and step 7
+bands on `dist_to_fish_farm` and reads the licence dates through it. It also cleans both far
+bands of stated pressure, so its ratios and step 3's are on the same footing.
+
+**One result reversed.** On the old link step 7 reported that near-cage sediment sampled
+*before* the farm existed was dirtier than sediment sampled while it operated, and that was
+read as evidence that farm distance is partly a marker of industrialised coastline. It was an
+artefact of dating samples against the wrong facility. Keyed to the fish farm's own licence
+the ordering is the expected one (copper P90 34 pre-farm, 68.3 operating, 74.6 post-closure),
+and the time alignment barely bites at all: 88% of near-cage copper is contemporary with an
+operating farm.
 
 Step 8 also decides **which groups get a verdict at all** (D4). It fits `metal ~ a + b * Al` on the same offshore
 reference the EF uses, so the two are comparable, and answers two questions the EF
