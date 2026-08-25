@@ -50,16 +50,56 @@ two agree: **80%** of Vannmiljø's aquaculture-monitoring measurements fall with
 measurements are beyond 20 km. A Norwegian programme code and a great-circle
 distance to a licence coordinate are independent, and they pick out the same rows.
 
+## Every refined analysis is on the fish-farm axis
+
+All ten refined analyses now bin on `dist_to_fish_farm`. In eight of them the axis
+was only ever used to *report* coverage against the pressure gradient, never to
+define a background or a verdict (the background is `dist_to_coast`), so **no
+verdict changed**: the refined DB still holds 115,811 target measurements and
+11,266 carry a pristine verdict, unchanged from `v0.3.2`. What changed is what the
+coverage tables are coverage *of*. The bin column is `dist_bin` throughout and the
+axis label is `"distance to fish farm"`.
+
+`analysis_refined_pressure_controls()` needed the databases rebuilt, and got them.
+
+## A reversed result, corrected
+
+Pressure Controls used to report that near-cage sediment sampled **before** the
+farm existed was *dirtier* than sediment sampled while it operated, and read that
+as evidence that distance to a farm is partly a marker of industrialised coastline
+rather than of farm input. It was an artefact.
+
+The licence dates came from `aqua_id`, the nearest aquaculture site of any kind, so
+a sample could be dated against a mussel raft or a land-based smolt plant while its
+chemistry was attributed to a cage that was not there. `clean_aquaculture()` now
+writes **`fish_farm_aqua_id`**, the nearest fish farm's own id, and the clean,
+merged and refined DBs were rebuilt to carry it.
+
+On the corrected link the ordering is the one the pressure hypothesis predicts:
+copper P90 **34** mg/kg pre-farm, **68.3** while operating, **74.6** after closure,
+and the same ordering for zinc. The time alignment barely bites at all now, because
+**88%** of near-cage copper is contemporary with an operating farm rather than the
+five in six the old link implied.
+
+The controls that remain are geographic, and they separate the two elements:
+matched within a municipality copper goes 2.62 to **1.60** and exceeds local far
+sediment in **70%** of the 40 testable municipalities, while zinc goes 1.09 to
+**1.04** at 51% of 37. **Copper is the one near-cage signal that survives every
+control on this site.**
+
 ## Fixes
 
-- `clean_aquaculture()` (clean step 5) also writes **`fish_farm_aqua_id`**, the
-  nearest fish farm's own id. The refined temporal control has to know *which*
-  farm a sample sits by, so it can ask whether that farm was licensed when the
-  sediment was sampled; the only farm identity on `site` was `aqua_id`, the
-  nearest aquaculture site of any kind. All five clean DBs were rerun.
-  `analysis_refined_pressure_controls()` (step 7) stays on the old axis until the
-  merged and refined DBs are rebuilt to carry the column, and both affected site
-  pages carry a callout saying so.
+- Both far bands in `analysis_refined_pressure_controls()` are cleaned of stated
+  pressure, so its ratios and the pressure step's are on the same footing.
+- `analysis_refined_pristine()` writes **`refined_pristine_coverage_source.csv`**,
+  the aluminium-coverage-by-band-and-source split that was previously typed into
+  the Pristine Classification page as a static table and therefore unverifiable.
+  Recomputed on the corrected axis it changes: the > 20 km band is 44% Mareano,
+  not the 85% the page claimed.
+- The Vannmiljø pristine share no longer rises monotonically with farm distance:
+  it falls back beyond 20 km, because roughly two thirds of that source's
+  classifiable far-band rows are its own contaminated-seabed, industry and sewage
+  programmes. The page says so instead of claiming a clean trend.
 - `refined_pressure_percentiles.csv` renames `aq_bin` to `dist_bin`, since it is
   no longer an aquaculture distance.
 - `background-summary` and `enrichment-summary` on multised-refined were moved

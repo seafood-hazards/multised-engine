@@ -228,10 +228,13 @@ The refined DB and its pristine/background work. One database
 `background-pressure` was rebuilt 2026-08-26: its axis is now distance to the nearest
 **fish farm** rather than to aquaculture of any kind, its background is the > 20 km band
 with Vannmiljø stated-pressure monitoring removed, and it carries the farm-size split and
-the stated-purpose cross-check. `pressure-controls` still runs on the old axis (its
-temporal control needs a farm identity the DBs do not yet carry), and both pages carry a
-callout saying so. `background-summary` and `enrichment-summary` read the same CSVs and
-were moved onto the cleaned far band with it.
+the stated-purpose cross-check. `pressure-controls` moved to the same axis once the DBs were
+rebuilt to carry `fish_farm_aqua_id`, and its pre-farm result reversed in the process (the
+old one was dating samples against mussel rafts and smolt plants). `background`,
+`background-ef`, `background-igeo`, `background-pristine`, `background-regression`,
+`background-summary`, `enrichment-summary` and `method-revisions` all moved with them: every
+page that binned on distance now bins on the fish farm, the bin column is `dist_bin`
+throughout, and the axis label is "distance to fish farm".
 
 `background-igeo` is the geo-accumulation index, added 2026-08-26 and the only
 page reading the eight `refined_igeo_*.csv` files. It exists for coverage: EF

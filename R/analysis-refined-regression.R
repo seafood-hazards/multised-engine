@@ -52,7 +52,7 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
   on.exit(dbDisconnect(con), add = TRUE)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
-           si.dist_to_coast, si.dist_to_aquaculture,
+           si.dist_to_coast, si.dist_to_fish_farm,
            n.fe AS norm_fe, n.al AS norm_al
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -75,7 +75,7 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
     filter(cat %in% CATS) |>
     mutate(al_basis = refined_al_basis(norm_fe, norm_al),
            on_basis = refined_on_basis(al_basis, cat),
-           aq_bin = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
+           dist_bin = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS)) |>
     filter(on_basis)
 
   withheld <- refined_withheld_elements()
@@ -172,8 +172,8 @@ analysis_refined_regression <- function(db_dir = multised_db_dir(),
 
   # ── 4. The held-out check: does either verdict track the farms? ──────────────
   pressure <- scored |>
-    filter(!is.na(aq_bin)) |>
-    group_by(symbol, cat, aq_bin) |>
+    filter(!is.na(dist_bin)) |>
+    group_by(symbol, cat, dist_bin) |>
     summarise(n = n(), pct_reg_line = pct(reg_line), pct_ef_median = pct(ef_median),
               .groups = "drop") |>
     left_join(fits |> select(symbol, cat, withheld), by = c("symbol", "cat")) |>

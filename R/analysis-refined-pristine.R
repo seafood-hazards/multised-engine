@@ -21,7 +21,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   # (05), offshore P90 (01).
   #
   # The headline is a data-gap: how much of the data (and especially the near-cage data) is
-  # even classifiable. Distance to aquaculture / coast VALIDATE the flag (not define it).
+  # even classifiable. Distance to fish farm / coast VALIDATE the flag (not define it).
   # Fractions bulk/sieved63/sieved20; outliers dropped.
   #
   # Outputs -> data/analysis/background/ (gitignored):
@@ -50,7 +50,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   on.exit(dbDisconnect(con), add = TRUE)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
-           si.dist_to_coast, si.dist_to_aquaculture,
+           si.dist_to_coast, si.dist_to_fish_farm,
            n.fe AS norm_fe, n.al AS norm_al, d.source AS source
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -130,13 +130,29 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   eligible <- m |> filter(!withheld, !unnormalisable)
 
   banded <- bind_rows(
-    eligible |> filter(!is.na(dist_to_aquaculture)) |>
-      mutate(band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
-      by_band("distance to aquaculture"),
+    eligible |> filter(!is.na(dist_to_fish_farm)) |>
+      mutate(band = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS)) |>
+      by_band("distance to fish farm"),
     eligible |> mutate(band = cut(dist_to_coast, CO_BREAKS, labels = CO_LABELS)) |>
       by_band("distance to coast"))
 
   coverage <- banded |> select(axis, band, n, pct_classifiable)
+
+  # The coverage gradient looks like a property of near-cage sampling and is not: it is
+  # which PROGRAMME sampled where. Splitting the same measurements by source shows Al
+  # coverage that barely moves with distance inside a source, while the source mix moves
+  # a great deal. Typed into the page before this existed, and therefore unverifiable.
+  coverage_source <- eligible |>
+    filter(!is.na(dist_to_fish_farm)) |>
+    mutate(band = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS)) |>
+    group_by(band) |>
+    mutate(n_band = n()) |>
+    group_by(band, source, n_band) |>
+    summarise(n = n(), pct_classifiable = round(100 * mean(classifiable), 1),
+              .groups = "drop") |>
+    mutate(pct_of_band = round(100 * n / n_band, 1)) |>
+    select(band, source, n, pct_classifiable, pct_of_band) |>
+    arrange(band, desc(n))
   validation <- banded |>
     filter(n_class >= MIN_N) |>
     select(axis, band, n_class, ef, strict) |>
@@ -156,8 +172,8 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   # it inside one source is the test that settles it; both sources that span more than one
   # band show the same rise, so the gradient is not a source artefact.
   validation_source <- m |>
-    filter(cat == "bulk", classifiable, !is.na(dist_to_aquaculture)) |>
-    mutate(band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS)) |>
+    filter(cat == "bulk", classifiable, !is.na(dist_to_fish_farm)) |>
+    mutate(band = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS)) |>
     group_by(source, band) |>
     summarise(n = n(),
               pct_ef     = round(100 * mean(pristine_ef, na.rm = TRUE)),
@@ -172,6 +188,8 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   write_csv(summary_tbl, file.path(adir, "refined_pristine_summary.csv"))
   write_csv(validation_source, file.path(adir, "refined_pristine_validation_source.csv"))
   write_csv(coverage,    file.path(adir, "refined_pristine_coverage.csv"))
+  write_csv(coverage_source,
+            file.path(adir, "refined_pristine_coverage_source.csv"))
   write_csv(validation,  file.path(adir, "refined_pristine_validation.csv"))
   write_csv(meta,        file.path(adir, "refined_pristine_meta.csv"))
 
@@ -182,12 +200,12 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     summary_tbl |> filter(cat == "bulk", reliable) |>
       select(symbol, n, pct_classifiable, n_classifiable, pct_ef, pct_strict) |>
       as.data.frame() |> print(row.names = FALSE)
-    cat("\nthe data gap: % classifiable by distance to aquaculture:\n")
-    coverage |> filter(axis == "distance to aquaculture") |> as.data.frame() |> print(row.names = FALSE)
+    cat("\nthe data gap: % classifiable by distance to fish farm:\n")
+    coverage |> filter(axis == "distance to fish farm") |> as.data.frame() |> print(row.names = FALSE)
     cat("\nthe same validation WITHIN each source (is the gradient a source artefact?):\n")
     validation_source |> as.data.frame() |> print(row.names = FALSE)
-    cat("\nvalidation (classifiable only): % pristine by distance to aquaculture:\n")
-    validation |> filter(axis == "distance to aquaculture") |>
+    cat("\nvalidation (classifiable only): % pristine by distance to fish farm:\n")
+    validation |> filter(axis == "distance to fish farm") |>
       pivot_wider(names_from = rule, values_from = pct_pristine) |> as.data.frame() |> print(row.names = FALSE)
   }
 

@@ -126,7 +126,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            s.fines_lt63,
-           si.dist_to_coast, si.dist_to_aquaculture, d.source,
+           si.dist_to_coast, si.dist_to_fish_farm, d.source,
            n.fe AS norm_fe, n.al AS norm_al, n.corg AS norm_corg
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -181,7 +181,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     inner_join(usable, by = c("symbol", "cat")) |>
     mutate(igeo = refined_igeo(value_std, bg_median),
            igeo_class = refined_igeo_class(igeo),
-           aq_band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS, right = FALSE))
+           dist_bin = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS, right = FALSE))
 
   # ── 3. Distribution and class shares ─────────────────────────────────────────
   dist_tbl <- scored |>
@@ -205,8 +205,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
 
   # ── 4. Against the aquaculture gradient ──────────────────────────────────────
   pressure_tbl <- scored |>
-    filter(!is.na(aq_band)) |>
-    group_by(symbol, cat, aq_band) |>
+    filter(!is.na(dist_bin)) |>
+    group_by(symbol, cat, dist_bin) |>
     summarise(n = n(), igeo_p50 = round(median(igeo), 3),
               pct_unpolluted = round(100 * mean(igeo <= 0), 1), .groups = "drop") |>
     filter(n >= MIN_N)
@@ -219,7 +219,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     mutate(has_ref = !is.na(has_ref),
            igeo_ok = has_ref & !withheld,
            ef_ok   = ef_ok & !withheld,
-           aq_band = cut(dist_to_aquaculture, AQ_BREAKS, labels = AQ_LABELS, right = FALSE))
+           dist_bin = cut(dist_to_fish_farm, AQ_BREAKS, labels = AQ_LABELS, right = FALSE))
 
   cov_frac <- coverage |>
     group_by(cat) |>
@@ -230,13 +230,13 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     select(-cat)
 
   cov_aq <- coverage |>
-    filter(!is.na(aq_band)) |>
-    group_by(aq_band) |>
+    filter(!is.na(dist_bin)) |>
+    group_by(dist_bin) |>
     summarise(n = n(), n_ef = sum(ef_ok), n_igeo = sum(igeo_ok),
               pct_ef = round(100 * mean(ef_ok), 1),
               pct_igeo = round(100 * mean(igeo_ok), 1), .groups = "drop") |>
-    mutate(axis = "distance to aquaculture", band = as.character(aq_band), .before = 1) |>
-    select(-aq_band)
+    mutate(axis = "distance to fish farm", band = as.character(dist_bin), .before = 1) |>
+    select(-dist_bin)
 
   cov_all <- coverage |>
     summarise(n = n(), n_ef = sum(ef_ok), n_igeo = sum(igeo_ok),
