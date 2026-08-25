@@ -128,12 +128,14 @@ These still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
 several read analysis CSVs as well as databases, so they are not interchangeable
 with the pilot contract above.
 
-They also still carry a **tag-derived `cacheKey`** (`multised-merged@v0.5.0`,
-`aquaculture-no@v0.1.0`, `multised-refined@v0.2.0`), the arrangement the pilot
-sites moved off in August 2026. That is only safe for as long as their databases
-change with the tag: re-upload one onto an existing release, as the pilot sites
-do, and returning visitors keep the old file. Worth converting to the md5 key
-whenever one of them is next touched.
+`multised-merged` and `multised-refined` load their databases **client-side**, so
+they cache them in the browser and were the two sites still carrying a
+**tag-derived `cacheKey`**. Converted to the md5 key in August 2026, alongside the
+rebuild that made it urgent: the rebuild added `extraction_class`, `accredited`,
+`frac_basis`, `pressure_class` and the fish-farm columns without moving any tag,
+which is precisely the case where a stale cached database surfaces as "no such
+column". `multised-slim` and `multised-clean` render their queries in R and cache
+nothing, so they never needed it.
 
 `multised-clean`, `multised-merged` and `multised-refined` use gitflow
 (`main`/`develop`); so do all five pilot repos.
