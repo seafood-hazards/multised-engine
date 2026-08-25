@@ -56,9 +56,34 @@ Three rules follow, and they are what breaks a site when missed:
   to an empty release and 404s the next render. The pilot sites have no escape
   hatch for this: they hard-code the URL, where multised-refined at least honours
   `DB_RELEASE` to pin an older tag.
-- **Bump the `cacheKey` in `_db-setup.qmd` whenever the database content
-  changes.** stratum-sqlite caches the file in the browser under that key, and a
-  stale cache surfaces as "no such column".
+- **The browser cache key tracks the file, so there is nothing to bump.**
+  stratum-sqlite caches the database in the browser under the `cacheKey` set in
+  `_db-setup.qmd`, and a stale cache surfaces as "no such column", or worse, as
+  correct-looking values that quietly contradict the page describing them.
+
+  That key used to be the release tag (`"mareano-pilot@v0.1.29"`), which
+  contradicted the rule above it: re-uploading onto the existing Latest changes
+  the file without moving the tag, so the key never changed and every returning
+  visitor went on serving the previous database. The rule here used to say
+  "bump the `cacheKey` whenever the database content changes", which was correct
+  but unenforceable, because nothing in the release step made it necessary to
+  remember.
+
+  It is now derived instead, at render time, from the md5 of the file the
+  pre-render step just downloaded:
+
+  ```r
+  ojs_define(
+    dbCacheKey = paste0(
+      "mareano-pilot@",
+      substr(unname(tools::md5sum("mareano_pilot.sqlite")), 1, 12)
+    )
+  )
+  ```
+
+  Same bytes, same key; new bytes, new key. Re-uploading onto Latest now
+  invalidates the cache on its own, which is what makes that practice safe
+  rather than merely convenient.
 
 Each repo keeps a slim `CLAUDE.md` naming those rules, with the detail in its own
 `docs/database.md` (schema, row counts, how a page queries it) and
@@ -102,6 +127,13 @@ project produces.
 These still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
 several read analysis CSVs as well as databases, so they are not interchangeable
 with the pilot contract above.
+
+They also still carry a **tag-derived `cacheKey`** (`multised-merged@v0.5.0`,
+`aquaculture-no@v0.1.0`, `multised-refined@v0.2.0`), the arrangement the pilot
+sites moved off in August 2026. That is only safe for as long as their databases
+change with the tag: re-upload one onto an existing release, as the pilot sites
+do, and returning visitors keep the old file. Worth converting to the md5 key
+whenever one of them is next touched.
 
 `multised-clean`, `multised-merged` and `multised-refined` use gitflow
 (`main`/`develop`); so do all five pilot repos.
