@@ -108,6 +108,7 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_pressure_controls()`   | controls on the near-cage pressure gradient (time alignment, municipality matching) |
 | `background` | `analysis_refined_regression()`          | regression normalisation as a check on the ratio, and whether Al predicts each metal |
 | `background` | `analysis_refined_method_changes()`      | pre/post comparison for the Method Revisions page |
+| `background` | `analysis_refined_background_igeo()`     | geo-accumulation index: a background-ratio classifier that needs no normaliser |
 
 The `background` module is a single ordered suite: each script builds on the
 previous one, and steps 1-6 map onto the six background estimate and verdict
@@ -131,6 +132,40 @@ only ones the EF and pristine steps classify. The rule itself is frozen in
 `inst/extdata/normalisability/` and read through
 `R/analysis-refined-shared-normalisability.R`, because steps 4 and 6 consume it
 and run first; step 8 recomputes it and warns if the frozen table has gone stale.
+
+Step 10 adds the **geo-accumulation index**, `Igeo = log2(C / (1.5 * B))`, against the
+same offshore (> 10 km) population the EF reference is cut from but using the median raw
+concentration as `B` rather than the median metal/Al. The point is what it does not need:
+EF divides by aluminium, Igeo divides by a background, so it classifies any row that has
+a value. EFSA names it for exactly this case, "in absence of EF".
+
+Coverage goes from **9.8% to 97.2%** of target measurements, and within 1 km of a fish
+farm from 0.4% to 99.4% -- the data EFSA asked for by name, which the pipeline could not
+speak to at all because Vannmiljø's aquaculture programme carries aluminium on 5 of
+13,996 subsamples.
+
+It is **not wired into the pristine verdict**, and step 10 sits after the synthesis
+deliberately. That was decided on the numbers, 2026-08-25: **the verdicts stay on EF,
+and Igeo is reported alongside them.** Igeo's reach is the argument for it and its lack
+of grain-size control is the argument against, and the confounding measured below is
+strong enough in bulk (cobalt rho 0.70 against the mud fraction) that a verdict built on
+it would be partly a verdict about texture. Reporting the index without promoting it to
+a verdict keeps the coverage visible to EFSA, who asked for Igeo in EF's absence,
+without changing what "pristine" means in this database.
+
+Those numbers include a caveat the step measures on itself. Igeo has no grain-size
+control, so `refined_igeo_confound.csv` correlates it against the mud fraction, with
+metal/Al alongside for scale. In bulk, Igeo tracks texture for every metal, worst for
+cobalt (rho 0.70). In the sieved fractions it barely does, which is D4 from the other
+side: a sieved sample is already grain-size controlled. And EF is **not uniformly
+better** -- it beats Igeo for cobalt (0.24 against 0.70), loses for copper (0.55 against
+0.36) and ties for zinc, so dividing by aluminium removes the texture signal for one
+metal and not another. The case for Igeo is therefore strongest exactly where EF cannot
+run: the sieved fractions and the near-farm data.
+
+Selenium and molybdenum stay withheld. That withholding is about below-LOQ censoring
+truncating the distribution, which a different index over the same rows inherits; D4
+normalisability, by contrast, does not apply, since nothing here divides by aluminium.
 
 Step 9 derives nothing of its own: it reads the frozen pre-revision baseline in
 `inst/extdata/method-baseline/` alongside what the earlier steps have just
