@@ -210,6 +210,56 @@ normalisation in the first place.
 What they need is an index built on a background rather than a normaliser --
 which is exactly §6.
 
+### Are <63 µm and <20 µm the same thing?
+
+For the EFSA export, **yes**, and we already do it. The spec is explicit:
+
+> Filtering at <20 µm is considered as "sieve <63 µm".
+
+`export-efsa-submission.R` sets `sieve63 = efsa_yn(fraction != "bulk")` on that
+basis, so both cutoffs report as sieved. Nothing to change.
+
+For the background and the indices, **no** -- and the database says so three
+independent ways. The <20 µm fraction runs systematically richer than <63 µm,
+which is what more clay and oxide surface area per gram should do:
+
+| Comparison | Design | Co | Cu | Mn | Zn |
+|---|---|---:|---:|---:|---:|
+| All sources pooled | confounded | 1.65x | 1.76x | 1.76x | 2.01x |
+| ICES-DOME only | source held constant | 1.15x | 1.40x | 1.46x | 1.61x |
+| Same subsample, both cuts | paired, n = 35 | **1.38x** | -- | -- | -- |
+
+The pooled ratio overstates it, because `sieved20` is 84% MUDAB while
+`sieved63` is mostly ICES-DOME and 4Demon -- the same source-stratum trap as
+[ef-source-bias.md](ef-source-bias.md). But the effect survives holding source
+constant, and the paired test (the only one with no site or time confound) puts
+the finer cut higher in **91% of pairs**. Direction is consistent across every
+element in every design.
+
+So pooling them would inflate the sieved background by roughly 20-60% and blur
+the grain-size difference the fractions exist to capture. Keep `sieved63` and
+`sieved20` as separate strata for background percentiles, Igeo and D4, exactly
+as they are now.
+
+**The intuition is right about the rule, not the reference value.** Both
+fractions are grain-size controlled, so both get the same *treatment*: no Al
+normalisation, Igeo instead. They just cannot share a *B*.
+
+Two smaller consequences:
+
+- **The 500 µm and 90 µm strays are mis-exported.** `sieve63` is set from
+  `fraction != "bulk"`, so a 500 µm sieve is currently reported to EFSA as
+  "sieve <63 µm = Y", when EFSA counts a 1 mm mesh as bulk and says nothing about
+  500 µm. 12 measurements at 500 µm and 8 at 90 µm, so the volume is trivial and
+  the fix is one line, but as written the field asserts something false.
+- **A different equivalence does hold, and is worth using.** A bulk sample that
+  is already ~all mud is physically what a <63 µm sieve would have produced:
+  sieving removes nothing. `subsample.fines_lt63` identifies them -- **719 bulk
+  subsamples at >=95% fines**, 1,013 more at 90-95%. That is a real bridge
+  between the bulk and sieved strata, and unlike the <20/<63 merge it is
+  defensible. It only reaches the subsamples that have grain size at all, which
+  is 13,898 of 37,319 bulk subsamples.
+
 ---
 
 ## 6. Igeo and PLI: recommended, and they unlock the priority data
