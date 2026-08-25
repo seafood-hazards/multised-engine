@@ -31,7 +31,13 @@ Seven tables, built by `02_create_tables.R` for every source. Common columns:
   `datetime`.
 - **method** — `method_id` (PK), `symbol` (FK), `method`, `lab`, plus source
   detection/quantification limits (`lld`, or `lod`/`loq`), and optional
-  `lab_name`/`method_description`/`uncertainty`.
+  `lab_name`/`method_description`/`uncertainty`. Also `extraction` /
+  `extraction_class`: the digestion chemistry and EFSA's class for it, added at
+  step 1 from each source's own field and mapped to the ICES METCX vocabulary.
+  **The extraction is part of method identity**, so two rows sharing an
+  instrument but digested differently get different `method_id`s. See
+  [efsa-submission.md](efsa-submission.md) and
+  [inst/extdata/extraction-class/README.md](../inst/extdata/extraction-class/README.md).
 - **subsample** — `subsample_id` (PK), `event_id` (FK), `depth_from`,
   `depth_to`. One row per depth interval; `event` is one row per core.
 - **measurement** — `measurement_id` (PK), `subsample_id` (FK), `symbol` (FK),

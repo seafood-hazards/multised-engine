@@ -9,8 +9,9 @@
 # signature change.
 export_table <- function() {
   tibble::tribble(
-    ~generation, ~fun,                     ~per_source,
-    "refined",   "export_refined_dataset", FALSE
+    ~generation, ~format,   ~fun,                      ~per_source,
+    "refined",   "dataset", "export_refined_dataset",  FALSE,
+    "refined",   "efsa",    "export_efsa_submission",  FALSE
   )
 }
 
@@ -30,6 +31,10 @@ export_table <- function() {
 #' If those files are missing the export stops and names them.
 #'
 #' @param generation Which database to export. Currently `"refined"` only.
+#' @param format Which export. `"dataset"` (the default) is the flat analysis
+#'   dataset; `"efsa"` is the EFSA submission table, the superset of the
+#'   reporting workbook and the ReplyFHF extraction spec. Both are cut from the
+#'   same frame, so they cannot disagree about scope or verdicts.
 #' @param source Must be `NULL`. Present for symmetry with [create_db()]; no
 #'   export is per-source yet.
 #' @param db_dir Directory holding the databases. Defaults to
@@ -43,16 +48,19 @@ export_table <- function() {
 #' @examples
 #' \dontrun{
 #' export_data("refined")
+#' export_data("refined", format = "efsa")
 #' export_data("refined", out_dir = "~/sediment/exports")
 #' }
 export_data <- function(generation = c("refined"),
+                        format = c("dataset", "efsa"),
                         source = NULL,
                         db_dir = multised_db_dir(),
                         out_dir = multised_analysis_dir(),
                         verbose = TRUE) {
   generation <- match.arg(generation)
+  format <- match.arg(format)
   spec <- export_table()
-  spec <- spec[spec$generation == generation, ]
+  spec <- spec[spec$generation == generation & spec$format == format, ]
 
   if (!is.null(source) && !spec$per_source) {
     stop("The ", generation, " export covers every source, so `source` must ",
@@ -60,7 +68,7 @@ export_data <- function(generation = c("refined"),
   }
 
   fun <- get(spec$fun, mode = "function")
-  msg(verbose, "\n== ", generation, " export ==\n")
+  msg(verbose, "\n== ", generation, " ", format, " export ==\n")
   dir <- fun(db_dir = db_dir, out_dir = out_dir, verbose = verbose)
   invisible(sort(list.files(dir, full.names = TRUE)))
 }

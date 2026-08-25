@@ -19,7 +19,7 @@ analysis_refined_method_changes <- function(db_dir = multised_db_dir(),
   adir <- file.path(out_dir, "background")
   dir.create(adir, recursive = TRUE, showWarnings = FALSE)
 
-  base_dir <- system.file("extdata", "method-baseline", package = "multised")
+  base_dir <- system.file("extdata", "method-baseline", package = "multised.engine")
   if (!nzchar(base_dir)) base_dir <- file.path("inst", "extdata", "method-baseline")
   if (!dir.exists(base_dir))
     stop("the pre-revision baseline is missing (looked at ", base_dir, "); see ",

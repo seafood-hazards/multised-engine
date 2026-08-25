@@ -58,6 +58,8 @@ CREATE TABLE method (
   uncertainty        REAL,
   method             TEXT,
   method_description TEXT,
+  extraction         TEXT,
+  extraction_class   INTEGER,
   FOREIGN KEY (symbol) REFERENCES element(symbol),
   PRIMARY KEY (method_id)
 );",

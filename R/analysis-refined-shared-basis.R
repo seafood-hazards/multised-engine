@@ -8,13 +8,21 @@
 # every enrichment factor, so a reference pooled over both bases means nothing and pushes
 # the under-recovered samples toward falsely pristine.
 #
-# No source records its digestion (the refined `method` table carries no AL row at all),
-# so the basis is inferred per sample from Fe/Al. Fe and Al are both lithogenic and both
+# The basis is inferred per sample from Fe/Al. Fe and Al are both lithogenic and both
 # track grain size, so the ratio is close to grain-size free; an acid extraction depresses
 # Al far more than Fe. Crustal Fe/Al is about 0.5, and Fe/Al at or above the cut marks Al
 # under-recovery. The cut separates a real bimodality WITHIN a single source (ICES-DOME
 # rows either side of it differ 1.7-2.5x in metal/Al), which is what says it is finding a
 # protocol rather than geology.
+#
+# The inference was written when no source recorded its digestion. Three now do, through
+# `method.extraction_class` (see docs/efsa-submission.md), so it has been checked against a
+# stated fact: every HF or aqua-regia digestion lands below the cut, and Mareano's stated
+# 7 M HNO3 partial extraction lands above it for 3,247 of 3,251 samples. The inference is
+# kept because the recorded class does not exist for 48.5% of measurements, and because it
+# is right wherever the chemistry is unambiguous. Its one known blind spot: the cut measures
+# Al under-recovery RELATIVE TO Fe, so a digestion that depresses both together still reads
+# "total" (375 ICES-DOME nitric rows). docs/ef-source-bias.md section 7 has the numbers.
 
 # Fe/Al at or above this marks aluminium under-recovery.
 refined_fe_al_cut <- function() 1.0

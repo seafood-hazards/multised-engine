@@ -70,8 +70,8 @@ analyze_data(generation, module = NULL, steps = NULL,
              db_dir = multised_db_dir(),
              out_dir = multised_analysis_dir(), verbose = TRUE)
 
-export_data(generation = "refined", source = NULL,
-            db_dir = multised_db_dir(),
+export_data(generation = "refined", format = c("dataset", "efsa"),
+            source = NULL, db_dir = multised_db_dir(),
             out_dir = multised_analysis_dir(), verbose = TRUE)
 ```
 
@@ -83,9 +83,13 @@ export_data(generation = "refined", source = NULL,
   module for it. Most modules hold one analysis; `background` holds six.
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
   column dictionary. It derives nothing of its own, which is why it is not an
-  analysis module; `refined` is the only generation with one. It does carry the
-  pristine / background verdicts, joined from the `background` module's CSVs, so
-  **`analyze_data("refined")` must have run first** or it errors.
+  analysis module; `refined` is the only generation with one. `format` picks
+  which: `dataset` (the flat analysis dataset) or `efsa` (the submission table,
+  the superset of EFSA's reporting workbook and its extraction spec, see
+  [efsa-submission.md](docs/efsa-submission.md)). Both are cut from one frame, so
+  they cannot disagree. Both carry the pristine / background verdicts, joined
+  from the `background` module's CSVs, so **`analyze_data("refined")` must have
+  run first** or they error.
 - `steps` re-runs a subset. In `create_db("slim", …)` steps 1-2 are one unit; in
   `analyze_data()` `steps` selects within one module and so requires `module`
   (only `background` has more than one step).
@@ -224,6 +228,8 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [ef-source-bias.md](docs/ef-source-bias.md) | why the bulk EF background is not comparable across sources, and the options |
 | [inst/extdata/loq-censoring/README.md](inst/extdata/loq-censoring/README.md) | below-LOQ rows are removed at clean step 2; why Se and Mo verdicts are withheld |
 | [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF and pristine verdicts exist only where Al predicts the element (CO/CU/ZN bulk) |
+| [inst/extdata/extraction-class/README.md](inst/extdata/extraction-class/README.md) | the frozen extraction-code table: EFSA extraction class, the ICES METCX vocabulary, the six judgement calls |
+| [efsa-submission.md](docs/efsa-submission.md) | recovering the EFSA optional fields: extraction class (recoverable, 51.5%) and porewater pH (absent everywhere) |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
 | [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |

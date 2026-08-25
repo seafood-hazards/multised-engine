@@ -115,10 +115,17 @@ slim_transform_vannmiljo <- function(con_src) {
            year, datetime = sample_time)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
+  # Vannmiljo records no digestion step. `analysis` holds ISO DETERMINATION standards
+  # (NS-EN ISO 17294-2 is ICP-MS), which say nothing about extraction, and 44% of it
+  # is "Unknown". So every row is UNK, not class 2: Norwegian practice would usually
+  # justify class 2, but that is an assumption about an unrecorded step. See
+  # inst/extdata/extraction-class/README.md.
   df_method <- df_slim %>%
     distinct(symbol = param_id, method = analysis, lod, loq) %>%
-    mutate(method_id = row_number()) %>%
-    select(method_id, symbol, method, lod, loq)
+    mutate(method_id = row_number(),
+           extraction = extraction_canon(method, "Vannmiljø"),
+           extraction_class = extraction_efsa_class(extraction)) %>%
+    select(method_id, symbol, method, lod, loq, extraction, extraction_class)
 
   df_slim <- df_slim %>%
     inner_join(

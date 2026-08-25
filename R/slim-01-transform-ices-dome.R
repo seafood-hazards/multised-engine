@@ -121,12 +121,30 @@ slim_transform_ices_dome <- function(con_src) {
            tool_description = sample_type_description, year, date)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
+  # METCX, the digestion chemistry, is part of what makes a method a method: two rows
+  # sharing an instrument but digested differently are not the same method. So it
+  # joins the distinct() that mints method_id rather than being attached afterwards,
+  # which would force an arbitrary pick between the extractions in a group.
+  # See R/extraction-class.R and inst/extdata/extraction-class/README.md.
+  # The grouping is the measurement identity used at step 9 below, spelled out because
+  # subsample_id does not exist yet: it is a function of event_id and the two depths.
+  # ICES-DOME has no conflicting extractions today, so this is a no-op here; it guards
+  # against a pilot refresh introducing one, which would otherwise duplicate
+  # measurements silently. See extraction_unambiguous().
+  df_slim <- df_slim %>%
+    mutate(extraction = extraction_canon(metcx, "ICES-DOME")) %>%
+    group_by(sample_id, sediment_no, param, value, unit, basis, matrix, qflag, vflag,
+             uncrt, metcu, dcflag, event_id, depth_from, depth_to) %>%
+    mutate(extraction = extraction_unambiguous(extraction)) %>%
+    ungroup()
+
   df_method <- df_slim %>%
-    distinct(param, metoa, lod, loq, labo) %>%
+    distinct(param, metoa, lod, loq, labo, extraction) %>%
     mutate(method_id = row_number())
 
   df_slim <- df_slim %>%
-    inner_join(df_method, by = c("param", "metoa", "lod", "loq", "labo"))
+    inner_join(df_method,
+               by = c("param", "metoa", "lod", "loq", "labo", "extraction"))
 
   df_method <- df_method %>%
     left_join(code_lookup %>%
@@ -134,8 +152,9 @@ slim_transform_ices_dome <- function(con_src) {
                distinct(metoa = raw_code, method_description = description)) %>%
     left_join(code_lookup %>% filter(data_col == "labo") %>%
                 distinct(labo = raw_code, lab_name = description)) %>%
+    mutate(extraction_class = extraction_efsa_class(extraction)) %>%
     select(method_id, symbol = param, lab = labo, lab_name, lod, loq, method = metoa,
-           method_description)
+           method_description, extraction, extraction_class)
 
   # ── 8. Build subsample table ───────────────────────────────────────────────
   df_subsample <- df_slim %>%

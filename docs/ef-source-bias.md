@@ -259,3 +259,80 @@ ad-hoc query did not apply the `value_std > 0` filter.)
 Both programmes show the same monotone rise. **The distance gradient is not a source
 artefact**, and the site's step 2 caveat that it could only be read as consistency can be
 lifted. It is written out as `refined_pristine_validation_source.csv`.
+
+## 7. Tested against the recorded digestion
+
+The basis above is **inferred** from Fe/Al because, when it was written, no source recorded
+its digestion. That is no longer true: `extraction_class` now carries each measurement's
+digestion chemistry from the source through to the export (see
+[efsa-submission.md](efsa-submission.md)). ICES-DOME and MUDAB record it, Mareano has one
+known method, so the inference can be checked against a stated fact for the first time.
+
+Method: one Al and one Fe per subsample and fraction (subsamples carrying more than one Al
+method are dropped as ambiguous), restricted to rows where **Al and Fe share the same
+digestion**, so the ratio is not comparing two different chemistries. 12,190 pairs, of
+which 7,179 are ICES-DOME or MUDAB.
+
+### Where the chemistry is unambiguous, the inference is right
+
+| Source | Code | Class | n | median Fe/Al | % inferred "extraction" |
+|---|---|---|---:|---:|---:|
+| ICES-DOME | HF-CB | 1 | 2,987 | 0.626 | 16 |
+| ICES-DOME | HF-OV | 1 | 1,456 | 0.562 | 6 |
+| MUDAB | HF-CB | 1 | 1,090 | 0.764 | 22 |
+| MUDAB | HF-C | 1 | 553 | 0.659 | 9 |
+| ICES-DOME | HF-C | 1 | 253 | 0.534 | 6 |
+| **Mareano** | **HNO** | **2** | **3,251** | **1.347** | **100** |
+| MUDAB | HNO | 2 | 63 | 1.154 | 81 |
+
+Every HF or aqua-regia digestion sits between 0.44 and 0.85, comfortably below the 1.0 cut,
+and is read as "total". Mareano's 7 M HNO3 autoclave, a partial extraction that the source
+states in prose, sits at 1.347 and is read as "extraction" for **3,247 of 3,251 samples**.
+An independently known partial digestion agreeing with the inference on 99.9% of samples is
+the strongest evidence the cut has had.
+
+### One systematic disagreement
+
+ICES-DOME's own `HNO` rows go the other way: median Fe/Al **0.619**, only 15% read as
+"extraction", where Mareano's and MUDAB's nitric rows read 100% and 81%. Same nominal code,
+opposite verdict.
+
+Restricting to rows where Al and Fe share the digestion does not change it (85.1% "total"
+either way), so it is not an artefact of mismatched chemistries. In bulk, ICES `HNO` median
+Al is **15,708 mg/kg** against **29,800-35,130** for the ICES HF codes: about half, which is
+what a partial digestion looks like. The ratio does not flag it because Fe is depressed in
+those samples too (15,092 against 18,290).
+
+**The cut detects Al under-recovery *relative to Fe*, not absolute digestion strength.**
+Where a digestion depresses both roughly together, the ratio survives and the sample reads
+"total". That is a real limitation, and it took the recorded code to expose it.
+
+The caveat on the size of it: comparing medians across codes compares different samples from
+different labs and areas, not one sample digested two ways, which does not exist in this
+data. The effect is a strong hint, not a controlled measurement. It concerns 375 ICES Al
+rows, 44 of them bulk.
+
+### The two sources that record nothing behave oppositely
+
+| Source | Code | n | median Fe/Al | % inferred "extraction" |
+|---|---|---:|---:|---:|
+| Vannmiljø | UNK | 320 | 1.636 | 97 |
+| 4Demon | UNK | 814 | 0.634 | 1 |
+
+Vannmiljø's unrecorded digestion behaves like a partial extraction, which is consistent with
+standard Norwegian nitric practice and is evidence bearing on the class 3 default that
+[the extraction-class README](../inst/extdata/extraction-class/README.md) applies to its
+62,017 rows. 4Demon's behaves like a total one. **Defaulting both to class 3 was right not
+to assume a single class for the unrecorded sources**, because they are not the same.
+
+### What this changes
+
+Nothing, for now. The inference stays the operative rule:
+
+- it is corroborated wherever the chemistry is unambiguous, including one near-perfect case;
+- the recorded class does not exist for 48.5% of measurements, so it cannot replace it;
+- and where the two disagree, the disagreement is small (375 Al rows) and one-directional.
+
+What the recorded class adds is a **check** the pipeline did not have, and one open lead:
+whether ICES's nitric rows should be excluded from the "total" stratum. That is a change to
+`refined_ef_basis()` and would move background values, so it is not made here.
