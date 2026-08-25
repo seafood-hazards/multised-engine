@@ -226,6 +226,20 @@ computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
 | D2 | How far to carry extraction | **Full pipeline propagation**, slim through export. |
 | D3 | Which EFSA artefact | **Both, as a superset.** |
 
+(These three are local to this doc. The project-wide D1 and D4 are different
+decisions: LOQ censoring and normalisability.)
+
+### What actually gets submitted
+
+**A representative subset, cut later. Not the whole export.** EFSA wants
+representative records, not the corpus, so the submission will be a filtered
+selection of **pristine** rows, chosen when the submission itself is prepared.
+
+This is why `export_data("refined", format = "efsa")` is not a submission file and
+is not carried on any release. Its job is to be the *pool* that selection is made
+from, which is why it is a superset and why every row keeps its verdict columns.
+Anyone reading the 115,811-row TSV as "the submission" has it backwards.
+
 ## 8. Phases
 
 Status: phases 1-4 done. Phase 5 (docs and site) outstanding.
