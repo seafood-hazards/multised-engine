@@ -1,7 +1,7 @@
 Package: multised.engine
 Type: Package
 Title: Build and Analyse the MULTISED Marine Sediment Database
-Version: 0.3.1
+Version: 0.3.2
 Authors@R: c(
     person("Takaya", "Saito", email = "takaya.saito@outlook.com",
            role = c("aut", "cre", "cph")),
