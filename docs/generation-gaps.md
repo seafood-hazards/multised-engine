@@ -176,6 +176,57 @@ aquaculture monitoring, M-608 for classification). If IMR or Miljødirektoratet
 will state the practice, 25,789 MOMC rows move from assumed to reported without
 touching a number.
 
+#### Tested: can the grain-size records tell us what was sieved?
+
+The proposal: a bulk sample has a full grain-size distribution, so a subsample
+carrying **only one** grain-size record -- and that record a `<63 µm` one -- was
+probably analysed on the sieved fraction. It is a good hypothesis because it is
+testable, and two sources have a real `matrix` code to test it against.
+
+**Against ground truth it does not generalise.**
+
+| P(sieved \| n records) | 0 records | 1 record | 2 records | 3+ records |
+|---|---:|---:|---:|---:|
+| ICES-DOME | 43.6% | **43.4%** | 72.9% | 68.3% |
+| MUDAB | 79.4% | **100%** | 93.8% | 89.0% |
+
+In ICES-DOME a single record carries **no information at all** -- 43.4% against a
+43.6% base rate -- and the gradient runs the *opposite* way to the hypothesis:
+more records means more likely sieved, not less. In MUDAB it is a perfect signal
+(933 of 933). So the record count reflects how much grain-size analysis a
+programme ordered, not what went into the digestion tube. It is a reporting
+convention, and it differs by source.
+
+**For Vannmiljø specifically, the direct evidence points the other way.** 2,150
+subsamples have exactly one grain-size record, and 2,020 of those are `FINS`,
+"Fines < 63 µm". Its value is the test:
+
+| FINS value | subsamples | reading |
+|---|---:|---|
+| <75% | 1,495 | definitely bulk |
+| 75-95% | 430 | bulk, muddy |
+| 95-99% | 85 | close to sieve-equivalent |
+| >=99% | **10** | sieve-equivalent |
+
+**If the material had been sieved to <63 µm, FINS would be 100% by definition.**
+It averages 46.8% and spans the full range, so for all but ten subsamples the
+single record is not evidence of sieving -- it is the mud content of a bulk
+sample, which is the opposite finding.
+
+A third line agrees. Vannmiljø carries `TOC63`, "Normalized TOC", on 12,716
+measurements, 605 of them on these very subsamples. Normalising TOC to the <63 µm
+fraction arithmetically is what you do **instead of** sieving, not as well as it.
+
+So the heuristic would relabel ~2,000 Vannmiljø subsamples as sieved when the
+grain-size value says they are bulk, and it would do so on a rule that carries no
+signal in the one source large enough to check it against.
+
+**The instinct is right about where to look, wrong about which number.** Use the
+grain-size *value*, not the record count: `fines_lt63 >= 95%` identifies bulk
+samples that are physically what a <63 µm sieve would have produced -- 95 in
+Vannmiljø, 719 across the whole refined database. That is the defensible
+bulk-to-sieved bridge, and it is small precisely because it is honest.
+
 ### 4c. MUDAB: a consistency check worth running once
 
 MUDAB has both `matrix` and `physical_treatment`, and they broadly agree
