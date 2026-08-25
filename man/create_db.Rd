@@ -30,11 +30,11 @@ runs both. Defaults to every step that applies to the source.}
 \code{\link[=multised_db_dir]{multised_db_dir()}}.}
 
 \item{seastamp_dir}{Directory holding the seastamp reference datasets, used by
-the two geo steps (pilot step 4 and clean step 4) and ignored by every
-other generation. Defaults to \code{\link[=multised_seastamp_dir]{multised_seastamp_dir()}}.}
+the geo step (clean step 4) and ignored by every other generation.
+Defaults to \code{\link[=multised_seastamp_dir]{multised_seastamp_dir()}}.}
 
-\item{seastamp_bin}{Path to the seastamp executable, used by the same two
-steps. Defaults to \code{\link[=multised_seastamp_bin]{multised_seastamp_bin()}}, which reads the
+\item{seastamp_bin}{Path to the seastamp executable, used by that same
+step. Defaults to \code{\link[=multised_seastamp_bin]{multised_seastamp_bin()}}, which reads the
 \code{multised.seastamp_bin} option, then \code{SEASTAMP_BIN}, then the \code{PATH}.}
 
 \item{out_dir}{Directory the analysis CSVs are written under. Only the
@@ -75,10 +75,10 @@ create_db("slim", "ices-dome", steps = 14:15)
 create_db("slim", "mudab", db_dir = "~/sediment/db")
 
 # geo-enrich from a reference tree outside the project
-create_db("pilot", "mareano", seastamp_dir = "~/seastamp")
+create_db("clean", "mareano", seastamp_dir = "~/seastamp")
 
 # skip the geo step where seastamp is not installed
-create_db("pilot", "mareano", steps = c(1, 5))
+create_db("clean", "mareano", steps = 1:3)
 
 # the aquaculture reference database, which clean step 5 needs
 create_db("aquaculture")

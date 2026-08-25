@@ -70,17 +70,24 @@ seastamp_data <- function(seastamp_dir = multised_seastamp_dir()) {
 #' @param seastamp_bin Path to the seastamp executable. Defaults to
 #'   [multised_seastamp_bin()].
 #' @param work_dir Scratch directory for the intermediate TSVs.
-#' @param region seastamp's projection region, `"auto"` by default: the
-#'   projection is derived from the points themselves, which is seastamp 0.12.0's
-#'   own default and the accurate choice.
+#' @param partition Use seastamp's `--partition`, the project default (`TRUE`).
+#'   The points are split into sub-regions, each measured in its own projection,
+#'   halving until every distance is within 2% of true. It takes no region of its
+#'   own, so `region` must be `NULL` when this is `TRUE`.
 #'
-#'   Pass `region = "global"` to reproduce the values stored by the pre-0.9.0
-#'   `geoenrich` builds. Measured difference between the two over the 27,015
-#'   clean sites: `dist_to_coast` moves on every row (median 4.8-11.3% by
-#'   source, largest single shift 93 km), `municipality` is reassigned for 1,884
-#'   sites and `country` for 283, while `depth` is unchanged everywhere and
-#'   `sea_name` changes for 2 sites. `depth` does not project, so it cannot
-#'   depend on this.
+#'   Requires **seastamp >= 0.16.2**, which is checked: `--partition` arrived at
+#'   0.14.0, but 0.16.2 fixed it over-estimating distance near the poles and the
+#'   antimeridian, and this project's sites reach 81.5 lat.
+#' @param region seastamp's projection region, used only when `partition` is
+#'   `FALSE`. `"auto"` derives one projection centre from the points; `"global"`
+#'   reproduces the values stored by the pre-0.9.0 `geoenrich` builds.
+#'
+#'   Measured over the 26,849 refined sites, seastamp's own distortion bound is
+#'   **25%** for `global`, **3%** for `auto` and **1.32%** for `partition`. The
+#'   error is proportional, so it is invisible near shore and largest where the
+#'   EF reference is drawn: beyond 10 km, `auto` and `partition` agree to within
+#'   0.3%, while `global` runs -10% to +12% out. `depth` does not project, so it
+#'   is unaffected by any of this. See `docs/clean-pipeline.md`.
 #' @param verbose Print progress.
 #'
 #' @return A data frame with the id column plus `depth`, `country`,
@@ -93,8 +100,8 @@ seastamp_data <- function(seastamp_dir = multised_seastamp_dir()) {
 #'                   latitude  = c(60.39, 59.91))
 #' seastamp_enrich(pts)
 #'
-#' # adopt seastamp's own, more accurate default instead
-#' seastamp_enrich(pts, region = "auto")
+#' # reproduce the pre-0.9.0 stored values
+#' seastamp_enrich(pts, partition = FALSE, region = "global")
 #' }
 seastamp_enrich <- function(points,
                             id_col   = "site_id",
@@ -103,9 +110,20 @@ seastamp_enrich <- function(points,
                             seastamp_dir  = multised_seastamp_dir(),
                             seastamp_bin  = multised_seastamp_bin(),
                             work_dir = file.path(tempdir(), "seastamp"),
-                            region   = "auto",
+                            partition = TRUE,
+                            region   = if (partition) NULL else "auto",
                             verbose  = TRUE) {
   stopifnot(is.data.frame(points))
+  if (partition && !is.null(region)) {
+    stop("`partition = TRUE` derives its own projections, so `region` must be ",
+         "NULL. Pass `partition = FALSE` to choose a region by hand.",
+         call. = FALSE)
+  }
+  if (!partition && is.null(region)) {
+    stop("`partition = FALSE` needs a `region`; seastamp's own default centres ",
+         "the projection on (0, 0), which is 25% out for this data.",
+         call. = FALSE)
+  }
   missing <- setdiff(c(id_col, lon_col, lat_col), names(points))
   if (length(missing)) {
     stop("`points` has no column(s): ", paste(missing, collapse = ", "),
@@ -113,6 +131,12 @@ seastamp_enrich <- function(points,
   }
 
   BIN  <- seastamp_bin
+  # --partition arrived at 0.14.0, but 0.16.2 fixed it over-estimating distance
+  # near the poles and the antimeridian: a point at (-179, 86) read 1595.58 km
+  # against a true 958.68 km. This project's sites reach 81.5 lat, so an older
+  # binary would answer rather than fail, and answer wrongly.
+  if (partition) seastamp_require_version(BIN, "0.16.2")
+
   data <- seastamp_data(seastamp_dir)
   absent <- names(data)[!file.exists(unlist(data))]
   if (length(absent)) {
@@ -133,9 +157,10 @@ seastamp_enrich <- function(points,
   }
 
   tsv_opts <- c("--in-format", "tsv", "--out-format", "tsv")
-  # region applies to the projecting commands only (coast, sea, place); depth
-  # and nearest do not project.
-  reg_opts <- if (is.null(region)) character(0) else c("--region", region)
+  # The projection applies to the projecting commands only (coast, sea, place);
+  # depth and nearest do not project. --partition and --region are mutually
+  # exclusive: seastamp rejects the pair.
+  proj_opts <- if (partition) "--partition" else c("--region", region)
 
   tag <- paste0("pts_", as.integer(stats::runif(1, 1, 1e9)))
   in_tsv <- file.path(work_dir, paste0(tag, "_0in.tsv"))
@@ -151,13 +176,13 @@ seastamp_enrich <- function(points,
   write_tsv(std, in_tsv)
 
   run(c("coast", in_tsv, "--data", data$coast, "--unit", "km",
-        reg_opts, tsv_opts, "-o", f1))
+        proj_opts, tsv_opts, "-o", f1))
   # depth reads GEBCO via HDF5. seastamp 0.9.1 serialises the grid lookup itself
   # after a thread-safety segfault; -t 1 is belt-and-braces.
   run(c("depth", f1, "--data", data$depth, "-t", "1", tsv_opts, "-o", f2))
-  run(c("sea",   f2, "--data", data$sea, reg_opts, tsv_opts, "-o", f3))
+  run(c("sea",   f2, "--data", data$sea, proj_opts, tsv_opts, "-o", f3))
   run(c("place", f3, "--countries", data$countries,
-        "--municipalities", data$muni, reg_opts, tsv_opts, "-o", f4))
+        "--municipalities", data$muni, proj_opts, tsv_opts, "-o", f4))
 
   enr <- read_tsv(f4, show_col_types = FALSE)
   out <- enr |>
@@ -172,8 +197,8 @@ seastamp_enrich <- function(points,
       sea_name)
 
   if (verbose) {
-    cat(sprintf("seastamp: %d points annotated (region %s)\n",
-                nrow(out), if (is.null(region)) "tool default" else region))
+    cat(sprintf("seastamp: %d points annotated (%s)\n", nrow(out),
+                if (partition) "partitioned" else paste("region", region)))
   }
   out
 }
@@ -181,3 +206,32 @@ seastamp_enrich <- function(points,
 # The six columns seastamp owns, in the order the pipeline stores them.
 SEASTAMP_COLS <- c("depth", "country", "country_code",
                    "dist_to_coast", "municipality", "sea_name")
+
+# ── Version guard ────────────────────────────────────────────────────────────
+# `seastamp --version` prints "seastamp X.Y.Z". Compared numerically, not as a
+# string, so 0.16.2 does not sort below 0.9.1.
+seastamp_version <- function(bin) {
+  out <- tryCatch(system2(bin, "--version", stdout = TRUE, stderr = TRUE),
+                  error = function(e) character(0))
+  v <- regmatches(out, regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", out))
+  if (!length(v)) return(NA_character_)
+  v[[1]]
+}
+
+seastamp_require_version <- function(bin, minimum) {
+  have <- seastamp_version(bin)
+  if (is.na(have)) {
+    stop("could not read a version from ", sQuote(bin),
+         "; seastamp >= ", minimum, " is required for `partition = TRUE`.",
+         call. = FALSE)
+  }
+  if (utils::compareVersion(have, minimum) < 0) {
+    stop("seastamp ", have, " is too old for `partition = TRUE`; ", minimum,
+         " or newer is required.\n",
+         "0.16.2 fixed --partition over-estimating distance near the poles, and ",
+         "this project's sites reach 81.5 lat.\n",
+         "Upgrade, or pass `partition = FALSE, region = \"auto\"`.",
+         call. = FALSE)
+  }
+  invisible(have)
+}

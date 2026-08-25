@@ -13,7 +13,8 @@
 clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
                              seastamp_dir = multised_seastamp_dir(),
                              seastamp_bin = multised_seastamp_bin(),
-                             region = "auto", verbose = TRUE) {
+                             partition = TRUE, region = NULL,
+                             verbose = TRUE) {
   check_source(source)
 
   con <- multised_con(clean_db_path(source, db_dir))
@@ -22,7 +23,8 @@ clean_geo_enrich <- function(source, db_dir = multised_db_dir(),
 
   enr <- seastamp_enrich(site, id_col = "site_id",
                          seastamp_dir = seastamp_dir, seastamp_bin = seastamp_bin,
-                         region = region, verbose = verbose)
+                         partition = partition, region = region,
+                         verbose = verbose)
 
   dbWriteTable(con, "_enr", as.data.frame(enr), overwrite = TRUE)
   dbExecute(con, "
