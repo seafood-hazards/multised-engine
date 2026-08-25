@@ -320,20 +320,30 @@ values exactly, 26,849 of 26,849, max difference 0.0005 km, which is the output
 rounding. So the upgrade and the flag are two independent changes and each can be
 verified on its own.
 
-**What adopting it needs:**
+**Implemented 2026-08-25.** `seastamp_enrich(partition = TRUE)` is the default and
+`clean_geo_enrich()` passes it through; `partition` and `region` are mutually
+exclusive and each guards the other, and `partition = FALSE, region = NULL` is
+refused rather than falling back to seastamp's (0, 0) default. `--partition`
+applies to `coast`, `sea` and `place`; `depth` and `nearest` do not project.
 
-1. **Upgrade seastamp 0.12.0 -> 0.16.3.** Not optional at 0.16.2: that release fixed
-   `--partition` over-estimating distance near the antimeridian and the poles (a
-   test point at (-179, 86) read 1595.58 km against a true 958.68 km). This data
-   reaches 81.5 lat, so the fix is load-bearing here. 0.15.0 fixed a related
-   open-water over-estimate.
-2. **`seastamp_enrich()` gains a `partition` argument.** It hardcodes
-   `c("--region", region)` today; `--partition` and `--region` are mutually
-   exclusive, and `--partition` applies to `coast`, `sea` and `place` (`depth` and
-   `nearest` do not project).
-3. The tool renamed `scripts/enrich.sh` to `stamp.sh` at 0.16.0 and dropped "enrich"
-   from its vocabulary. We call the binary subcommands directly, so nothing breaks,
-   and `scripts/download_data.sh` still ships under that name.
+**seastamp >= 0.16.2 is required and checked.** `seastamp_require_version()` compares
+numerically (so 0.9.1 does not sort above 0.16.2) and fails with the reason. The
+floor is 0.16.2 rather than 0.14.0, where `--partition` arrived, because 0.16.2
+fixed it over-estimating distance near the antimeridian and the poles: a test point
+at (-179, 86) read 1595.58 km against a true 958.68 km. These sites reach 81.5 lat,
+so an older binary would answer rather than fail, and answer wrongly. 0.15.0 fixed a
+related open-water over-estimate.
+
+The tool renamed `scripts/enrich.sh` to `stamp.sh` at 0.16.0 and dropped "enrich"
+from its vocabulary. We call the binary subcommands directly, so nothing breaks, and
+`scripts/download_data.sh` still ships under that name.
+
+**Verified end to end** on a copy of `mareano_clean.sqlite`: 397 sites re-stamped,
+`dist_to_coast` changed on all of them, `municipality` on 144, `country` on 1,
+`sea_name` and `depth` on none, 20 crossing a distance band. Mareano's median shift
+is **5.2 km** against 0.046 km across all five sources, which is the proportional
+error showing itself: Mareano is the offshore-heavy source. The wrapper's output
+matches a direct CLI run byte for byte, 26,849 of 26,849 sites.
 
 Adopting this changes the published multised-clean and multised-merged pages
 (1,838 municipality reassignments are the visible part). Reversing it is one flag.
