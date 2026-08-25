@@ -400,10 +400,18 @@ aquaculture data yet).
   others NULL. Idempotent (resets + recomputes).
 
   It also adds the nearest **fish farm** specifically: `dist_to_fish_farm`,
-  `fish_farm_mtb_t` and `fish_farm_band`. `dist_to_aquaculture` keeps its meaning
-  (a mussel raft is aquaculture); these are additive, because a fish farm is the
-  pressure the trace-element work is about, and a 780 t farm and a 19,000 t farm at
-  the same distance are not the same pressure.
+  `fish_farm_aqua_id`, `fish_farm_mtb_t` and `fish_farm_band`.
+  `dist_to_aquaculture` keeps its meaning (a mussel raft is aquaculture); these are
+  additive, because a fish farm is the pressure the trace-element work is about, and
+  a 780 t farm and a 19,000 t farm at the same distance are not the same pressure.
+
+  `fish_farm_aqua_id` is the farm's own `aquaculture.aqua_id`, added August 2026.
+  Distance alone is not enough for the refined temporal control, which has to ask
+  whether *that* farm was licensed when the sediment was sampled: the only farm
+  identity previously on `site` was `aqua_id`, the nearest aquaculture site of any
+  kind, which may be a mussel raft or a land-based smolt plant. The refined
+  pressure analysis keys on `dist_to_fish_farm`; its controls step cannot until the
+  clean, merged and refined DBs are rebuilt to carry this column.
 
 ### Which sites are fish farms, and how big
 
