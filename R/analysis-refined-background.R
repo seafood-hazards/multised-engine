@@ -64,7 +64,7 @@ analysis_refined_background <- function(db_dir = multised_db_dir(),
   con <- dbConnect(SQLite(), db_path)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std,
-           si.dist_to_coast, si.site_id, si.n_years, si.dist_to_aquaculture
+           si.dist_to_coast, si.site_id, si.n_years, si.dist_to_fish_farm
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
@@ -141,7 +141,7 @@ analysis_refined_background <- function(db_dir = multised_db_dir(),
   # pressured places. That is testable: group the sites by how many years they were
   # sampled and look at where they are.
   repeat_pressure <- m |>
-    distinct(site_id, n_years, dist_to_coast, dist_to_aquaculture) |>
+    distinct(site_id, n_years, dist_to_coast, dist_to_fish_farm) |>
     mutate(revisits = case_when(is.na(n_years) | n_years <= 1 ~ "1 year",
                                 n_years <= 3                  ~ "2-3 years",
                                 TRUE                          ~ "4+ years")) |>
@@ -152,10 +152,12 @@ analysis_refined_background <- function(db_dir = multised_db_dir(),
                                                          na.rm = TRUE)),
               # distance to a farm exists for Norway only, so the farm columns are shares
               # of the sites that HAVE the measure. Counting the rest as "far from a farm"
-              # would be counting "not Norwegian" as "not pressured".
-              n_sites_with_aqua       = sum(!is.na(dist_to_aquaculture)),
-              median_dist_to_aqua_km  = signif(median(dist_to_aquaculture, na.rm = TRUE), 3),
-              pct_within_5km_of_farm  = round(100 * mean(dist_to_aquaculture < 5,
+              # would be counting "not Norwegian" as "not pressured". The farm is a FISH
+              # farm: see the pressure step for why aquaculture of any kind is the wrong
+              # axis.
+              n_sites_with_farm       = sum(!is.na(dist_to_fish_farm)),
+              median_dist_to_farm_km  = signif(median(dist_to_fish_farm, na.rm = TRUE), 3),
+              pct_within_5km_of_farm  = round(100 * mean(dist_to_fish_farm < 5,
                                                          na.rm = TRUE)),
               .groups = "drop") |>
     arrange(factor(revisits, levels = c("1 year", "2-3 years", "4+ years")))
