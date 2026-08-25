@@ -193,7 +193,20 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
 - **Sediment fraction** (`_shared/fraction_meta.R`) — the ICES `matrix` gains
   `frac_class` (`bulk` / `sieved`) + `sieve_um` (fine cutoff µm; NULL for bulk) on
   each measurement (bulk = `SEDtot` or a `>= 1000 µm` cutoff; no matrix, i.e.
-  Mareano/Vannmiljø, taken as bulk); `matrix` is kept as provenance. Because
+  Mareano/Vannmiljø, taken as bulk); `matrix` is kept as provenance.
+
+  **`frac_basis` records whether that was read or defaulted**: `reported` where the
+  source gave a matrix, `assumed` where it gave nothing and `bulk` is the fallback.
+  Defaulting to bulk is what EFSA's spec instructs for the submission ("If not
+  reported, there is also this option in the drop-down menu"), so the export stays
+  correct, but 68,079 target measurements rest on it and an EF or background cut
+  should be able to tell the two apart. Mareano and Vannmiljø are `assumed`
+  throughout; ICES-DOME, MUDAB and 4Demon are `reported`. Summarised onto
+  `subsample` as `target_frac_basis`, which is `reported` only where every target
+  row on the subsample is. The grain-size records cannot recover the truth for the
+  assumed sources: see [generation-gaps.md](generation-gaps.md) for the test.
+
+  Because
   bulk/sieved varies between the measurements of one subsample (metals vs organic
   carbon, and even target-vs-target), it is authoritative per-row on `measurement`,
   and summarised onto `subsample` as `target_frac_class` `bulk`/`sieved`/**`mixed`**
