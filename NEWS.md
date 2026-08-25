@@ -100,6 +100,12 @@ this, all on the Belgian shelf in 2007 with byte-identical values; refined loses
 * `CLAUDE.md` advertised 28 analyses and six background steps; there are **29**
   (6 clean, 13 merged, 10 refined) and **ten**. It now points at
   `analysis_modules()` as the executable answer.
+* **The pkgdown site builds again.** Four internal helpers added by the censoring
+  and normalisability work (`refined_al_basis`, `refined_on_basis`,
+  `refined_censoring_table`, `refined_withheld_elements`) carried roxygen blocks
+  without `@noRd`, so they generated `.Rd` files that were absent from the
+  reference index, and `build_reference_index()` aborted. They are internal like
+  the eight other shared helpers, and are now marked as such.
 
 # multised.engine 0.3.1
 
