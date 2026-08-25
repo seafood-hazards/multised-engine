@@ -1,3 +1,71 @@
+# multised.engine (development version)
+
+## The pressure gradient measures the fish farm now
+
+`analysis_refined_background_pressure()` (refined background step 3) was rebuilt.
+It answers a question that had never been asked of it: *is the near band actually
+near a fish farm, and is the far band actually a background?* Both answers were no.
+
+- **The axis is `dist_to_fish_farm`, not `dist_to_aquaculture`.** The old column is
+  the nearest aquaculture site of any kind. **84%** of what it added to the near
+  band sat next to a *land-based* facility (smolt plants, lobster and prawn
+  holding) and most of the rest next to blue mussel. Neither puts feed or
+  antifouling copper on the seabed at the licence coordinate.
+  `refined_pressure_axis.csv` and `refined_pressure_axis_dropped.csv` hold the
+  before and after, so the change is auditable rather than silent.
+- **The far band is cleaned of stated pressure.** The raw > 20 km pool was never a
+  background: **55.6%** of its bulk copper and **54.3%** of its bulk zinc is
+  Vannmiljø `pressure_class = "pressure"`, the contaminated-seabed, industry and
+  sewage programmes. Cleaning it takes the copper background from 102 to
+  **25.7 mg/kg** and zinc from 273 to **126.5**, which puts both within a few
+  percent of the mixture crossover and the offshore P90 for the first time. Only
+  *stated* pressure is removed; sources that record no programme keep every row.
+- **Two headline figures are withdrawn.** Molybdenum was reported at about 13x and
+  selenium at about 5x, the largest ratios on the site. On the corrected axis there
+  are **21** bulk molybdenum and **1** bulk selenium measurements within 1 km of a
+  sea cage, against a threshold of 30. They are withdrawn, not restated. Copper
+  reads **2.6x** on 11,475 measurements and is the one strong near-cage signal.
+
+## Farm size is in the analysis
+
+`fish_farm_mtb_t` and `fish_farm_band` had been on `site` since the aquaculture
+work and no analysis had ever read them. The near band is now split by the
+licensed size of the farm it is near (`refined_pressure_size.csv`).
+
+**It is not a dose-response.** Copper goes 2.91 / 3.15 / 2.13 across small, medium
+and large, and zinc 1.11 / 1.26 / 0.95: large is the *lowest* of the three for both.
+`refined_pressure_size_covariates.csv` measures the reason rather than asserting
+it. Large and medium farms sit at 107 m and 121 m median depth against 66 m for
+small, and further from shore, because Norway licenses the big farms into deep,
+well-flushed water precisely so it disperses the load. A flat or inverted size
+response is therefore not evidence that the pressure is absent, and separating the
+two needs a depth-matched comparison this analysis does not do.
+
+## The provider's stated purpose enters an analysis
+
+`dataset.pressure_class` reached the export and the dictionary and no analysis had
+used it. It now cross-checks the geometry (`refined_pressure_stated.csv`), and the
+two agree: **80%** of Vannmiljø's aquaculture-monitoring measurements fall within
+1 km of a fish farm and **0.3%** beyond 20 km, and all **64** reference-condition
+measurements are beyond 20 km. A Norwegian programme code and a great-circle
+distance to a licence coordinate are independent, and they pick out the same rows.
+
+## Fixes
+
+- `clean_aquaculture()` (clean step 5) also writes **`fish_farm_aqua_id`**, the
+  nearest fish farm's own id. The refined temporal control has to know *which*
+  farm a sample sits by, so it can ask whether that farm was licensed when the
+  sediment was sampled; the only farm identity on `site` was `aqua_id`, the
+  nearest aquaculture site of any kind. All five clean DBs were rerun.
+  `analysis_refined_pressure_controls()` (step 7) stays on the old axis until the
+  merged and refined DBs are rebuilt to carry the column, and both affected site
+  pages carry a callout saying so.
+- `refined_pressure_percentiles.csv` renames `aq_bin` to `dist_bin`, since it is
+  no longer an aquaculture distance.
+- `background-summary` and `enrichment-summary` on multised-refined were moved
+  onto the cleaned far band, and the hardcoded manganese spread figures on
+  `background-summary` are computed from the CSV rather than typed.
+
 # multised.engine 0.3.2
 
 The source-fidelity release. Five things the sources record and the pipeline was

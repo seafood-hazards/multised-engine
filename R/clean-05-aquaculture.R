@@ -1,7 +1,7 @@
 # ── Clean step 5: distance to the nearest aquaculture site ───────────────────
 # Adds `dist_to_aquaculture` (km, great-circle) to the clean `site` table, and
 # alongside it the nearest FISH FARM specifically: `dist_to_fish_farm`,
-# `fish_farm_mtb_t` and `fish_farm_band`. The
+# `fish_farm_aqua_id`, `fish_farm_mtb_t` and `fish_farm_band`. The
 # aquaculture reference is Norway-only, so the distance is computed only for
 # sites in Norway (`country_code = 'NOR'`, which step 4 sets); every other site
 # is left NULL.
@@ -50,6 +50,7 @@ clean_aquaculture <- function(source, db_dir = multised_db_dir(),
 
   # (re)create the columns, cleared to NULL
   new_cols <- c(dist_to_aquaculture = "REAL", dist_to_fish_farm = "REAL",
+                fish_farm_aqua_id = "INTEGER",
                 fish_farm_mtb_t = "REAL", fish_farm_band = "TEXT")
   for (col in names(new_cols)) {
     if (!col %in% names(site)) {
@@ -83,14 +84,19 @@ clean_aquaculture <- function(source, db_dir = multised_db_dir(),
 
     all_n <- nearest_km(aqua_sf)
     upd <- tibble::tibble(site_id = nor$site_id, dist = all_n$km,
-                          ff_dist = NA_real_, ff_mtb = NA_real_,
-                          ff_band = NA_character_)
+                          ff_dist = NA_real_, ff_id = NA_integer_,
+                          ff_mtb = NA_real_, ff_band = NA_character_)
 
     # the fish-farm subset can be empty in a cut-down reference, so guard it
     farm_sf <- aqua_sf[!is.na(aqua_sf$fish_farm) & aqua_sf$fish_farm == 1L, ]
     if (nrow(farm_sf) > 0) {
       ff <- nearest_km(farm_sf)
       upd$ff_dist <- ff$km
+      # the farm's own identity, not just its distance: the temporal control in the
+      # refined pressure work has to know WHICH farm, so it can ask whether that farm
+      # was licensed when the sediment was sampled. Without it the only id on `site`
+      # is the nearest aquaculture site of any kind, which may be a mussel raft.
+      upd$ff_id   <- as.integer(farm_sf$aqua_id[ff$idx])
       upd$ff_mtb  <- farm_sf$capacity_tonnes[ff$idx]
       upd$ff_band <- farm_sf$size_band[ff$idx]
     }
@@ -99,6 +105,7 @@ clean_aquaculture <- function(source, db_dir = multised_db_dir(),
     dbExecute(con, "UPDATE site SET
         dist_to_aquaculture = (SELECT dist    FROM tmp_aqua_dist t WHERE t.site_id = site.site_id),
         dist_to_fish_farm   = (SELECT ff_dist FROM tmp_aqua_dist t WHERE t.site_id = site.site_id),
+        fish_farm_aqua_id   = (SELECT ff_id   FROM tmp_aqua_dist t WHERE t.site_id = site.site_id),
         fish_farm_mtb_t     = (SELECT ff_mtb  FROM tmp_aqua_dist t WHERE t.site_id = site.site_id),
         fish_farm_band      = (SELECT ff_band FROM tmp_aqua_dist t WHERE t.site_id = site.site_id)
       WHERE site_id IN (SELECT site_id FROM tmp_aqua_dist)")
