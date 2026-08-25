@@ -442,6 +442,27 @@ existing `dist_to_aquaculture` / `aqua_id`, so pressure can be modelled as
 size-weighted distance rather than distance alone. A 780 t farm and a 19,000 t
 farm at the same distance are not the same pressure.
 
+> **Done, 2026-08-26.** Clean step 5 writes `dist_to_fish_farm`,
+> `fish_farm_aqua_id`, `fish_farm_mtb_t` and `fish_farm_band`, and refined
+> analysis step 3 keys on the fish farm and splits the near band by size
+> (`refined_pressure_size.csv`).
+>
+> **The size response is not a dose-response, and the confounder is why.** Only
+> copper and zinc have enough near-cage data for the split. Both go small ~ medium
+> and then *down* at large (copper 2.91 / 3.15 / 2.13, zinc 1.11 / 1.26 / 0.95).
+> `refined_pressure_size_covariates.csv` measures the reason rather than asserting
+> it: large and medium farms sit at 107 m and 121 m median depth against 66 m for
+> small, and further from shore. Norway licenses the big farms into deep,
+> well-flushed water precisely because it disperses the load, so a bigger farm can
+> leave less under the licence coordinate. Separating size from siting needs a
+> depth-matched comparison within a band, which is not built.
+>
+> **Two things fell out of doing it.** The old axis was measuring the wrong thing:
+> 84% of what `dist_to_aquaculture` added to the near band sat next to a
+> *land-based* facility. And the far band was never a background: over half its
+> bulk copper and zinc is Vannmiljø stated-pressure monitoring. Both are fixed and
+> both are reported side by side with the old numbers on the rebuilt page.
+
 ---
 
 ## 8. Also found: Vannmiljø states the pressure and we ignore it
@@ -462,6 +483,17 @@ into refined as `dataset_code` / `dataset_name`. `dataset_group` is empty.
 | MARE | MAREANO | 267 | offshore mapping |
 | BAPO | Basisovervåking - påvirka områder | 198 | impacted baseline |
 | BARE | Basisovervåking - referanseforhold | 64 | **reference conditions** |
+
+> **Partly done, 2026-08-26.** `pressure_class` now enters an analysis rather than
+> only the export. Refined analysis step 3 cross-tabs it against the distance
+> bands (`refined_pressure_stated.csv`) and uses it to clean the far band. Two
+> results: **80%** of the aquaculture-monitoring measurements fall within 1 km of a
+> fish farm and 0.3% beyond 20 km, and all 64 reference-condition measurements are
+> beyond 20 km, which is independent confirmation that the distance axis measures
+> what it claims. And 40.9% of the stated *pressure* measurements sit beyond 20 km,
+> which is what made the far band unusable as a background until it was cleaned.
+> Still not done: the per-programme labels (`FOSJ`, `INDU`, `KOMM` …) are collapsed
+> to the five classes, and nothing uses `BARE` as a validation set.
 
 `BARE` is literally a reference-condition programme, though at 64 measurements
 it is a validation set rather than a data source. `KAVE` (92), `DEPO` (72),

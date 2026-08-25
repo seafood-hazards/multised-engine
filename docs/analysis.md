@@ -101,7 +101,7 @@ why the token exists rather than the module name alone.
 |--------------|------------------------------------------|-----------------------------------|
 | `background` | `analysis_refined_background()`          | background / pristine baseline |
 | `background` | `analysis_refined_background_gsnorm()`   | grain-size-normalised background |
-| `background` | `analysis_refined_background_pressure()` | pressure-based background |
+| `background` | `analysis_refined_background_pressure()` | pressure-based background: distance to the nearest **fish farm**, that farm's licensed size, and the provider's stated purpose |
 | `background` | `analysis_refined_background_ef()`       | enrichment factor |
 | `background` | `analysis_refined_background_mixture()`  | distribution-mixture background |
 | `background` | `analysis_refined_pristine()`            | pristine-classification synthesis |
@@ -121,6 +121,36 @@ samples taken while the farm was operating (`aquaculture.start_year` /
 municipality instead of being the national >20 km pool. It feeds no verdict; it
 feeds the Pressure Controls page and the caveats on the pages that use the
 gradient as a yardstick.
+
+Step 3 was rebuilt in August 2026, and the change is worth knowing before reading
+its numbers against anything older.
+
+- **The axis is `dist_to_fish_farm`, not `dist_to_aquaculture`.** The latter is the
+  nearest aquaculture site of any kind, and 84% of what it added to the near band sat
+  next to a *land-based* facility (smolt plants, lobster and prawn holding) with the
+  rest mostly blue mussel. Neither deposits feed or antifouling copper on the seabed at
+  the licence coordinate. `refined_pressure_axis.csv` and
+  `refined_pressure_axis_dropped.csv` hold the before/after so the change is auditable.
+- **The far band is cleaned of stated pressure.** The raw > 20 km pool is not a
+  background: 55.6% of its bulk copper and 54.3% of its bulk zinc is Vannmiljø
+  `pressure_class = "pressure"`, the contaminated-seabed / industry / sewage
+  programmes. Rows a provider has *stated* are pressure monitoring are removed; the four
+  sources that record no programme keep every row, so this removes stated pressure and
+  never inferred pressure. `enrich_near_clean` is the ratio to read; `enrich_near`
+  (raw far band) is kept beside it.
+- **Farm size enters** via `fish_farm_band` (`refined_pressure_size.csv`), with
+  `refined_pressure_size_covariates.csv` recording the siting confounder that has to be
+  read with it: large farms sit in roughly twice the water depth of small ones.
+- **Stated purpose is the independent check** (`refined_pressure_stated.csv`): 80% of
+  Vannmiljø's aquaculture-monitoring measurements fall within 1 km of a fish farm and
+  0.3% beyond 20 km, and all 64 reference-condition measurements are beyond 20 km.
+
+**Step 7 has not moved with it.** Its temporal control needs the identity of the nearest
+*fish farm*, and until August 2026 the only farm id on `site` was `aqua_id`, the nearest
+aquaculture site of any kind. `R/clean-05-aquaculture.R` now also writes
+`fish_farm_aqua_id`, but the clean, merged and refined DBs must be rebuilt before step 7
+can key on it. Until then the two steps are on different axes, and both the Pressure
+Controls page and the Pressure-Based Background page say so.
 
 Step 8 also decides **which groups get a verdict at all** (D4). It fits `metal ~ a + b * Al` on the same offshore
 reference the EF uses, so the two are comparable, and answers two questions the EF

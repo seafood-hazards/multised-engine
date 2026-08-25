@@ -218,11 +218,26 @@ Gotchas:
 The refined DB and its pristine/background work. One database
 (`multised_refined.sqlite`, with aquaculture folded in), so pages share a single
 `_db-setup.qmd`. Pages: DB Design (`db-schema-refined`, `refined-tables`);
-**Background** (`background`, `-gsnorm`, `-mixture`, `-pressure`, `-map`,
-`-summary`); **Enrichment** (`background-ef`, `background-pristine`,
+**Background** (`background`, `-gsnorm`, `-mixture`, `-pressure`,
+`pressure-controls`, `-map`, `-summary`); **Enrichment** (`background-ef`,
+`background-igeo`, `background-regression`, `background-pristine`,
 `enrichment-map`, `enrichment-summary`); `method-revisions`; EFSA Submission
 (`efsa-format`, `efsa-submission`, and their `-v2` pair); and Downloads
 (`download-database`, `download-dataset`).
+
+`background-pressure` was rebuilt 2026-08-26: its axis is now distance to the nearest
+**fish farm** rather than to aquaculture of any kind, its background is the > 20 km band
+with Vannmiljø stated-pressure monitoring removed, and it carries the farm-size split and
+the stated-purpose cross-check. `pressure-controls` still runs on the old axis (its
+temporal control needs a farm identity the DBs do not yet carry), and both pages carry a
+callout saying so. `background-summary` and `enrichment-summary` read the same CSVs and
+were moved onto the cleaned far band with it.
+
+`background-igeo` is the geo-accumulation index, added 2026-08-26 and the only
+page reading the eight `refined_igeo_*.csv` files. It exists for coverage: EF
+classifies 0.4% of measurements within 1 km of a fish farm and Igeo classifies
+99.4%, which is the one EFSA request the pipeline had answered with silence. It
+issues no verdict.
 
 The two `-summary` pages are synthesis, not analysis: they recompute nothing and
 read only the CSVs the analysis pages write, so they cannot disagree with their
