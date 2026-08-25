@@ -78,9 +78,10 @@ export_data(generation = "refined", format = c("dataset", "efsa"),
 - `create_db()` covers **all five generations**. `source` is required for the
   per-source generations (pilot/slim/clean) and must be `NULL` for
   merged/refined.
-- `analyze_data()` covers **all 28 analyses** (6 clean, 13 merged, 9 refined);
+- `analyze_data()` covers **all 29 analyses** (6 clean, 13 merged, 10 refined);
   `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
-  module for it. Most modules hold one analysis; `background` holds six.
+  module for it. Most modules hold one analysis; `background` holds ten, and is
+  the only refined module. `analysis_modules(generation)` is the live answer.
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
   column dictionary. It derives nothing of its own, which is why it is not an
   analysis module; `refined` is the only generation with one. `format` picks
