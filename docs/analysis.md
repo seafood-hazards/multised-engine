@@ -253,5 +253,5 @@ What it cannot fill, and why:
 `pristineLoc` is the one field where the answer is stronger than the ask: the spec
 prefers a local-background enrichment factor and warns against Turekian and
 Wedepohl values, which is exactly what `pristine_ef` is. It is subject to D4, so it
-is present on 11,266 of 115,820 rows and empty elsewhere. **An empty verdict is not
+is present on 11,266 of 115,811 rows and empty elsewhere. **An empty verdict is not
 a finding of non-pristine**, and the dictionary says so.

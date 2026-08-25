@@ -93,16 +93,16 @@ later pilot refresh cannot reintroduce the duplication unnoticed.
 
 ### Expected result in the refined database
 
-`measurement.method_id` is populated for **100%** of all 115,820 target
+`measurement.method_id` is populated for **100%** of all 115,811 target
 measurements in every source, so extraction attaches wherever it is recorded:
 
 | Outcome | Rows | Share |
 |---|---|---|
-| From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,675 | **51.5%** |
+| From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,666 | **51.5%** |
 | Class 3 by default (Vannmiljø + 4Demon) | 56,145 | 48.5% |
 
 Two figures get quoted and they measure different things. **51.5%** is the share of
-rows *from a source that records the digestion*. **51.3%** (59,381 rows) is the share
+rows *from a source that records the digestion*. **51.3%** (59,372 rows) is the share
 whose code is not `UNK`, which is the same set minus the 294 rows where a recording
 source left the field blank or where `extraction_unambiguous()` withheld it. The site
 quotes the second, because "recorded" there means a usable code.

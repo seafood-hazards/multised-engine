@@ -137,7 +137,7 @@ page.
 The flag requires **both** criteria: robust z on log10 above 4 MADs **and** at
 least one full order of magnitude from the group median. It is a registration-
 error catcher, not a tail trimmer. In the refined database it marks 414 of
-115,820 rows: 366 high, 48 low, **0.36%**.
+115,811 rows: 366 high, 48 low, **0.36%**.
 
 A filter that removes a third of a percent, and only values 10× off the median,
 cannot meaningfully condition the P90 or the mixture's enriched component. The
