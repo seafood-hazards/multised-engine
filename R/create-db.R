@@ -74,7 +74,7 @@ slim_steps <- function(source) {
 #' @param db_dir Directory holding the databases. Defaults to
 #'   [multised_db_dir()].
 #' @param seastamp_dir Directory holding the seastamp reference datasets, used by
-#'   the two geo steps (pilot step 4 and clean step 4) and ignored by every
+#'   the geo step (clean step 4) and ignored by every
 #'   other generation. Defaults to [multised_seastamp_dir()].
 #' @param seastamp_bin Path to the seastamp executable, used by the same two
 #'   steps. Defaults to [multised_seastamp_bin()], which reads the
@@ -100,10 +100,10 @@ slim_steps <- function(source) {
 #' create_db("slim", "mudab", db_dir = "~/sediment/db")
 #'
 #' # geo-enrich from a reference tree outside the project
-#' create_db("pilot", "mareano", seastamp_dir = "~/seastamp")
+#' create_db("clean", "mareano", seastamp_dir = "~/seastamp")
 #'
 #' # skip the geo step where seastamp is not installed
-#' create_db("pilot", "mareano", steps = c(1, 5))
+#' create_db("clean", "mareano", steps = 1:3)
 #'
 #' # the aquaculture reference database, which clean step 5 needs
 #' create_db("aquaculture")
@@ -335,11 +335,14 @@ create_db_slim <- function(source, steps, db_dir, verbose) {
 # registry lines up with the files it replaces.
 PILOT_CONVERTED <- c("4demon", "ices-dome", "vannmiljo", "mudab", "mareano")
 
+# Step 4 (geo) was removed on 2026-08-25. The pilot stage used to run seastamp over
+# every station, but clean step 4 recomputes all five location columns unconditionally,
+# so the pilot values never survived. They are now left empty for the clean stage to
+# fill. The columns themselves stay in the pilot schema, so nothing downstream changes.
 pilot_step_table <- function() {
   tibble::tribble(
     ~step, ~name,      ~fun,
     1L,  "extract",  "pilot_extract",
-    4L,  "geo",      "pilot_geo",
     5L,  "write",    "pilot_create_tables"
   )
 }
@@ -382,23 +385,20 @@ create_db_pilot <- function(source, steps, db_dir, verbose,
   # The parse feeds the geo step and the write, so it cannot be skipped when
   # either of those runs.
   if (nrow(applicable) && !1L %in% applicable$step) {
-    stop("Pilot steps 4 and 5 consume the frames step 1 builds, so step 1 ",
+    stop("Pilot step 5 consumes the frames step 1 builds, so step 1 ",
          "cannot be skipped.", call. = FALSE)
   }
 
   msg(verbose, "\n== ", source, " pilot step 1: extract ==\n")
   tables <- pilot_extract(source, raw_dir = raw_dir, verbose = verbose)
 
-  if (4L %in% applicable$step) {
-    spec <- pilot_geo_spec(source)
-    frame <- sub("^df_", "", spec$frame)
-    msg(verbose, "\n== ", source, " pilot step 4: geo (seastamp) ==\n")
-    tables[[frame]] <- pilot_geo_enrich(tables[[frame]], spec$lon, spec$lat,
-                                        country_col = spec$country_col,
-                                        seastamp_dir = seastamp_dir,
-                                        seastamp_bin = seastamp_bin,
-                                        verbose = verbose)
-  }
+  # The location columns are declared empty rather than derived: clean step 4
+  # overwrites all of them anyway, so computing them twice only created two values
+  # that could disagree. Unconditional, because the pilot schema declares the columns
+  # and the write would fail without them. See pilot_geo_blank().
+  spec <- pilot_geo_spec(source)
+  frame <- sub("^df_", "", spec$frame)
+  tables[[frame]] <- pilot_geo_blank(tables[[frame]], spec$country_col)
 
   out <- list(extract = vapply(tables, nrow, numeric(1)))
   if (5L %in% applicable$step) {
