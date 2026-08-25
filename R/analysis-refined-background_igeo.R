@@ -60,6 +60,24 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # row populations, since EF only exists where aluminium does, and is reported as a
   # scale rather than a like-for-like test.
   #
+  # THE ALTERNATIVE THAT DOES NOT WORK. If the problem is a missing normaliser, the
+  # obvious question is whether another one is present. Organic carbon is: 33.1% of bulk
+  # target rows carry TOC and no aluminium, 28,397 measurements, and metals do sorb to
+  # organic matter. Section 9 puts TOC through the same D4 test aluminium had to pass.
+  #
+  # It clears both limits in exactly ONE group of twenty, and that group cannot be used:
+  # selenium sieved63, on 34 offshore rows, for an element whose verdicts are already
+  # withheld because below-LOQ censoring deleted 68.6% of it. A strong fit to the top
+  # third of a truncated distribution is not evidence about background.
+  #
+  # Everywhere it could matter it fails, and it fails in the way that is hardest to
+  # argue with: the two measures disagree. Copper is the best case in bulk, rho 0.60
+  # against R2 0.21, and copper sieved63 inverts it, R2 0.37 against rho 0.32. For
+  # aluminium the two measures agreed on every group, which is what made D4 a clean
+  # partition; for TOC they pull apart, so there is no cut that makes it a normaliser.
+  # The 28,397 rows stay unnormalised, and Igeo remains the only route to a verdict for
+  # them.
+  #
   # WHAT IGEO DOES NOT FIX. Selenium and molybdenum stay withheld. Their exclusion is not
   # about normalisers: the clean stage removes below-LOQ rows, which deletes 68.6% of Se
   # and 52.2% of Mo, so what survives is an upper tail wearing the name "background"
@@ -74,6 +92,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   #   refined_igeo_pressure.csv    median Igeo by distance-to-aquaculture band
   #   refined_igeo_coverage.csv    rows Igeo can classify against rows EF can, the point
   #   refined_igeo_confound.csv    Igeo against grain size, and EF against it for scale
+  #   refined_igeo_toc_normaliser.csv  the D4 test with organic carbon as the normaliser
   #   refined_igeo_meta.csv        one-row config
 
   db_path <- refined_db_path(db_dir)
@@ -101,7 +120,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            s.fines_lt63,
            si.dist_to_coast, si.dist_to_aquaculture, d.source,
-           n.fe AS norm_fe, n.al AS norm_al
+           n.fe AS norm_fe, n.al AS norm_al, n.corg AS norm_corg
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
@@ -232,7 +251,34 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     mutate(symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, cat)
 
-  # ── 8. Write ─────────────────────────────────────────────────────────────────
+  # ── 9. Would organic carbon serve as the normaliser aluminium is not? ────────
+  # The same two measures D4 applies to aluminium: OLS R2 on the offshore reference,
+  # and Spearman over every row carrying the normaliser. No aluminium basis restriction
+  # applies, because TOC is not the quantity the basis split is about.
+  toc_one <- function(df) {
+    off <- df |> filter(dist_to_coast > DIST_BG, !is.na(norm_corg), norm_corg > 0)
+    all <- df |> filter(!is.na(norm_corg), norm_corg > 0)
+    if (nrow(off) < MIN_N || nrow(all) < MIN_N) {
+      return(tibble::tibble(n_off = nrow(off), n_all = nrow(all),
+                            r2 = NA_real_, rho = NA_real_))
+    }
+    f <- stats::lm(value_std ~ norm_corg, data = off)
+    tibble::tibble(n_off = nrow(off), n_all = nrow(all),
+                   r2  = round(summary(f)$r.squared, 4),
+                   rho = round(stats::cor(all$value_std, all$norm_corg,
+                                          method = "spearman"), 3))
+  }
+
+  toc_tbl <- m |>
+    group_by(symbol, cat) |>
+    group_modify(~ toc_one(.x)) |>
+    ungroup() |>
+    mutate(normalisable_toc = !is.na(r2) & !is.na(rho) &
+             r2 >= refined_r2_limit() & rho >= refined_rho_limit(),
+           symbol = factor(symbol, levels = elem_levels)) |>
+    arrange(symbol, cat)
+
+  # ── 10. Write ────────────────────────────────────────────────────────────────
   meta <- tibble::tibble(
     formula     = "Igeo = log2(C / (1.5 * B))",
     background  = sprintf("offshore > %d km median of value_std, per element x fraction",
@@ -249,6 +295,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   write_csv(pressure_tbl, file.path(out_dir, "refined_igeo_pressure.csv"))
   write_csv(cov_tbl,      file.path(out_dir, "refined_igeo_coverage.csv"))
   write_csv(confound_tbl, file.path(out_dir, "refined_igeo_confound.csv"))
+  write_csv(toc_tbl,      file.path(out_dir, "refined_igeo_toc_normaliser.csv"))
   write_csv(meta,         file.path(out_dir, "refined_igeo_meta.csv"))
 
   if (verbose) {
@@ -260,8 +307,11 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     print(as.data.frame(cov_tbl), row.names = FALSE)
     cat("\n-- is the index measuring texture? Spearman against mud fraction --\n")
     print(as.data.frame(confound_tbl), row.names = FALSE)
+    cat("\n-- would organic carbon serve as a normaliser? (D4 limits: r2 >=",
+        refined_r2_limit(), " rho >=", refined_rho_limit(), ") --\n")
+    print(as.data.frame(toc_tbl), row.names = FALSE)
   }
 
   invisible(list(background = background, dist = dist_tbl, coverage = cov_tbl,
-                 confound = confound_tbl))
+                 confound = confound_tbl, toc = toc_tbl))
 }
