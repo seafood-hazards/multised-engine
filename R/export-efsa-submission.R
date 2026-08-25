@@ -189,9 +189,16 @@ export_efsa_submission <- function(db_dir = multised_db_dir(),
       extractionCode  = extraction,
       depthRange   = efsa_depth_range(depth_from_cm),
       # the spec counts a < 20 micrometre sieve as "sieve < 63", and treats an
-      # unsieved or >= 1 mm mesh sample as bulk
-      sieve63      = efsa_yn(fraction != "bulk"),
+      # unsieved sample as bulk. The test is the CUTOFF, not merely "was it sieved":
+      # 31 rows are sieved at 90 or 500 micrometre, which is neither a < 63 fraction
+      # nor an unsieved one, and answering Y to sieve63 for them would tell EFSA the
+      # sample was finer than it is. Both answers are N there, and `fraction` carries
+      # the actual cutoff for a reviewer who wants it.
+      sieve63      = efsa_yn(fraction != "bulk" & sieve_um_std <= 63),
       bulkAnalysis = efsa_yn(fraction == "bulk"),
+      # whether that answer was read off the source or inferred from its silence.
+      # Most "bulk" is the latter, and a submitter should be able to see which.
+      fracBasis    = fraction_basis,
       SD           = value_sd,
       nReplicates  = n_rep,
       confidential = NA_character_) |>
@@ -206,8 +213,10 @@ export_efsa_submission <- function(db_dir = multised_db_dir(),
       refPublication, comments,
       # then what only the ReplyFHF spec asks for, plus the provenance a reviewer needs
       envCompCode, extractionCode, extractionClass, depthRange, depth_from_cm,
-      depth_to_cm, sieve63, bulkAnalysis, SD, nReplicates, confidential,
-      source, fraction, dist_to_coast_km, dist_to_aquaculture_km, sea_name) |>
+      depth_to_cm, sieve63, bulkAnalysis, fracBasis, SD, nReplicates, confidential,
+      source, fraction, dist_to_coast_km, dist_to_aquaculture_km,
+      dist_to_fish_farm_km, fish_farm_band, pressure_class, igeo, igeo_class,
+      sea_name) |>
     arrange(traceElText, source, sampleId)
 
   tsv_path <- file.path(out_dir, "multised_efsa_submission.tsv.gz")
@@ -253,15 +262,21 @@ export_efsa_submission <- function(db_dir = multised_db_dir(),
     "depthRange",      "Depth of sediment sample",           "",         "EFSA's ordinal band, keyed on the top of the layer",
     "depth_from_cm",   "(supporting) layer top",             "",         "subsample depth_from",
     "depth_to_cm",     "(supporting) layer bottom",          "",         "subsample depth_to",
-    "sieve63",         "Sieve <63 um",                       "YESNO",    "Y for any sieved fraction; the spec counts <20 um as <63 um",
+    "sieve63",         "Sieve <63 um",                       "YESNO",    "Y where the sieve cutoff was 63 um or finer; the spec counts <20 um as <63 um. N for the 31 rows sieved at 90 or 500 um, which are neither <63 nor unsieved: see fraction for the actual cutoff",
     "bulkAnalysis",    "Bulk analysis",                      "YESNO",    "Y where the sample was not sieved",
+    "fracBasis",       "(provenance) fraction basis",        "",         "reported = the source stated the sieve or stated that none was used; assumed = the source was silent and bulk was inferred. Most bulk rows are assumed",
     "SD",              "SD",                                 "",         "measurement value_sd where the source reports one",
     "nReplicates",     "(supporting) replicate count",       "",         "measurement n_rep, so a reader can judge whether SD is meaningful",
     "confidential",    "Confidentiality of the data",        "",         "LEFT EMPTY: submitter's to state",
     "source",          "(provenance) source database",       "",         "Mareano, Vannmiljo, ICES-DOME, MUDAB or 4Demon",
     "fraction",        "(provenance) fraction",              "",         "bulk / sieved63 / sieved20",
     "dist_to_coast_km","(provenance) distance to coast",     "",         "supports the spec's offshore-is-pristine judgement, which it says must be case by case",
-    "dist_to_aquaculture_km", "(provenance) distance to farm", "",       "supports the spec's interest in samples near sea cages",
+    "dist_to_aquaculture_km", "(provenance) distance to farm", "",       "nearest marine aquaculture site of any kind; supports the spec's interest in samples near sea cages",
+    "dist_to_fish_farm_km", "(provenance) distance to fish farm", "",    "nearest FINFISH farm in sea or offshore cages, the subset the spec is actually about; Norway only",
+    "fish_farm_band",  "(provenance) fish farm size",        "",         "size of that nearest fish farm in standard 780 t concessions: small (<=2), medium (<=4), large (>4)",
+    "pressure_class",  "(provenance) stated sampling purpose", "",       "why the provider says the sample was taken: aquaculture / pressure / reference / survey / unknown. Vannmiljo only. The aquaculture rows are the monitoring data under sea cages the spec names",
+    "igeo",            "(provenance) geo-accumulation index", "",        "log2(conc / (1.5 * local offshore median)) for the same element and fraction. Uses no aluminium, so it covers about 97% of rows where pristineLoc covers 10%. It is NOT a verdict: in bulk it is confounded with grain size",
+    "igeo_class",      "(provenance) Igeo class",            "",         "Muller class of igeo, 0 unpolluted to 6 extreme, read against the LOCAL offshore background rather than the continental crust",
     "sea_name",        "(provenance) sea or ocean",          "",         "supports the spec's marine-region field")
 
   dict_path <- file.path(out_dir, "efsa_submission_dictionary.csv")

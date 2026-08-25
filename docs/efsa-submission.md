@@ -173,10 +173,44 @@ the refined database or derivable from it:
 | Time | sampleDate | `event.year` / date |
 | Measurand | traceEl, spec, conc, unit, weight, converted mg/kg dw | `measurement.value_std` / `unit_std` |
 | Method | methAn, **extraction class**, LOD, LOQ, accLab | `method`, extraction **new**, accreditation partial |
-| Sediment | Sieve <63µm, Bulk analysis, ocSed / TOC%, texture clay/silt/sand | `frac_class`, `sieve_um_std`, organic, grain size |
-| Verdict | pristineLoc | `pristine_ef` from the background module |
+| Sediment | Sieve <63µm, Bulk analysis, fracBasis, ocSed / TOC%, texture clay/silt/sand | `frac_class`, `sieve_um_std`, `frac_basis`, organic, grain size |
+| Verdict | pristineLoc, igeo, igeo_class | `pristine_ef` and Igeo from the background module |
+| Pressure | dist_to_fish_farm_km, fish_farm_band, pressure_class | site distances, Vannmiljø programme |
 | Admin | publicData, refPublication, comments, confidentiality | constants / notes |
 | **Empty** | phSed, phWater, hardWater, DOC, SD | not available, see §5 |
+
+Three of those groups were filled in after the source-fidelity rebuild of
+2026-08-25 and are worth calling out, because each answers something the spec
+asks for that the table previously could not.
+
+**`fracBasis`** says whether "Sieve <63µm = N, Bulk analysis = Y" was read off the
+source or inferred from its silence. Around three fifths of the bulk rows are the
+latter. Both answers were already being given; only the difference between them
+was missing, and a submitter should be able to see it.
+
+**`pressure_class`** is the provider's own statement of why the sample was taken.
+The spec asks by name for *"monitoring data of sediment quality over time ... under
+the sea cages"*, and 25,789 Vannmiljø measurements are filed under exactly that
+programme. Until now nothing in the submission table said so; the reader had to
+infer it from a distance. `dist_to_fish_farm_km` and `fish_farm_band` are the
+geometric half of the same question, and narrow `dist_to_aquaculture_km` from
+"any marine aquaculture site" to the finfish farms the spec is about.
+
+**`igeo`** is reported beside `pristineLoc`, not instead of it. `pristineLoc`
+carries a verdict on 9.7% of rows, because it needs aluminium on the right basis
+in a group where aluminium predicts the metal; Igeo needs no aluminium and covers
+97.2%. It is deliberately not a verdict: in bulk it is confounded with grain size
+strongly enough (cobalt ρ 0.70) that a verdict built on it would be partly a
+verdict about texture. See [generation-gaps.md](generation-gaps.md) §6.
+
+### One correction the re-cut made
+
+`sieve63` was `Y` for **any** sieved fraction. That is right for the <20µm rows,
+which the spec explicitly counts as <63µm, and wrong for the 31 rows sieved at 90
+or 500µm: those are coarser than 63µm, so answering `Y` told EFSA the sample was
+finer than it was. They are now `N` to both `sieve63` and `bulkAnalysis`, which is
+the honest pair of answers for a sample that was sieved but not below 63µm, with
+the actual cutoff in `fraction`.
 
 `pristineLoc` is the one field where our answer is stronger than EFSA's ask: the
 ReplyFHF spec explicitly prefers a local-background EF and warns against

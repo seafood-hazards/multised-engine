@@ -543,5 +543,13 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    confounding the step measures on itself is strong enough in bulk (cobalt rho
    0.70) that a verdict built on Igeo would be partly a verdict about grain size.
 5. **Then re-cut the exports and the four generation sites**, and re-release.
+   Exports **done 2026-08-25**. The flat dataset went from 31 columns to 40 and the
+   EFSA table from 58 to 64: `fraction_basis`, `dist_to_fish_farm_km`,
+   `fish_farm_mtb_t`, `fish_farm_band`, `pressure_class`, `igeo`, `igeo_class`,
+   `igeo_background`. Every column an earlier download carried is still there with
+   its old meaning, so an existing consumer keeps working. One correction: the EFSA
+   `sieve63` field answered `Y` for the 31 rows sieved at 90 or 500 µm, which are
+   coarser than 63 µm, not finer; they now answer `N` to both `sieve63` and
+   `bulkAnalysis`. Sites and the release are what remain.
 
 Steps 1-3 are one unit of work. Step 4 is where the coverage number moves.
