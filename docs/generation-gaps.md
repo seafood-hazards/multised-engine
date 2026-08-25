@@ -475,15 +475,16 @@ coverage, because right now EF is validated only against distance.
 Everything above needs a rebuild, and the rebuild is already gated on the
 seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.**
 
-1. ~~**Decide the seastamp region question.**~~ **Settled 2026-08-25: adopt
-   `auto`.** Measured over the 26,849 refined sites with both settings, the flag
-   being the only variable: stored values are reproduced exactly by fresh
-   `global` (no version drift), the median `dist_to_coast` shift is 46 m, 2.7% of
-   sites cross a distance band, and the >10 km EF reference moves by 7
-   measurements in 36,740 (+0.02%) because roughly as many sites join as leave.
-   No background percentile moves more than 3%; `depth` is unchanged everywhere.
-   `auto`'s batch-dependence is real but 37x smaller than the difference it comes
-   with (20 sites, max 4.10 km). Details and the table in
+1. ~~**Decide the seastamp region question.**~~ **Settled 2026-08-25:
+   `--partition`, on seastamp >= 0.16.2.** Measured over the 26,849 refined sites.
+   seastamp's own error bound is 25% for `--region global`, 3% for `--region auto`
+   and **1.32%** for `--partition` (2 partitions, bounded at 2% by construction).
+   Partition and auto agree to within 0.3% on the offshore sites and differ on 18
+   sites in 26,849; global is the outlier, running -10% to +12% out beyond 10 km,
+   which is exactly where the EF reference is drawn. No version drift: 0.16.3 with
+   `--region global` reproduces the stored values exactly. Needs the seastamp
+   upgrade (the 0.16.2 polar fix is load-bearing at 81.5 lat) and a `partition`
+   argument on `seastamp_enrich()`. Details in
    [clean-pipeline.md](clean-pipeline.md). This unblocks the rest.
 2. **Batch the source-fidelity fixes into one branch**, since they all touch
    slim/clean and all change the same tables: extraction class (already built),
