@@ -269,14 +269,53 @@ pages: see `pilot_geo_blank()` and the note at the head of `R/pilot-geo.R`. The
 stored pilot databases still carry the values from the 2026-08-07 seastamp rebuild
 until they are rebuilt.
 
-**Region.** `region = "auto"` in code (seastamp's own default and the accurate
-choice), but the stored clean and merged databases still hold `"global"` values.
-This is why rebuilding clean today changes the site table even when nothing about
-the pipeline changed: a fresh build is `auto`, the stored one is `global`. `dist_to_coast` moves
-on every row between the two (median 4.8-11.3% by source, largest shift 93 km),
-`municipality` for 1,884 sites and `country` for 283; `depth` does not project
-and is unchanged. Adopting `auto` therefore needs a deliberate refresh, and will
-change the published multised-clean and multised-merged pages.
+**Region — decided 2026-08-25: adopt `auto`.**
+
+`region` picks the LAEA projection the distance is measured in: `"global"` is one
+world-wide projection, `"auto"` derives the centre from the points themselves.
+`auto` is seastamp's own default and the accurate choice, and the code has always
+said `auto`; it is the **stored** databases that hold `global`, from the pre-0.9.0
+`geoenrich` builds. So a rebuild changes the site table even when nothing about
+the pipeline changed.
+
+Measured with seastamp 0.12.0 over the 26,849 refined sites, running both settings
+so the only variable is the flag:
+
+| Check | Result |
+|---|---|
+| Stored values reproduced by fresh `global` | **26,849 of 26,849 identical** — no version drift, the flag is the only variable |
+| `dist_to_coast` shift, auto vs global | median **46 m**, p90 2.5 km, p99 18.4 km, max 97 km |
+| Sites crossing a 1/10/20/50 km band | 730 of 26,849 (**2.7%**), 3,801 of 115,820 target measurements (3.3%) |
+| The >10 km EF reference | 5,711 -> 5,700 sites; 69 join, 80 leave; **36,740 -> 36,747 measurements (+0.02%)** |
+| Background percentiles (bulk, >10 km) | Co p50 +0.12%, Cu p50 -0.75%, Zn p50 -0.57%; worst case Cu p90 **-2.94%** |
+| `depth` | **unchanged on all 26,849 sites** — it does not project |
+| `municipality` / `country` / `sea_name` | 1,838 / 273 / 2 sites reassigned |
+
+The decision rests on the fourth row. The worry was that `dist_to_coast` defines
+the offshore EF reference, so moving it could move the background and the pristine
+verdicts. It does not: roughly as many sites join the reference as leave it, the
+reference changes by 7 measurements in 36,740, and no background percentile moves
+more than 3%.
+
+**On `auto` being batch-dependent.** Because the projection centre is derived from
+the points, the same coordinates can get a different distance in a different batch.
+This is real, and it was worth checking, because clean step 4 exists to make the
+five sources comparable. Measured, it is negligible: comparing a per-source run
+against a pooled run over the same sites moves **20 sites (0.07%), max 4.10 km** --
+about 37x smaller than the auto-vs-global difference it is a side effect of. The
+pipeline enriches per source and always will, so the per-source batch is fixed by
+the site set, which is itself deterministic given the pilot input; the values are
+reproducible for a given build.
+
+If exact batch-independence is ever wanted, seastamp takes `--proj-lon0` /
+`--proj-lat0` (and explicit bounds) to pin the projection. Note that **no preset
+covers this data**: the sites span -25.4 to 40.0 lon and 36.1 to 81.5 lat, while
+the `europe` preset stops at 72 lat and `norway` starts at -10 lon. `seastamp_enrich()`
+would need to pass those flags through, which it does not today.
+
+Adopting `auto` is a refresh, not a code change, and it will change the published
+multised-clean and multised-merged pages (1,838 municipality reassignments are the
+visible part). Reversing it is one argument.
 
 ---
 

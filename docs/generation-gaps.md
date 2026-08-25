@@ -475,8 +475,16 @@ coverage, because right now EF is validated only against distance.
 Everything above needs a rebuild, and the rebuild is already gated on the
 seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.**
 
-1. **Decide the seastamp region question.** It gates clean onward and nothing
-   else can land until it is settled.
+1. ~~**Decide the seastamp region question.**~~ **Settled 2026-08-25: adopt
+   `auto`.** Measured over the 26,849 refined sites with both settings, the flag
+   being the only variable: stored values are reproduced exactly by fresh
+   `global` (no version drift), the median `dist_to_coast` shift is 46 m, 2.7% of
+   sites cross a distance band, and the >10 km EF reference moves by 7
+   measurements in 36,740 (+0.02%) because roughly as many sites join as leave.
+   No background percentile moves more than 3%; `depth` is unchanged everywhere.
+   `auto`'s batch-dependence is real but 37x smaller than the difference it comes
+   with (20 sites, max 4.10 km). Details and the table in
+   [clean-pipeline.md](clean-pipeline.md). This unblocks the rest.
 2. **Batch the source-fidelity fixes into one branch**, since they all touch
    slim/clean and all change the same tables: extraction class (already built),
    4Demon fraction (§4a), `frac_basis` provenance (§4b), accreditation carry-through
