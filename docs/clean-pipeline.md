@@ -156,8 +156,11 @@ Value-preserving relabel/reshape; leans on slim's `value_std` / `unit_std` /
 - **`measurement.matrix` → ICES `SED<µm>` vocabulary** (the sediment fraction the
   chemistry was measured on). ICES-DOME and MUDAB already use it (`SEDtot`,
   `SED2000`, `SED1000`, `SED500`, `SED90`, `SED63`, `SED62`, `SED20`); **4Demon**
-  is remapped (`FS` fine <63 µm → `SED63`, `US` unsieved/bulk → `SEDtot`) and
-  **MUDAB**'s stray `PK_default` sentinel (matrix unrecorded, 6 rows) → NULL.
+  is read from `fraction_range`, its `"<lo>-<hi>"` µm field, as `SED<hi>` (only a
+  range starting at zero is a cutoff, so `63-2000` would be left alone), falling
+  back to the `matrix_code` (`FS` → `SED63`, `US` → `SEDtot`) where there is no
+  range; and **MUDAB**'s stray `PK_default` sentinel (matrix unrecorded, 6 rows)
+  → NULL.
   Mareano / Vannmiljø have no matrix. Shared helper `_shared/matrix_meta.R`
   (`matrix_canon` + `standardise_matrix()`).
 
@@ -219,7 +222,7 @@ Per-source specifics settled during the rollout:
 | MUDAB     | cm (×1)    | from `matrix` (`PK_default` → NULL → bulk) | `time` dropped; no `src_flag` |
 | Mareano   | cm (×1)    | all `bulk` (confirmed; no `matrix`) | named bins Clay/Silt/Sand/Gravel; `lld`->`lod`; TOC->CORG |
 | Vannmiljø | cm (×1)    | all `bulk` (assumed; no `matrix`) | `date` from `datetime`; `dw`/`C` unit suffix stripped; 221 corrupt depths (>300 cm or inverted) nulled; own GSMF code vocabulary; `gs_corr='invalid'` fractions excluded |
-| 4Demon    | cm (×1)    | from `matrix` (FS/US → sieved/bulk) | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
+| 4Demon    | cm (×1)    | from `fraction_range` (`0-63`→`SED63`, `0-2000`→bulk, also `0-37`/`0-500`/`0-10000`); `matrix_code` FS/US is the fallback | no grain-size / organic; no `lab`/`lod`/`loq`; ISO-free gear codes |
 
 Cross-source portability handled in code: `col_or_false` removal predicate (absent
 `src_flag`), `matrix` NA-guard, and `intersect(c("method","lab"))` grouping (absent
