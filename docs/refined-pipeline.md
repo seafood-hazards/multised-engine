@@ -132,7 +132,7 @@ table, all the way from pilot to the export. See
 > builds the method table from `distinct(param, metoa, ...)` and never selects `metcx`.
 > The conclusion was drawn from the wrong end of the pipeline.
 
-Recorded for **51.5%** of the 115,820 target measurements: ICES-DOME and MUDAB record
+Recorded for **51.5%** of the 115,811 target measurements: ICES-DOME and MUDAB record
 it per analysis, Mareano has one stated method for every target element, and Vannmiljø
 and 4Demon record nothing, so they take the `UNK` code and EFSA class 3. The extraction
 is part of method identity, so `method` grew from 949 rows to 983.
