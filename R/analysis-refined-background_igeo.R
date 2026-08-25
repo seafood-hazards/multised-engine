@@ -321,6 +321,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     print(as.data.frame(toc_tbl), row.names = FALSE)
   }
 
-  invisible(list(background = background, dist = dist_tbl, coverage = cov_tbl,
-                 confound = confound_tbl, toc = toc_tbl))
+  # analyze_data() reads the return value as the module's output DIRECTORY and calls
+  # list.files() on it, so every analysis function returns out_dir. Returning the
+  # results instead fails the whole module with "invalid 'path' argument".
+  invisible(out_dir)
 }
