@@ -494,9 +494,26 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    MUDAB (§2), the Vannmiljø pressure class (§8), and fish-farm identification
    and size bands (§7). Two of them changed method identity and neither moved a
    measurement count: MUDAB holds at 63,642, Vannmiljø at 107,867.
-3. **One rebuild**, pilot -> refined, with row-count verification at each
-   boundary. §4a and §2 change method identity, which is exactly the class of
-   change that silently altered MUDAB's row count last time.
+3. ~~**One rebuild, pilot to refined**~~ **Done 2026-08-25**, with row counts
+   checked at every boundary. Pilot matched the stored build on every table; slim
+   and clean matched on every table except `method`, which is the extraction
+   split (ICES-DOME +54, MUDAB +8 at slim).
+
+   Merged came out **17 measurements short**, and the cause is the 4Demon
+   fraction fix rather than a fault. The dedup key includes `frac_class` and
+   `sieve_um_std`, so 4Demon rows mislabelled `sieved63` were being compared
+   against the wrong stratum and their ICES-DOME re-hosts went unrecognised.
+   Corrected to `bulk`, they match: all 17 sit at 51.2-51.4 lat, 2.8-3.2 lon in
+   2007, the Belgian shelf, with byte-identical values (26630.0, 6.92, 61.22).
+   4Demon is native and ICES-DOME the re-host, so the ICES copy is dropped. The
+   same shape as the MUDAB double-report the extraction work surfaced: a
+   correctness fix making a hidden duplicate visible.
+
+   Refined follows at **-9**, which is exactly the CU (5) and ZN (4) among those
+   17; the AL (5) and FE (3) never enter refined's measurement table.
+   `normaliser` gains 46 because 4Demon subsamples now span two fractions (bulk
+   10 -> 111) instead of being uniformly mislabelled.
+
 4. **Then the refined analyses**: Igeo, then TOC-normalisation evaluation, then
    PLI if the element coverage justifies it (§6).
 5. **Then re-cut the exports and the four generation sites**, and re-release.
