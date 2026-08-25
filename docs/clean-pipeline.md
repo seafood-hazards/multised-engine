@@ -399,6 +399,43 @@ aquaculture data yet).
   closed). Computed only for `country_code = 'NOR'` sites (from the geo-enrich step);
   others NULL. Idempotent (resets + recomputes).
 
+  It also adds the nearest **fish farm** specifically: `dist_to_fish_farm`,
+  `fish_farm_mtb_t` and `fish_farm_band`. `dist_to_aquaculture` keeps its meaning
+  (a mussel raft is aquaculture); these are additive, because a fish farm is the
+  pressure the trace-element work is about, and a 780 t farm and a 19,000 t farm at
+  the same distance are not the same pressure.
+
+### Which sites are fish farms, and how big
+
+`fish_farm` and `size_band` are set in the build, not the distance step.
+
+`fish_types` is the licence's species list, and it is noisy: **335 distinct
+entries** across the register, most of them wild organisms recorded against
+research and multi-species licences (herring, tuna, starfish). So the test is a
+**positive list** of the finfish Norway grows in sea cages, and a site is called a
+fish farm only on evidence: `fish_farm = 1` where the licence names one of them
+**and** `placement` is sea or offshore. That gives **2,437 fish farms** of 3,743
+sites; the 96 sea sites with a tonnage licence it excludes are mussels, oysters,
+scallops, urchins and kelp. Cleaner fish (wrasse, lumpfish) are deliberately off
+the list: a salmon licence names salmon anyway, and including them would catch
+wild-capture wrasse holding sites.
+
+Size is **MTB in standard concessions**. Norwegian finfish licences are issued in
+maksimalt tillatt biomasse, and the capacity distribution lands on exact multiples
+of the 780 t concession (780, 1,560, 2,340, 3,120 …), so that is the unit the
+licence is actually written in:
+
+| Band | MTB | Concessions | Sites |
+|---|---|---|---:|
+| `small` | <= 1,560 t | 1-2 | 1,080 |
+| `medium` | <= 3,120 t | 3-4 | 740 |
+| `large` | > 3,120 t | 5+ | 553 |
+| NULL | not a biomass licence | | 64 |
+
+The 64 unsized are sea cages licensed by volume (m3) or head count: still fish
+farms, just of unknown size. `mtb_concessions` (tonnes / 780) is stored beside the
+band.
+
 ---
 
 ## Open items (still provisional, easily changed)
