@@ -23,6 +23,7 @@ refined_censoring_limit <- function() 20
 #' @param source_filter Which source's rows to return; `"ALL"` (the default) is the pooled
 #'   figure the withholding decision uses.
 #' @return A data frame with `symbol`, `source`, `n_slim`, `n_censored`, `pct_censored`.
+#' @noRd
 refined_censoring_table <- function(source_filter = "ALL") {
   f <- system.file("extdata", "loq-censoring", "refined_loq_censoring.csv",
                    package = "multised.engine")
@@ -39,6 +40,7 @@ refined_censoring_table <- function(source_filter = "ALL") {
 #' Elements whose background and pristine verdicts are withheld
 #'
 #' @return An upper-case character vector of element symbols.
+#' @noRd
 refined_withheld_elements <- function() {
   tab <- refined_censoring_table("ALL")
   sort(tab$symbol[tab$pct_censored > refined_censoring_limit()])

@@ -39,6 +39,7 @@ refined_ef_basis <- function() c(bulk = "extraction", sieved63 = "total", sieved
 #'
 #' @param fe,al The subsample's normaliser concentrations, mg/kg.
 #' @return `"extraction"`, `"total"`, or `"unplaced"` where Fe is missing.
+#' @noRd
 refined_al_basis <- function(fe, al) {
   ifelse(is.na(fe) | fe <= 0 | is.na(al) | al <= 0, "unplaced",
          ifelse(fe / al >= refined_fe_al_cut(), "extraction", "total"))
@@ -48,6 +49,7 @@ refined_al_basis <- function(fe, al) {
 #'
 #' @param al_basis From [refined_al_basis()].
 #' @param cat The fraction, one of `bulk` / `sieved63` / `sieved20`.
+#' @noRd
 refined_on_basis <- function(al_basis, cat) {
   !is.na(al_basis) & !is.na(cat) & al_basis == unname(refined_ef_basis()[cat])
 }
