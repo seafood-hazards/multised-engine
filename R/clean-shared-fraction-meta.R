@@ -10,8 +10,16 @@
 #               'sieved' -- a fine sub-fraction  (cutoff < 1000 um, e.g. <63 um)
 #   sieve_um    the sieve cutoff in um for sieved rows (63 / 62 / 20 / 90 / 500),
 #               NULL for bulk.
+#   frac_basis  'reported' -- the source recorded a matrix and frac_class reads it
+#               'assumed'  -- the source recorded nothing and 'bulk' is a default
 # A missing matrix (Mareano / Vannmiljø, whole-sample sources; a handful of stray
-# nulls elsewhere) is taken as bulk. Because bulk/sieved is chosen per analysis and
+# nulls elsewhere) is taken as bulk, which is what EFSA's own spec instructs for the
+# submission ("If not reported, there is also this option in the drop-down menu").
+# It is still a default rather than a fact, and 68,079 target measurements rest on
+# it, so `frac_basis` records which it is. Nothing downstream should treat an
+# assumed bulk as evidence: see docs/generation-gaps.md for the test that ruled out
+# recovering the truth from the grain-size records.
+# Because bulk/sieved is chosen per analysis and
 # so varies between measurements of one subsample, it lives per-row on
 # `measurement`; a per-subsample summary is derived from the TARGET rows only
 # (target_frac_class / target_sieve_um on subsample) for convenient filtering, so it
@@ -20,7 +28,7 @@
 # common measurement column set (target + reference + organic chemistry)
 MEASUREMENT_COLS <- c("measurement_id", "subsample_id", "symbol", "value", "unit",
                       "value_std", "unit_std", "value_sd", "n_rep", "value_uncrt",
-                      "matrix", "frac_class", "sieve_um", "method_id")
+                      "matrix", "frac_class", "sieve_um", "frac_basis", "method_id")
 
 .frac_um <- function(matrix) suppressWarnings(as.integer(sub("^SED", "", matrix)))
 
@@ -33,7 +41,8 @@ classify_fraction <- function(matrix) {
     !is.na(um)              ~ "sieved",
     TRUE                    ~ "bulk")            # any other non-numeric code -> bulk
   tibble::tibble(frac_class = cls,
-                 sieve_um   = dplyr::if_else(cls == "sieved", as.numeric(um), NA_real_))
+                 sieve_um   = dplyr::if_else(cls == "sieved", as.numeric(um), NA_real_),
+                 frac_basis = dplyr::if_else(is.na(matrix), "assumed", "reported"))
 }
 
 # add frac_class / sieve_um from matrix, keeping matrix (absent matrix = all bulk)
@@ -42,6 +51,7 @@ apply_fraction <- function(measurement) {
   fr <- classify_fraction(measurement$matrix)
   measurement$frac_class <- fr$frac_class
   measurement$sieve_um   <- fr$sieve_um
+  measurement$frac_basis <- fr$frac_basis
   measurement
 }
 
@@ -57,11 +67,15 @@ summarise_fraction <- function(measurement, element) {
                                          dplyr::first(frac_class)),
       target_sieve_um   = dplyr::if_else(dplyr::n_distinct(sieve_um) == 1,
                                          dplyr::first(sieve_um), NA_real_),
+      # 'reported' only where every target row on the subsample is reported
+      target_frac_basis = dplyr::if_else(all(frac_basis == "reported"),
+                                         "reported", "assumed"),
       .groups = "drop")
 }
 
 # replace any existing target fraction summary on subsample with a fresh one
 attach_subsample_fraction <- function(subsample, measurement, element) {
-  s <- dplyr::select(subsample, -dplyr::any_of(c("target_frac_class", "target_sieve_um")))
+  s <- dplyr::select(subsample, -dplyr::any_of(c("target_frac_class", "target_sieve_um",
+                                                 "target_frac_basis")))
   dplyr::left_join(s, summarise_fraction(measurement, element), by = "subsample_id")
 }

@@ -6,6 +6,7 @@
 \usage{
 export_data(
   generation = c("refined"),
+  format = c("dataset", "efsa"),
   source = NULL,
   db_dir = multised_db_dir(),
   out_dir = multised_analysis_dir(),
@@ -14,6 +15,11 @@ export_data(
 }
 \arguments{
 \item{generation}{Which database to export. Currently \code{"refined"} only.}
+
+\item{format}{Which export. \code{"dataset"} (the default) is the flat analysis
+dataset; \code{"efsa"} is the EFSA submission table, the superset of the
+reporting workbook and the ReplyFHF extraction spec. Both are cut from the
+same frame, so they cannot disagree about scope or verdicts.}
 
 \item{source}{Must be \code{NULL}. Present for symmetry with \code{\link[=create_db]{create_db()}}; no
 export is per-source yet.}
@@ -47,6 +53,7 @@ If those files are missing the export stops and names them.
 \examples{
 \dontrun{
 export_data("refined")
+export_data("refined", format = "efsa")
 export_data("refined", out_dir = "~/sediment/exports")
 }
 }

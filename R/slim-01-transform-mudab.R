@@ -246,16 +246,23 @@ slim_transform_mudab <- function(con_src) {
     mutate(extraction = extraction_unambiguous(extraction)) %>%
     ungroup()
 
+  # Canonicalise before the distinct, as with `extraction`: MUDAB writes the same
+  # answer as y / ja / true / 1, and on the raw field those spell four different
+  # methods. Five otherwise identical method rows split that way.
+  check_accreditation_values(df_slim$accreditation, "MUDAB")
+  df_slim <- df_slim %>%
+    mutate(accredited = accreditation_canon(accreditation, "MUDAB"))
+
   df_method <- df_slim %>%
     distinct(parameter, measurement_method_code,
-             accreditation, analytical_laboratory,
+             accredited, analytical_laboratory,
              internal_qa_detection_limit, internal_qa_quantification_limit,
              expanded_uncertainty_pct, extraction) %>%
     mutate(method_id = row_number())
 
   df_slim <- df_slim %>%
     inner_join(df_method, by = c("parameter", "measurement_method_code",
-                                  "accreditation", "analytical_laboratory",
+                                  "accredited", "analytical_laboratory",
                                   "internal_qa_detection_limit", "internal_qa_quantification_limit",
                                   "expanded_uncertainty_pct", "extraction"))
 
@@ -269,7 +276,8 @@ slim_transform_mudab <- function(con_src) {
     mutate(extraction_class = extraction_efsa_class(extraction)) %>%
     select(method_id, symbol = parameter, lab = analytical_laboratory, lab_name = analytical_laboratory_description,
            lod = internal_qa_detection_limit, loq = internal_qa_quantification_limit, uncertainty = expanded_uncertainty_pct,
-           method = measurement_method_code,  method_description, extraction, extraction_class)
+           method = measurement_method_code,  method_description, extraction, extraction_class,
+           accredited)
 
   # ── 8. Build subsample table ───────────────────────────────────────────────
   df_subsample <- df_slim %>%

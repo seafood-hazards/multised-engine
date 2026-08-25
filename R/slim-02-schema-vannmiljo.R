@@ -18,6 +18,7 @@ CREATE TABLE dataset (
   dataset_code TEXT,
   dataset_name TEXT,
   country      TEXT,
+  pressure_class TEXT,
 
   PRIMARY KEY (dataset_id)
 );",

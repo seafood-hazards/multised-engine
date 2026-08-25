@@ -486,10 +486,14 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    upgrade (the 0.16.2 polar fix is load-bearing at 81.5 lat) and a `partition`
    argument on `seastamp_enrich()`. Details in
    [clean-pipeline.md](clean-pipeline.md). This unblocks the rest.
-2. **Batch the source-fidelity fixes into one branch**, since they all touch
-   slim/clean and all change the same tables: extraction class (already built),
-   4Demon fraction (§4a), `frac_basis` provenance (§4b), accreditation carry-through
-   (§2), Vannmiljø pressure class (§8), farm size on `site` (§7).
+2. ~~**Batch the source-fidelity fixes into one branch.**~~ **Done on
+   `feature/source-fidelity`**, six commits, each verified by rebuilding the
+   sources it touches and checking every table count against the stored build:
+   extraction class (merged from its own branch), the 4Demon `fraction_range`
+   fix (§4a), `frac_basis` provenance (§4b), accreditation from Mareano and
+   MUDAB (§2), the Vannmiljø pressure class (§8), and fish-farm identification
+   and size bands (§7). Two of them changed method identity and neither moved a
+   measurement count: MUDAB holds at 63,642, Vannmiljø at 107,867.
 3. **One rebuild**, pilot -> refined, with row-count verification at each
    boundary. §4a and §2 change method identity, which is exactly the class of
    change that silently altered MUDAB's row count last time.

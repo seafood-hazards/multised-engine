@@ -54,13 +54,18 @@ slim_transform_vannmiljo <- function(con_src) {
     inner_join(df_base_sample %>% distinct(sample_id), by = "sample_id")
 
   # ── 3. Build dataset table ─────────────────────────────────────────────────
+  # The programme code says why the sample was taken: aquaculture monitoring,
+  # a named pressure, reference conditions, or plain status work. See
+  # R/vannmiljo-pressure.R and inst/extdata/vannmiljo-programmes/.
+  check_vannmiljo_programmes(df_base_activity$activity_id)
   df_dataset <- df_base_activity %>%
     distinct(dataset_code = activity_id, dataset_name = activity_name) %>%
-    mutate(source       = "Vannmilj\u00f8",
-           country      = "Norway",
-           dataset_id   = row_number()) %>%
+    mutate(source         = "Vannmilj\u00f8",
+           country        = "Norway",
+           pressure_class = vannmiljo_pressure_class(dataset_code),
+           dataset_id     = row_number()) %>%
     select(dataset_id, source,
-           dataset_code, dataset_name, country)
+           dataset_code, dataset_name, country, pressure_class)
 
   # ── 4. Build site table (keyed on lat/lon rounded to 3 d.p.) ───────────────
   df_site <- df_base_site %>%

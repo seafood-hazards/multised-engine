@@ -58,7 +58,7 @@ refine_restructure <- function(db_dir = multised_db_dir(), verbose = TRUE) {
   keep_cols <- c("measurement_id", "subsample_id", "symbol",
                  "value", "unit", "value_std",
                  "value_sd", "n_rep", "value_uncrt",
-                 "frac_class", "sieve_um_std", "sieve_class",
+                 "frac_class", "sieve_um_std", "sieve_class", "frac_basis",
                  "method_id", "source", "src_measurement_id", "outlier_flag")
 
   df_measurement <- target_meas |>
