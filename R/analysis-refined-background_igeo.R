@@ -21,7 +21,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # preference: "The Geo-accumulation Index (Igeo) and the Pollution Load Index (PLI)
   # can be considered as well in absence of EF."
   #
-  # Section 6 reports what that buys, per fraction and per distance-to-aquaculture band,
+  # Section 6 reports what that buys, per fraction and per distance-to-fish-farm band,
   # against what EF manages on the same rows.
   #
   # THIS STEP DOES NOT ISSUE A VERDICT, and that is a decision rather than an omission
@@ -98,7 +98,10 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # Outputs -> data/analysis/background/ (gitignored):
   #   refined_igeo_background.csv  per element x fraction: B (median + P90), n, reliability
   #   refined_igeo_dist.csv        Igeo distribution and class shares
-  #   refined_igeo_pressure.csv    median Igeo by distance-to-aquaculture band
+  #   refined_igeo_pressure.csv    median Igeo by distance-to-fish-farm band, raw and
+  #                                cleaned of stated pressure side by side
+  #   refined_igeo_pressure_matched.csv  the same bands, cleaned AND texture-matched
+  #   refined_igeo_band_cost.csv   what the two controls cost each band, in rows
   #   refined_igeo_coverage.csv    rows Igeo can classify against rows EF can, the point
   #   refined_igeo_confound.csv    Igeo against grain size, and EF against it for scale
   #   refined_igeo_toc_normaliser.csv  the D4 test with organic carbon as the normaliser
@@ -113,6 +116,12 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   IGEO_K    <- refined_igeo_k()
   AQ_BREAKS <- c(-Inf, 1, 5, 20, Inf)
   AQ_LABELS <- c("<1km", "1-5km", "5-20km", ">20km")
+  STATED_PRESSURE <- "pressure"   # the Vannmiljo class every band is cleaned of
+  # % mud windows the bands are matched in. The first is the working window, wide
+  # enough to leave a usable near-cage n; the second is a tighter sensitivity check, and
+  # both are published so the match is not a single arbitrary cut.
+  FINES_WINDOWS   <- list(c(50, 100), c(60, 90))
+  FINES_WINDOW    <- FINES_WINDOWS[[1]]
   MIN_N     <- refined_igeo_min_n()
   EF_BASIS  <- refined_ef_basis()
   elem_levels <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
@@ -126,7 +135,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            s.fines_lt63,
-           si.dist_to_coast, si.dist_to_fish_farm, d.source,
+           si.dist_to_coast, si.dist_to_fish_farm, d.source, d.pressure_class,
            n.fe AS norm_fe, n.al AS norm_al, n.corg AS norm_corg
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -149,7 +158,12 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
            # adopted basis, and a group where aluminium predicts the metal (D4)
            ef_ok = !is.na(ratio_al) & ratio_al > 0 & on_basis &
                    refined_normalisable(symbol, cat),
-           withheld = as.character(symbol) %in% refined_withheld_elements())
+           withheld = as.character(symbol) %in% refined_withheld_elements(),
+           # Vannmiljo files why the sample was taken; "pressure" is contaminated
+           # seabed, industry and sewage. Nothing else states a purpose, so a source
+           # without a programme code keeps every row.
+           stated_pressure = !is.na(pressure_class) &
+                             pressure_class == STATED_PRESSURE)
   dbDisconnect(con)
 
   # ── 2. Local background: offshore median of the raw concentration ────────────
@@ -159,8 +173,21 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     summarise(n_bg = n(),
               bg_median = median(value_std),
               bg_p90    = quantile(value_std, .9, names = FALSE),
+              # B is NOT cleaned, and the two columns beside it are the reason it does
+              # not need to be. The offshore pool is 5.0% stated pressure against 39.9%
+              # in the > 20 km-from-a-farm band, and moving to the cleaned median shifts
+              # B by at most 8% (copper), 0.11 of an Igeo unit. Cleaning B would also
+              # cut it from a different population than the EF reference, which is the
+              # one thing this step is built not to do.
+              n_bg_stated = sum(stated_pressure),
+              bg_median_clean = median(value_std[!stated_pressure]),
+              # the texture B is cut from, so the near-cage bands can be compared with
+              # the population the index divides by rather than assumed to match it
+              bg_fines_p50 = round(median(fines_lt63, na.rm = TRUE), 1),
               .groups = "drop") |>
-    mutate(reliable = n_bg >= MIN_N)
+    mutate(reliable = n_bg >= MIN_N,
+           pct_bg_stated = round(100 * n_bg_stated / n_bg, 1),
+           bg_shift = round(bg_median / bg_median_clean, 3))
 
   # a group with too thin a reference gets no Igeo at all: the index would carry the
   # noise of its own denominator
@@ -203,13 +230,84 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     mutate(pct = round(100 * n / sum(n), 1)) |>
     ungroup()
 
-  # ── 4. Against the aquaculture gradient ──────────────────────────────────────
-  pressure_tbl <- scored |>
-    filter(!is.na(dist_bin)) |>
-    group_by(symbol, cat, dist_bin) |>
-    summarise(n = n(), igeo_p50 = round(median(igeo), 3),
-              pct_unpolluted = round(100 * mean(igeo <= 0), 1), .groups = "drop") |>
-    filter(n >= MIN_N)
+  # ── 4. Against the fish-farm gradient, with both confounders removed ─────────
+  # This section was published once WITHOUT the two controls below and reported that
+  # distance to a fish farm is a poor axis for Igeo. That was an artefact of the bands,
+  # not a property of the index, and the correction is kept visible rather than quietly
+  # swapped (2026-08-26).
+  #
+  # CONFOUNDER 1, STATED PRESSURE. The > 20 km band is 39.9% Vannmiljo stated-pressure
+  # monitoring in bulk: contaminated seabed, industry and sewage. Raw, it is a polluted
+  # band rather than a remote one, which is why the far band did not read as the cleanest
+  # band. The earlier note argued the bands need no cleaning because they describe where
+  # the index lands rather than estimate a background. That is true of the ARITHMETIC and
+  # false of the CONCLUSION drawn from it: a band that is two fifths urban harbour cannot
+  # be read as "far from a farm" whatever it is being used for.
+  #
+  # CONFOUNDER 2, TEXTURE. Igeo divides by a background cut from offshore mud (median
+  # 69.4% fines), while the < 1 km band is 34.8% fines. Half the mud carries roughly half
+  # the metal, so near-cage sediment reads negative on grain size alone. Section 7
+  # measures this correlation directly; here it is removed by comparing like with like,
+  # restricting every band to FINES_WINDOW and reporting the achieved median fines so the
+  # match can be checked rather than trusted.
+  #
+  # Both controls cost rows, and the texture one costs most of them: fines_lt63 is
+  # present on 953 of 11,075 clean near-cage copper rows. The matched table is therefore
+  # a SMALL, HONEST comparison beside a large confounded one, and both are published.
+  band_stats <- function(df) {
+    df |>
+      group_by(symbol, cat, dist_bin) |>
+      summarise(n = n(), igeo_p50 = round(median(igeo), 3),
+                pct_unpolluted = round(100 * mean(igeo <= 0), 1), .groups = "drop")
+  }
+
+  binned <- scored |> filter(!is.na(dist_bin))
+
+  pressure_tbl <- band_stats(binned) |>
+    filter(n >= MIN_N) |>
+    left_join(binned |>
+                group_by(symbol, cat, dist_bin) |>
+                summarise(pct_stated = round(100 * mean(stated_pressure), 1),
+                          .groups = "drop"),
+              by = c("symbol", "cat", "dist_bin")) |>
+    left_join(band_stats(binned |> filter(!stated_pressure)) |>
+                filter(n >= MIN_N) |>
+                rename(n_clean = n, igeo_p50_clean = igeo_p50,
+                       pct_unpolluted_clean = pct_unpolluted),
+              by = c("symbol", "cat", "dist_bin")) |>
+    mutate(symbol = factor(symbol, levels = elem_levels)) |>
+    arrange(symbol, cat, dist_bin)
+
+  # ── 4b. The same bands, cleaned AND texture-matched ──────────────────────────
+  matched_one <- function(w) {
+    binned |>
+      filter(!stated_pressure, !is.na(fines_lt63),
+             fines_lt63 >= w[1], fines_lt63 <= w[2]) |>
+      group_by(symbol, cat, dist_bin) |>
+      summarise(n = n(), fines_p50 = round(median(fines_lt63), 1),
+                igeo_p50 = round(median(igeo), 3),
+                pct_unpolluted = round(100 * mean(igeo <= 0), 1), .groups = "drop") |>
+      filter(n >= MIN_N) |>
+      mutate(window = sprintf("%d-%d%%", w[1], w[2]), .before = 1)
+  }
+
+  matched_tbl <- purrr::map(FINES_WINDOWS, matched_one) |>
+    bind_rows() |>
+    mutate(symbol = factor(symbol, levels = elem_levels)) |>
+    arrange(window, symbol, cat, dist_bin)
+
+  # what the two controls cost, so the reader can weigh the matched table's n
+  band_cost <- binned |>
+    group_by(cat, dist_bin) |>
+    summarise(n_raw = n(),
+              n_clean = sum(!stated_pressure),
+              n_matched = sum(!stated_pressure & !is.na(fines_lt63) &
+                              fines_lt63 >= FINES_WINDOW[1] &
+                              fines_lt63 <= FINES_WINDOW[2]),
+              fines_p50_raw = round(median(fines_lt63, na.rm = TRUE), 1),
+              .groups = "drop") |>
+    mutate(pct_kept_clean = round(100 * n_clean / n_raw, 1),
+           pct_kept_matched = round(100 * n_matched / n_raw, 1))
 
   # ── 5. The coverage this step exists for ─────────────────────────────────────
   # Every row that has a value gets an Igeo (given a usable reference); only rows with
@@ -305,12 +403,20 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     min_n       = MIN_N,
     withheld    = paste(refined_withheld_elements(), collapse = ", "),
     d4_applies  = FALSE,
+    band_controls = sprintf("bands reported raw, cleaned of pressure_class = '%s', and cleaned + matched on fines_lt63 in %s",
+                            STATED_PRESSURE,
+                            paste(vapply(FINES_WINDOWS,
+                                         function(w) sprintf("%d-%d%%", w[1], w[2]),
+                                         character(1)), collapse = " and ")),
+    bg_cleaned  = FALSE,
     classes     = "Muller boundaries, local-background meaning; see the script header")
 
   write_csv(background,   file.path(out_dir, "refined_igeo_background.csv"))
   write_csv(dist_tbl,     file.path(out_dir, "refined_igeo_dist.csv"))
   write_csv(class_tbl,    file.path(out_dir, "refined_igeo_classes.csv"))
   write_csv(pressure_tbl, file.path(out_dir, "refined_igeo_pressure.csv"))
+  write_csv(matched_tbl,  file.path(out_dir, "refined_igeo_pressure_matched.csv"))
+  write_csv(band_cost,    file.path(out_dir, "refined_igeo_band_cost.csv"))
   write_csv(cov_tbl,      file.path(out_dir, "refined_igeo_coverage.csv"))
   write_csv(confound_tbl, file.path(out_dir, "refined_igeo_confound.csv"))
   write_csv(toc_tbl,      file.path(out_dir, "refined_igeo_toc_normaliser.csv"))
@@ -321,6 +427,10 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     print(as.data.frame(background), row.names = FALSE)
     cat("\n-- Igeo distribution --\n")
     print(as.data.frame(dist_tbl), row.names = FALSE)
+    cat("\n-- fish-farm gradient: raw, then cleaned of stated pressure --\n")
+    print(as.data.frame(pressure_tbl), row.names = FALSE)
+    cat("\n-- the same bands, cleaned AND texture-matched --\n")
+    print(as.data.frame(matched_tbl), row.names = FALSE)
     cat("\n-- coverage: what Igeo classifies against what EF does --\n")
     print(as.data.frame(cov_tbl), row.names = FALSE)
     cat("\n-- is the index measuring texture? Spearman against mud fraction --\n")
