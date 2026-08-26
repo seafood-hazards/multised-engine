@@ -248,6 +248,29 @@ survives the controls. `refined_igeo_band_cost.csv` records the price: grain siz
 recorded on 43.9% of far-band rows and **2.7%** of near-cage rows, so the matched
 comparison rests on 337 copper measurements out of more than 21,000.
 
+**A third control was added 2026-08-26: location** (`refined_igeo_paired.csv`,
+`refined_igeo_pair_reach.csv`). Cleaning and texture matching both act on *what* is in a
+band; neither touches *where* the bands are, and the farm-size work in step 3 found
+location to be the confounder that bit hardest there. Bands are therefore paired within a
+municipality, one median per municipality x band.
+
+Three things come out of it. **The controls do not stack**: requiring both bands in one
+municipality on top of the mud window leaves a single municipality for copper, so the 1.8x
+headline cannot be location-checked directly. **Paired against > 20 km without the texture
+match, the result just replays the texture confounder** (copper -0.41, positive in 31.8% of
+22 municipalities, with the near side 57 pp sandier); that row is published so the trap
+stays visible. **The adjacent contrast is the informative one**: < 1 km against 1-5 km
+pairs on **79** municipalities with a texture gap of 7.6 pp rather than 57, and copper is
+**+0.25 of an Igeo unit, positive in 72.2%**. It is conservative twice over (1-5 km is not
+farm-free, and the near side is still the sandier), and restricting to texture-balanced
+pairs lifts it to **+0.46 at 82.1%** on 28 municipalities. Zinc is -0.01 at 49.4%, its
+fourth null.
+
+So copper's case now rests on two Igeo controls that are each blind to what the other
+fixes: texture matching holds grain size and lets location vary (337 measurements),
+municipality pairing holds location and lets grain size vary (79 municipalities), they
+cannot be applied together, and they agree.
+
 `B` itself is left uncleaned, and `refined_igeo_background.csv` now carries the columns
 that justify it: the offshore pool is 8.7% stated pressure against 55.6% in the far band,
 and the cleaned median moves `B` by at most 8.3%. Cleaning it would also cut it from a
