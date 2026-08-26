@@ -271,6 +271,35 @@ fixes: texture matching holds grain size and lets location vary (337 measurement
 municipality pairing holds location and lets grain size vary (79 municipalities), they
 cannot be applied together, and they agree.
 
+**A fourth control needs no matching at all** (`refined_igeo_within_site.csv`,
+`refined_igeo_within_reach.csv`, added 2026-08-27). Every control above approximates one
+thing: a farm-free reading of the *same* seabed. `fish_farm_aqua_id` supplies it directly,
+because a site sampled before its farm opened and again during operation is its own
+control, holding location, depth, regional background and sampling programme fixed and
+needing no grain size. The pre-farm rows are almost all MOM baseline surveys taken a median
+of **one year** before the farm opens.
+
+It carries a placebo, because a before/after is a time series and this sediment is not
+stationary: the same contrast runs in 1-5 km and 5-20 km rings split on the *same* farm's
+start year. The gap must be matched too, since near-cage pairs sit 4 years apart and 5-20 km
+pairs 10. Gap-matched to 2-7 years, copper rises **+0.22** under the cages (rising at 69.4%
+of 72 sites) against **-1.05** in the 5-20 km placebo (22.2%). As a per-year rate over all
+pairs the gradient is monotone: **+0.050**, -0.017, -0.044 Igeo units per year. **The
+secular trend is downward**, so every cross-sectional figure on the page is measured against
+an improving background and understates the farm.
+
+**Zinc is not null in this design**, and that is a change: **+0.23** under the cages, rising
+at **70.8%** of 65 sites, against -0.53 in the placebo, after four cross-sectional designs
+put it near zero. The readings reconcile rather than conflict, because every other design
+compares different places and zinc's between-place variance is large enough to hide a modest
+effect, while this one compares one place with itself. Zinc is therefore **unresolved**
+rather than absent; its withheld verdict stands, and no export or classification changes.
+
+**The design cannot separate metal input from texture change**: a farm enriches sediment
+with organic matter and organically enriched sediment is finer, so part of the rise may be
+the seabed becoming muddier. That is mediation, not confounding, but it belongs in the
+reading, and no site has grain size in both periods to check it.
+
 `B` itself is left uncleaned, and `refined_igeo_background.csv` now carries the columns
 that justify it: the offshore pool is 8.7% stated pressure against 55.6% in the far band,
 and the cleaned median moves `B` by at most 8.3%. Cleaning it would also cut it from a
