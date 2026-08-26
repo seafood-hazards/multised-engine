@@ -1,5 +1,37 @@
 # multised.engine (development version)
 
+## A before/after control that needs no matching, and zinc stops being null
+
+Every Igeo control so far matched one population against another and paid for it: texture
+matching spends 97.3% of the near-cage rows, municipality pairing cannot be stacked on it,
+and the adjacent contrast that survives both is blunted because 1-5 km is not farm-free.
+All three approximate one thing, a farm-free reading of the *same* seabed, and
+`fish_farm_aqua_id` supplies that directly. A site sampled before its farm opened and again
+during operation is its own control (`refined_igeo_within_site.csv`,
+`refined_igeo_within_reach.csv`).
+
+* **It holds fixed what no matching reaches**: exact location, depth, regional background,
+  sediment provenance and sampling programme, and it needs no grain-size measurement. The
+  pre-farm rows are almost all MOM baseline surveys taken a median of **one year** before
+  the farm opens, so this is a designed baseline rather than an accident of the archive.
+* **It carries a placebo**, because a before/after is a time series: the same contrast runs
+  at 1-5 km and 5-20 km, split on the *same* farm's start year. The gap needs matching too,
+  since near-cage pairs sit 4 years apart and 5-20 km pairs 10.
+* **Copper rises +0.22** under the cages, at 69.4% of 72 sites, against **-1.05** in the
+  5-20 km placebo. Per year over all pairs the gradient is monotone: +0.050, -0.017, -0.044.
+* **The secular trend is downward**, so every cross-sectional figure on the page is measured
+  against an improving background and understates the farm.
+* **Zinc is not null here**: +0.23, rising at 70.8% of 65 sites, against -0.53 in the
+  placebo, after four cross-sectional designs put it at zero. The readings reconcile: those
+  compare different places, where zinc's between-place variance hides a modest effect; this
+  compares one place with itself. Zinc is now **unresolved** rather than absent.
+* **What it cannot separate**: a farm makes sediment organically enriched and therefore
+  finer, so part of the rise may be texture rather than load. Mediation rather than
+  confounding, but it belongs in the reading, and no site has grain size in both periods.
+
+No verdict changes. Zinc keeps its withheld status and nothing touches the pristine
+classification or the exports.
+
 ## Igeo gains a location control, and copper survives it
 
 The farm-size work below found location to be the confounder that mattered most, and the

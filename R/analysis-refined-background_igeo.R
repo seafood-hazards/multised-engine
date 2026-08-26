@@ -104,6 +104,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   #   refined_igeo_band_cost.csv   what the two controls cost each band, in rows
   #   refined_igeo_paired.csv      bands paired inside one municipality
   #   refined_igeo_pair_reach.csv  how many municipalities each band could pair from
+  #   refined_igeo_within_site.csv the same site before and during its farm, + placebos
+  #   refined_igeo_within_reach.csv how far the before/after design reaches
   #   refined_igeo_coverage.csv    rows Igeo can classify against rows EF can, the point
   #   refined_igeo_confound.csv    Igeo against grain size, and EF against it for scale
   #   refined_igeo_toc_normaliser.csv  the D4 test with organic carbon as the normaliser
@@ -130,6 +132,13 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # texture-balanced, in percentage points of mud.
   PAIR_MIN_CELL   <- 10L
   PAIR_FINES_TOL  <- -10
+  # Section 4d. The same SITE before and during its farm. Zones are the distance
+  # rings the design is run in; only the first is treated, the rest are placebos.
+  # GAP_WINDOW is the years-between-samples window all zones are cut to, because an
+  # unmatched gap compares a 4-year change against a 10-year one.
+  WITHIN_ZONES    <- list(c(0, 1), c(1, 5), c(5, 20))
+  GAP_WINDOW      <- c(2, 7)
+  MIN_SITES       <- 10L
   MIN_N     <- refined_igeo_min_n()
   EF_BASIS  <- refined_ef_basis()
   elem_levels <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
@@ -143,7 +152,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            s.fines_lt63,
-           si.dist_to_coast, si.dist_to_fish_farm, si.municipality,
+           si.site_id, si.dist_to_coast, si.dist_to_fish_farm, si.municipality,
+           e.year, a.start_year, a.end_year, a.active,
            d.source, d.pressure_class,
            n.fe AS norm_fe, n.al AS norm_al, n.corg AS norm_corg
     FROM measurement me
@@ -154,6 +164,7 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     -- one normaliser row per subsample PER FRACTION, so match frac_class too
     LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
                           AND n.frac_class   = me.frac_class
+    LEFT JOIN aquaculture a ON a.aqua_id = si.fish_farm_aqua_id
     WHERE me.outlier_flag IS NULL AND me.value_std IS NOT NULL AND me.value_std > 0
   ")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk",
@@ -408,6 +419,113 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     mutate(symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, cat, dist_bin)
 
+  # ── 4d. The control that needs no matching: the same site, before its farm ───
+  # Every control so far matches one population against another and pays for it:
+  # texture matching spends 97.3% of the near-cage rows, municipality pairing cannot
+  # be stacked on top of it, and the adjacent contrast that survives both is blunted
+  # because 1-5 km is not farm-free. All three are approximations of one thing, which
+  # is a farm-free reading of the SAME seabed. The refined DB can supply that directly:
+  # `fish_farm_aqua_id` carries the farm's licence dates, so a site sampled before its
+  # farm opened and again while it operated is its own control.
+  #
+  # WHAT THIS HOLDS FIXED that nothing else does: location exactly rather than by
+  # municipality, water depth, the regional background, the sediment's provenance, and
+  # the sampling programme (the pre-farm rows are almost all MOM baseline surveys, taken
+  # a median of one year before the farm opens, so the comparison is a designed baseline
+  # rather than an accident). It needs no grain-size measurement at all, which is what
+  # made the other controls expensive.
+  #
+  # AND IT NEEDS A PLACEBO, because a before/after is a time series and metals in
+  # Norwegian sediment are not stationary. The same contrast is therefore run in two
+  # rings further out, split on the SAME farm's start year: whatever secular trend
+  # exists shows up there without any farm deposition under the sampler. It is a real
+  # trend and it runs downward, so reading the near-cage change on its own understates
+  # it.
+  #
+  # THE GAP WINDOW IS NOT OPTIONAL. Raw, the near-cage pairs sit 4 years apart and the
+  # 5-20 km pairs 10, so an unmatched comparison charges the placebo with six extra
+  # years of decline. Both are reported: `gap_matched` cut to GAP_WINDOW, and a per-year
+  # rate over all pairs, which is the same statement without discarding anything.
+  #
+  # WHAT IT CANNOT SEPARATE, stated because it changes the reading: a farm enriches the
+  # sediment with organic matter, and organically enriched sediment is finer. Part of
+  # the rise this design measures may be the seabed becoming muddier rather than the
+  # metal load increasing. That is mediation rather than confounding, since the farm
+  # caused both, but "the farm raised the metal" here includes "the farm changed the
+  # sediment". No site has grain size in both periods, so it cannot be checked.
+  farm_period <- m |>
+    filter(!withheld) |>
+    inner_join(usable, by = c("symbol", "cat")) |>
+    mutate(igeo = refined_igeo(value_std, bg_median),
+           period = case_when(
+             is.na(year) | is.na(start_year) ~ NA_character_,
+             year < start_year ~ "pre-farm",
+             active == 1L | (!is.na(end_year) & year <= end_year) ~ "operating",
+             TRUE ~ "post-closure")) |>
+    filter(period %in% c("pre-farm", "operating"), !is.na(site_id))
+
+  # One row per site x period, so a site sampled ten times in one period counts once.
+  within_one <- function(zone) {
+    site_period <- farm_period |>
+      filter(dist_to_fish_farm >= zone[1], dist_to_fish_farm < zone[2]) |>
+      group_by(symbol, cat, site_id, period) |>
+      summarise(n = n(), igeo_p50 = median(igeo), year_p50 = median(year),
+                .groups = "drop")
+    pre <- site_period |> filter(period == "pre-farm") |>
+      select(symbol, cat, site_id, igeo_pre = igeo_p50, year_pre = year_p50,
+             n_pre = n)
+    op <- site_period |> filter(period == "operating") |>
+      select(symbol, cat, site_id, igeo_op = igeo_p50, year_op = year_p50,
+             n_op = n)
+    inner_join(pre, op, by = c("symbol", "cat", "site_id")) |>
+      mutate(zone = sprintf("%g-%g km", zone[1], zone[2]),
+             gap = year_op - year_pre,
+             delta = igeo_op - igeo_pre)
+  }
+  within_pairs <- purrr::map(WITHIN_ZONES, within_one) |> bind_rows()
+
+  summarise_within <- function(df, basis) {
+    df |>
+      group_by(symbol, cat, zone) |>
+      summarise(n_sites = n(),
+                gap_p50 = round(median(gap), 1),
+                delta_p25 = round(quantile(delta, .25, names = FALSE), 3),
+                delta_p50 = round(median(delta), 3),
+                delta_p75 = round(quantile(delta, .75, names = FALSE), 3),
+                n_rising = sum(delta > 0),
+                rate_p50 = round(median(delta / gap), 4),
+                .groups = "drop") |>
+      mutate(basis = basis, .before = 1)
+  }
+
+  within_site <- bind_rows(
+    summarise_within(within_pairs |>
+                       filter(gap >= GAP_WINDOW[1], gap <= GAP_WINDOW[2]),
+                     sprintf("gap %d-%d yr", GAP_WINDOW[1], GAP_WINDOW[2])),
+    summarise_within(within_pairs |> filter(gap > 0), "per year, all pairs")
+  ) |>
+    filter(n_sites >= MIN_SITES) |>
+    mutate(pct_rising = round(100 * n_rising / n_sites, 1),
+           symbol = factor(symbol, levels = elem_levels),
+           zone = factor(zone, levels = vapply(WITHIN_ZONES,
+                                               function(z) sprintf("%g-%g km", z[1], z[2]),
+                                               character(1)))) |>
+    arrange(basis, symbol, cat, zone)
+
+  # How the design reaches: sites that could ever supply a pair, against those that do.
+  within_reach <- farm_period |>
+    filter(dist_to_fish_farm < WITHIN_ZONES[[1]][2]) |>
+    group_by(symbol, cat) |>
+    summarise(n_sites_any = n_distinct(site_id),
+              n_sites_pre = n_distinct(site_id[period == "pre-farm"]),
+              n_rows_pre = sum(period == "pre-farm"),
+              n_rows_op = sum(period == "operating"),
+              lead_years_p50 = round(median(start_year[period == "pre-farm"] -
+                                            year[period == "pre-farm"]), 1),
+              .groups = "drop") |>
+    mutate(symbol = factor(symbol, levels = elem_levels)) |>
+    arrange(symbol, cat)
+
   # ── 5. The coverage this step exists for ─────────────────────────────────────
   # Every row that has a value gets an Igeo (given a usable reference); only rows with
   # aluminium on the right basis, in a normalisable group, get an EF.
@@ -511,6 +629,11 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     pair_unit   = "municipality",
     pair_min_cell = PAIR_MIN_CELL,
     pair_fines_tol_pp = PAIR_FINES_TOL,
+    within_site_design = sprintf("same site pre-farm vs operating, gap matched to %d-%d yr, placebo zones %s",
+                                 GAP_WINDOW[1], GAP_WINDOW[2],
+                                 paste(vapply(WITHIN_ZONES[-1],
+                                              function(z) sprintf("%g-%g km", z[1], z[2]),
+                                              character(1)), collapse = " and ")),
     classes     = "Muller boundaries, local-background meaning; see the script header")
 
   write_csv(background,   file.path(out_dir, "refined_igeo_background.csv"))
@@ -521,6 +644,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   write_csv(band_cost,    file.path(out_dir, "refined_igeo_band_cost.csv"))
   write_csv(paired_tbl,   file.path(out_dir, "refined_igeo_paired.csv"))
   write_csv(pair_reach,   file.path(out_dir, "refined_igeo_pair_reach.csv"))
+  write_csv(within_site,  file.path(out_dir, "refined_igeo_within_site.csv"))
+  write_csv(within_reach, file.path(out_dir, "refined_igeo_within_reach.csv"))
   write_csv(cov_tbl,      file.path(out_dir, "refined_igeo_coverage.csv"))
   write_csv(confound_tbl, file.path(out_dir, "refined_igeo_confound.csv"))
   write_csv(toc_tbl,      file.path(out_dir, "refined_igeo_toc_normaliser.csv"))
@@ -539,6 +664,11 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     paired_tbl |> filter(cat == "bulk") |>
       select(pairs, contrast, symbol, n_muni, diff_p50, pct_positive,
              fines_gap_p50) |>
+      as.data.frame() |> print(row.names = FALSE)
+    cat("\n-- the same site, before its farm and during it, with placebos --\n")
+    within_site |> filter(cat == "bulk") |>
+      select(basis, symbol, zone, n_sites, gap_p50, delta_p50, pct_rising,
+             rate_p50) |>
       as.data.frame() |> print(row.names = FALSE)
     cat("\n-- coverage: what Igeo classifies against what EF does --\n")
     print(as.data.frame(cov_tbl), row.names = FALSE)
