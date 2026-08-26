@@ -141,6 +141,38 @@ its numbers against anything older.
 - **Farm size enters** via `fish_farm_band` (`refined_pressure_size.csv`), with
   `refined_pressure_size_covariates.csv` recording the siting confounder that has to be
   read with it: large farms sit in roughly twice the water depth of small ones.
+- **And farm size does not survive being controlled** (section 5b, five CSVs). The raw
+  split is inverted: copper enriches 2.91 / 3.15 / 2.13 for small / medium / large, which
+  is not a dose-response. `refined_pressure_size_depth.csv` runs that split up a ladder
+  of controls (`raw` -> `clean`, stated-pressure rows out -> `depth`, one 50-150 m window
+  for all three bands -> `depth+texture`, a 20-80% mud window on top), reporting the
+  *achieved* median depth and mud per band so each match is checked rather than trusted;
+  `refined_pressure_size_depth_cost.csv` says what each rung costs.
+
+  **Depth was the named confounder and it is not the one that mattered.** Matched at a
+  median of 84 / 97 / 95 m the ordering is unchanged (copper P90 65.1 / 96.4 / 50.7), and
+  `refined_pressure_size_strata.csv` shows it holding in all five depth strata, so no
+  choice of window created it. What the strata table does show is that depth itself is a
+  strong covariate: copper roughly doubles and zinc roughly triples from the shallowest
+  stratum to the deepest, the ordinary grain-size effect.
+
+  **Location was the confounder.** The bands read out different coastlines
+  (`refined_pressure_size_geography.csv`: large farms 84.8% Norwegian Sea and the only
+  band with Barents Sea sites, small farms 28.3% North Sea). `refined_pressure_size_paired.csv`
+  therefore takes one median per municipality x size band and ratios two bands *within
+  one municipality*, over three depth windows. The response goes flat: eighteen ratios
+  spanning 0.83 to 1.28, the sign flipping between windows, and `pct_above_1` near 50 in
+  almost every row. Copper reads large > small and large < medium at once.
+
+  So **licensed MTB is not a usable proxy for seabed load at the licence coordinate**, and
+  size-weighted distance, the reason capacity was carried onto `site`, is not supported.
+  This is a statement about the proxy: MTB is a licensed ceiling rather than the stock in
+  the water at sampling, and a bigger farm's cages extend further from the licence point.
+  **No near/far number changes** - that comparison is across distance bands, not size
+  bands.
+- **The small band was also being charged unevenly.** Its near band is 13.8% stated
+  `pressure` monitoring against 1.3% for large, so every tier above `raw` drops those
+  rows before comparing.
 - **Stated purpose is the independent check** (`refined_pressure_stated.csv`): 80% of
   Vannmiljø's aquaculture-monitoring measurements fall within 1 km of a fish farm and
   0.3% beyond 20 km, and all 64 reference-condition measurements are beyond 20 km.

@@ -454,8 +454,31 @@ farm at the same distance are not the same pressure.
 > it: large and medium farms sit at 107 m and 121 m median depth against 66 m for
 > small, and further from shore. Norway licenses the big farms into deep,
 > well-flushed water precisely because it disperses the load, so a bigger farm can
-> leave less under the licence coordinate. Separating size from siting needs a
-> depth-matched comparison within a band, which is not built.
+> leave less under the licence coordinate.
+>
+> **Depth-matched, 2026-08-26, and the explanation above is wrong.** Section 5b of
+> the pressure step is a ladder of controls (stated pressure out, then a common
+> 50-150 m depth window, then a 20-80% mud window). Matching depth to a median of
+> 84 / 97 / 95 m leaves the ordering exactly as it was (copper P90 65.1 / 96.4 /
+> 50.7), and `refined_pressure_size_strata.csv` finds it in all five depth strata,
+> so it is not a window artefact. Depth is a strong covariate in its own right
+> (copper roughly doubles, zinc roughly triples from the shallowest stratum to the
+> deepest) but it does not carry the size inversion.
+>
+> **The confounder is location.** Large farms are 84.8% Norwegian Sea and the only
+> band with Barents Sea sites; small farms carry 28.3% North Sea. Pairing farms
+> *within one municipality* (`refined_pressure_size_paired.csv`) removes the size
+> response entirely: eighteen ratios from 0.83 to 1.28, sign flipping between depth
+> windows, about half the municipalities falling each way. Copper says large > small
+> and large < medium in the same table.
+>
+> So **licensed MTB does not predict what is under the cages**, and size-weighted
+> distance is not supported by this data. Three reasons it can fail while capacity
+> still drives deposition, none separable here: MTB is a ceiling rather than the
+> stock at sampling; a bigger farm's cages reach further from the licence point, so
+> the coordinate is not the same place relative to the cages; and siting, feed
+> conversion and fallowing improve with operator scale. Near/far enrichment is
+> untouched.
 >
 > **Two things fell out of doing it.** The old axis was measuring the wrong thing:
 > 84% of what `dist_to_aquaculture` added to the near band sat next to a
@@ -517,7 +540,7 @@ coverage, because right now EF is validated only against distance.
 | **slim** | Drops extraction (fixed on `feature/efsa-extraction-class`); drops Mareano `lld.comment` and MUDAB `accreditation`; passes 4Demon `fraction_range` through but nothing consumes it; keeps Vannmiljø `activity` as a code with no meaning attached. | high |
 | **clean** | `matrix_canon` FS->SED63 mislabels 886 4Demon rows (§4a); `classify_fraction` records no provenance for absent matrix (§4b); `METHOD_COLS` has no accreditation column. | high |
 | **merged** | Inherits all of the above. Dedup keys do not include extraction or fraction, so a rebuild that changes either can change dedup outcomes -- check row counts, as with the MUDAB double-report. | medium |
-| **refined** | No Igeo, no PLI, no TOC-normalisation option; verdicts exist only via EF, so 26% sieved + all near-farm rows are unclassified; `dataset_group` unused; no farm size on `site`. | high |
+| **refined** | ~~No Igeo~~ (built, §7: it classifies 97.2% of target measurements where EF reaches 9.8%); no PLI, no TOC-normalisation option; **pristine verdicts** still exist only via EF, so 26% sieved + all near-farm rows carry no verdict; `dataset_group` unused; ~~no farm size on `site`~~ (built, §7: `fish_farm_mtb_t` / `fish_farm_band`, though the size split does not survive controlling for location). | medium |
 | **export / EFSA** | `accLab` unfilled (recoverable for 2 sources); extraction class pending the branch merge; the "Sieve <63 µm" field inherits §4a's error. | medium |
 
 ---
