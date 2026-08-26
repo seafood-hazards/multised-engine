@@ -1,5 +1,31 @@
 # multised.engine (development version)
 
+## Igeo gains a location control, and copper survives it
+
+The farm-size work below found location to be the confounder that mattered most, and the
+Igeo bands had never been checked against it: cleaning and texture matching both act on
+*what* is in a band, neither on *where* the bands are.
+`analysis_refined_background_igeo()` now pairs bands inside one municipality
+(`refined_igeo_paired.csv`, `refined_igeo_pair_reach.csv`).
+
+* **The controls do not stack.** Requiring both bands in one municipality on top of the
+  50-100% mud window leaves a single municipality for copper, because the texture match
+  has already spent 97.3% of the near-cage rows. The published 1.8x cannot be
+  location-checked directly, and the step says so rather than implying otherwise.
+* **Paired against the > 20 km band without the texture match, the answer just replays
+  the texture confounder**: copper -0.41, positive in 31.8% of 22 municipalities, with the
+  near side 57 percentage points sandier. Published deliberately, so the trap is visible.
+* **The adjacent contrast is the one that works.** A near-cage site and a site a few
+  kilometres away usually share a municipality, so < 1 km against 1-5 km pairs on **79**
+  municipalities with a texture gap of 7.6 points rather than 57. Copper is **+0.25 of an
+  Igeo unit under the cages, positive in 72.2%** of them, conservative twice over (1-5 km
+  is not farm-free, and the near side is still the sandier of the two). Restricting to
+  texture-balanced pairs gives **+0.46 at 82.1%** on 28 municipalities.
+* **Zinc is -0.01 at 49.4%**, a coin flip, and the fourth design on the site to say so.
+
+Copper's case now rests on two Igeo controls that are each blind to what the other fixes,
+on populations that cannot be combined, agreeing anyway. No verdict changes.
+
 ## Farm size does not predict what is under the cages
 
 `analysis_refined_background_pressure()` (refined background step 3) split the near band

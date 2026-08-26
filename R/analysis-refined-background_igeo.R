@@ -102,6 +102,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   #                                cleaned of stated pressure side by side
   #   refined_igeo_pressure_matched.csv  the same bands, cleaned AND texture-matched
   #   refined_igeo_band_cost.csv   what the two controls cost each band, in rows
+  #   refined_igeo_paired.csv      bands paired inside one municipality
+  #   refined_igeo_pair_reach.csv  how many municipalities each band could pair from
   #   refined_igeo_coverage.csv    rows Igeo can classify against rows EF can, the point
   #   refined_igeo_confound.csv    Igeo against grain size, and EF against it for scale
   #   refined_igeo_toc_normaliser.csv  the D4 test with organic carbon as the normaliser
@@ -122,6 +124,12 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   # both are published so the match is not a single arbitrary cut.
   FINES_WINDOWS   <- list(c(50, 100), c(60, 90))
   FINES_WINDOW    <- FINES_WINDOWS[[1]]
+  # Section 4c. Bands are paired inside one municipality, so the regional background
+  # cancels. PAIR_MIN_CELL is rows a municipality x band cell needs to count; the
+  # tolerance is how much sandier the near side may be before a pair is called
+  # texture-balanced, in percentage points of mud.
+  PAIR_MIN_CELL   <- 10L
+  PAIR_FINES_TOL  <- -10
   MIN_N     <- refined_igeo_min_n()
   EF_BASIS  <- refined_ef_basis()
   elem_levels <- c("CO", "CU", "I", "MN", "MO", "SE", "ZN")
@@ -135,7 +143,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            s.fines_lt63,
-           si.dist_to_coast, si.dist_to_fish_farm, d.source, d.pressure_class,
+           si.dist_to_coast, si.dist_to_fish_farm, si.municipality,
+           d.source, d.pressure_class,
            n.fe AS norm_fe, n.al AS norm_al, n.corg AS norm_corg
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -309,6 +318,96 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     mutate(pct_kept_clean = round(100 * n_clean / n_raw, 1),
            pct_kept_matched = round(100 * n_matched / n_raw, 1))
 
+  # ── 4c. The third control: pairing bands inside one municipality ─────────────
+  # Cleaning and texture-matching both work on WHAT is in a band. Neither touches
+  # WHERE the bands are, and the farm-size work on the pressure page showed location
+  # is the confounder that bites hardest there: size bands that looked like a dose
+  # response were reading out different coastlines, and pairing within a municipality
+  # flattened the response completely. The same question is owed here.
+  #
+  # THE CONTROLS DO NOT STACK, and that is the first finding. Requiring both bands in
+  # one municipality ON TOP of the mud window leaves a single municipality for copper,
+  # because the texture match already costs 97.3% of the near-cage rows. So the
+  # headline near-against-far number cannot be location-checked directly, and this
+  # section does not pretend otherwise.
+  #
+  # PAIRED WITHOUT THE TEXTURE MATCH, THE CONTRAST AGAINST >20 km JUST REPLAYS THE
+  # TEXTURE CONFOUNDER. Copper comes out at -0.41, positive in under a third of the 22
+  # municipalities, which reads like a reversal and is not news: inside those pairs the
+  # near side is 57 percentage points sandier (23.3% mud against 80.8%). Pairing on
+  # location does nothing about grain size. That row is published so the trap is
+  # visible rather than stepped in twice.
+  #
+  # THE CONTRAST THAT WORKS IS THE ADJACENT ONE. A near-cage site and a site a few
+  # kilometres away usually share a municipality, so <1 km against 1-5 km pairs on 79
+  # municipalities instead of 22, and the texture gap across it is small (7.6 pp)
+  # rather than 57. It is also conservative in two independent ways: 1-5 km is not
+  # farm-free, so the contrast understates the gradient, and the near side is still the
+  # sandier of the two, which suppresses the metal. `fines_balanced` is the same
+  # comparison restricted to pairs where the near side is not the sandier one, and it
+  # is the row that shows how much the residual texture is costing.
+  pair_cells <- function(df) {
+    df |>
+      filter(!is.na(municipality), municipality != "") |>
+      group_by(symbol, cat, municipality, dist_bin) |>
+      summarise(n = n(), igeo_p50 = median(igeo),
+                fines_p50 = median(fines_lt63, na.rm = TRUE), .groups = "drop") |>
+      filter(n >= PAIR_MIN_CELL)
+  }
+
+  # One contrast: near band against a comparison band, in the same municipality.
+  # `balanced_only` keeps the pairs whose texture gap is inside PAIR_FINES_TOL, which
+  # needs a mud median on both sides and so always costs pairs.
+  pair_one <- function(cells, near, far, balanced_only = FALSE) {
+    a <- cells |> filter(dist_bin == near) |>
+      select(symbol, cat, municipality, igeo_near = igeo_p50, fines_near = fines_p50)
+    b <- cells |> filter(dist_bin == far) |>
+      select(symbol, cat, municipality, igeo_far = igeo_p50, fines_far = fines_p50)
+    pairs <- inner_join(a, b, by = c("symbol", "cat", "municipality"))
+    if (balanced_only) {
+      pairs <- pairs |>
+        filter(!is.na(fines_near), !is.na(fines_far),
+               fines_near - fines_far >= PAIR_FINES_TOL)
+    }
+    pairs |>
+      group_by(symbol, cat) |>
+      summarise(n_muni = n(),
+                diff_p25 = round(quantile(igeo_near - igeo_far, .25, names = FALSE), 3),
+                diff_p50 = round(median(igeo_near - igeo_far), 3),
+                diff_p75 = round(quantile(igeo_near - igeo_far, .75, names = FALSE), 3),
+                n_positive = sum(igeo_near > igeo_far),
+                n_fines_both = sum(!is.na(fines_near) & !is.na(fines_far)),
+                fines_gap_p50 = round(median(fines_near - fines_far, na.rm = TRUE), 1),
+                .groups = "drop") |>
+      mutate(contrast = paste(near, "vs", far),
+             pairs = if (balanced_only) "texture-balanced" else "all",
+             .before = 1)
+  }
+
+  pair_grid <- tidyr::expand_grid(
+    far = AQ_LABELS[-1],
+    balanced_only = c(FALSE, TRUE)
+  )
+  cells_clean <- pair_cells(binned |> filter(!stated_pressure))
+  paired_tbl <- purrr::pmap(pair_grid, function(far, balanced_only) {
+    pair_one(cells_clean, AQ_LABELS[1], far, balanced_only)
+  }) |>
+    bind_rows() |>
+    filter(n_muni >= 5) |>
+    mutate(pct_positive = round(100 * n_positive / n_muni, 1),
+           symbol = factor(symbol, levels = elem_levels),
+           contrast = factor(contrast,
+                             levels = paste(AQ_LABELS[1], "vs", AQ_LABELS[-1]))) |>
+    arrange(pairs, contrast, symbol, cat)
+
+  # How far the pairing reaches, per contrast: a municipality count is only meaningful
+  # beside the number of municipalities that could ever have supplied one.
+  pair_reach <- cells_clean |>
+    group_by(symbol, cat, dist_bin) |>
+    summarise(n_muni = n_distinct(municipality), n = sum(n), .groups = "drop") |>
+    mutate(symbol = factor(symbol, levels = elem_levels)) |>
+    arrange(symbol, cat, dist_bin)
+
   # ── 5. The coverage this step exists for ─────────────────────────────────────
   # Every row that has a value gets an Igeo (given a usable reference); only rows with
   # aluminium on the right basis, in a normalisable group, get an EF.
@@ -409,6 +508,9 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
                                          function(w) sprintf("%d-%d%%", w[1], w[2]),
                                          character(1)), collapse = " and ")),
     bg_cleaned  = FALSE,
+    pair_unit   = "municipality",
+    pair_min_cell = PAIR_MIN_CELL,
+    pair_fines_tol_pp = PAIR_FINES_TOL,
     classes     = "Muller boundaries, local-background meaning; see the script header")
 
   write_csv(background,   file.path(out_dir, "refined_igeo_background.csv"))
@@ -417,6 +519,8 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
   write_csv(pressure_tbl, file.path(out_dir, "refined_igeo_pressure.csv"))
   write_csv(matched_tbl,  file.path(out_dir, "refined_igeo_pressure_matched.csv"))
   write_csv(band_cost,    file.path(out_dir, "refined_igeo_band_cost.csv"))
+  write_csv(paired_tbl,   file.path(out_dir, "refined_igeo_paired.csv"))
+  write_csv(pair_reach,   file.path(out_dir, "refined_igeo_pair_reach.csv"))
   write_csv(cov_tbl,      file.path(out_dir, "refined_igeo_coverage.csv"))
   write_csv(confound_tbl, file.path(out_dir, "refined_igeo_confound.csv"))
   write_csv(toc_tbl,      file.path(out_dir, "refined_igeo_toc_normaliser.csv"))
@@ -431,6 +535,11 @@ analysis_refined_background_igeo <- function(db_dir = multised_db_dir(),
     print(as.data.frame(pressure_tbl), row.names = FALSE)
     cat("\n-- the same bands, cleaned AND texture-matched --\n")
     print(as.data.frame(matched_tbl), row.names = FALSE)
+    cat("\n-- bands paired inside one municipality (bulk) --\n")
+    paired_tbl |> filter(cat == "bulk") |>
+      select(pairs, contrast, symbol, n_muni, diff_p50, pct_positive,
+             fines_gap_p50) |>
+      as.data.frame() |> print(row.names = FALSE)
     cat("\n-- coverage: what Igeo classifies against what EF does --\n")
     print(as.data.frame(cov_tbl), row.names = FALSE)
     cat("\n-- is the index measuring texture? Spearman against mud fraction --\n")
