@@ -1,5 +1,41 @@
 # multised.engine (development version)
 
+## Farm size does not predict what is under the cages
+
+`analysis_refined_background_pressure()` (refined background step 3) split the near band
+by the licensed size of the farm and got an inverted response: copper enriching 2.91 /
+3.15 / 2.13 for small / medium / large. It closed by saying the likely cause was siting,
+because large farms are licensed into roughly twice the water depth, and that separating
+the two needed a depth-matched comparison that was not built. It is built now, as a
+ladder of controls, and the explanation did not survive it.
+
+* **Depth was not the confounder.** Cutting all three size bands to one 50-150 m window
+  (achieved medians 84 / 97 / 95 m against 66 / 123 / 110 m raw) leaves the ordering
+  untouched: copper P90 65.1 / 96.4 / 50.7. Reading the same contrast inside five coarse
+  depth strata finds it at every depth, so no choice of window created it.
+* **Depth is still a strong covariate**, which is why matching it was worth doing: copper
+  roughly doubles and zinc roughly triples from the shallowest stratum to the deepest.
+* **Location was the confounder.** The size bands read out different coastlines: large
+  farms are 84.8% Norwegian Sea and the only band with any Barents Sea sites, small farms
+  28.3% North Sea. Pairing farms *within one municipality* removes the size response
+  entirely: eighteen ratios spanning 0.83 to 1.28, the sign flipping between depth
+  windows, and about half the paired municipalities falling each way. Copper reads large
+  above small and below medium in the same table.
+* **The small band was also charged unevenly.** Its near band is 13.8% Vannmiljø stated
+  `pressure` monitoring against 1.3% for the large band, so every rung above `raw` drops
+  those rows first.
+* Five new CSVs: `refined_pressure_size_depth.csv` (the ladder, with achieved depth and
+  mud per band so each match is checked), `refined_pressure_size_depth_cost.csv`,
+  `refined_pressure_size_strata.csv`, `refined_pressure_size_geography.csv` and
+  `refined_pressure_size_paired.csv`.
+
+The conclusion is about the proxy, not about fish farming: **licensed MTB is not a usable
+stand-in for seabed load at the licence coordinate**, so modelling pressure as
+size-weighted distance is not supported. MTB is a licensed ceiling rather than the stock
+in the water at sampling, and a bigger farm's cages reach further from the licence point.
+No verdict changes, and no near/far number changes: that comparison is across distance
+bands, not size bands.
+
 ## The Igeo farm gradient was an artefact of its bands
 
 `analysis_refined_background_igeo()` (refined background step 10) tests the index against
