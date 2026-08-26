@@ -1,5 +1,49 @@
 # multised.engine (development version)
 
+## The Igeo farm gradient was an artefact of its bands
+
+`analysis_refined_background_igeo()` (refined background step 10) tests the index against
+distance to a fish farm. It published the answer **backwards**: that copper and zinc peak
+at 5 to 20 km rather than under the cages, that the band beyond 20 km is dirtier than the
+band under them, and therefore that distance to a fish farm is a poor axis for Igeo. The
+arithmetic was right and the conclusion was not. The step now reports every band three
+ways, raw, cleaned and matched, so the correction is auditable rather than silent.
+
+- **The bands are cleaned of stated pressure.** The > 20 km band is **55.6%** of its bulk
+  copper and **54.3%** of its bulk zinc Vannmiljø `pressure_class = "pressure"`, against
+  3.5% of both under the cages. It was an industrial band, not a remote one. Cleaning it
+  alone reverses the published finding: copper's far-band class 0 share goes from 47.3%
+  to **71.7%**, above the 54.4% under the cages. The earlier note argued the bands needed
+  no cleaning because they describe where the index lands rather than estimate a
+  background. True of the arithmetic, false of the conclusion drawn from it.
+- **The bands are also matched on texture.** Igeo divides by a background cut from
+  offshore mud (**69.4%** fines for copper) while the near-cage band is **38.1%** fines,
+  so near-cage sediment reads low on grain size before any farm enters it. Matching every
+  band to comparable muddiness gives copper a monotone gradient: median Igeo **+0.51**
+  under the cages, +0.35 in both middle rings, **-0.35** beyond 20 km. That is a factor of
+  **1.8**, beside 2.6x from step 3 and 1.6x municipality-matched from step 8, and it needs
+  no aluminium. A tighter window gives +0.47 against -0.39, so it is not a cut artefact.
+- **Zinc moves 1.4x and only under the texture control**, and it loses that to the
+  location control on step 8 (1.04 on a coin flip). Two controls that disagree is the
+  argument for reading its near-cage signal as sediment character rather than farm input.
+  Cobalt and manganese have 14 and 29 clean near-cage measurements, below the reporting
+  threshold, so the innermost band is two elements.
+- **`B` is deliberately not cleaned**, and `refined_igeo_background.csv` now carries the
+  evidence: the offshore pool is 8.7% stated pressure against 55.6% in the far band, and
+  the cleaned median shifts `B` by at most **8.3%**, 0.11 of an Igeo unit. Cleaning it
+  would cut it from a different population than the EF reference, which is the one thing
+  the step is built not to do.
+- New outputs `refined_igeo_pressure_matched.csv` (two fines windows) and
+  `refined_igeo_band_cost.csv` (what each control costs each band).
+  `refined_igeo_pressure.csv` gains `pct_stated`, `n_clean`, `igeo_p50_clean` and
+  `pct_unpolluted_clean`; `refined_igeo_background.csv` gains `n_bg_stated`,
+  `bg_median_clean`, `bg_fines_p50`, `pct_bg_stated` and `bg_shift`.
+- The stale **0.4% to 99.4%** near-cage coverage figure in `docs/analysis.md` is corrected
+  to **0.3% to 99.9%**, matching the axis change already made on the site.
+
+No verdict changes. Igeo issues none, and nothing here touches EF, the pristine
+classification or the exports.
+
 ## The pressure gradient measures the fish farm now
 
 `analysis_refined_background_pressure()` (refined background step 3) was rebuilt.

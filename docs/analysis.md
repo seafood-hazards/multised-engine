@@ -184,7 +184,7 @@ EF divides by aluminium, Igeo divides by a background, so it classifies any row 
 a value. EFSA names it for exactly this case, "in absence of EF".
 
 Coverage goes from **9.8% to 97.2%** of target measurements, and within 1 km of a fish
-farm from 0.4% to 99.4% -- the data EFSA asked for by name, which the pipeline could not
+farm from 0.3% to 99.9% -- the data EFSA asked for by name, which the pipeline could not
 speak to at all because Vannmiljø's aquaculture programme carries aluminium on 5 of
 13,996 subsamples.
 
@@ -196,6 +196,30 @@ strong enough in bulk (cobalt rho 0.70 against the mud fraction) that a verdict 
 it would be partly a verdict about texture. Reporting the index without promoting it to
 a verdict keeps the coverage visible to EFSA, who asked for Igeo in EF's absence,
 without changing what "pristine" means in this database.
+
+The step also tests the index against the fish-farm gradient, and that test was
+**published once without controls and got the answer backwards** (corrected 2026-08-26).
+The bands carry two confounders that have nothing to do with farms: the > 20 km band is
+**55.6%** of its copper Vannmiljø stated pressure, so it was a harbour rather than a
+remote band, and the < 1 km band is **38.1%** fines against **74.7%** beyond 20 km and a
+`B` cut from **69.4%** mud, so near-cage sediment reads low on grain size alone. The step
+now reports each band three ways: raw, cleaned of `pressure_class = "pressure"`, and
+cleaned plus matched on `fines_lt63` in two windows.
+
+Cleaning alone reverses the finding: copper's far-band class 0 share goes from 47.3% to
+**71.7%**, above the 54.4% under the cages, so the far band becomes the cleaner band.
+Matching texture as well produces a monotone copper gradient, median Igeo **+0.51** under
+the cages against **-0.35** beyond 20 km, a factor of **1.8**, which lands beside the 2.6x
+from step 3 and the 1.6x municipality-matched figure from step 8 without needing any
+aluminium. Zinc moves by 1.4x and cobalt and manganese have no near-cage band that
+survives the controls. `refined_igeo_band_cost.csv` records the price: grain size is
+recorded on 43.9% of far-band rows and **2.7%** of near-cage rows, so the matched
+comparison rests on 337 copper measurements out of more than 21,000.
+
+`B` itself is left uncleaned, and `refined_igeo_background.csv` now carries the columns
+that justify it: the offshore pool is 8.7% stated pressure against 55.6% in the far band,
+and the cleaned median moves `B` by at most 8.3%. Cleaning it would also cut it from a
+different population than the EF reference.
 
 Those numbers include a caveat the step measures on itself. Igeo has no grain-size
 control, so `refined_igeo_confound.csv` correlates it against the mud fraction, with
