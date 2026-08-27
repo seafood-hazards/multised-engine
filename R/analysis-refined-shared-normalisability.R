@@ -9,7 +9,18 @@
 # if aluminium actually predicts the metal. Measured (see
 # `analysis_refined_regression()`), it does so for cobalt, copper and zinc in BULK
 # and for nothing else: R2 about 0.46-0.58 for those three against 0.10 or less for
-# every other element and every sieved fraction.
+# every other element.
+#
+# THE QUESTION IS ONLY ASKED WHERE ALUMINIUM IS THE INTENDED CONTROL, which means
+# bulk. A sieved sample was grain-size controlled by the sieve before the chemistry
+# started; aluminium is not the correction there, it is a spare measurement. Asking
+# whether it predicts the metal and withholding a verdict when it does not would
+# read "no correction needed" as "the correction failed" and penalise the fraction
+# that needs no correcting. `refined_gs_control()` is that split, and the pristine
+# rule branches on it. The sieved r2 and rho stay in the frozen table because they
+# are still a useful diagnostic (they are what shows the sieve has already removed
+# the texture signal); they carry `normalisable = NA`, meaning not asked, and
+# nothing consults them to decide anything.
 #
 # Two measures, both of which must clear their limit:
 #
@@ -31,11 +42,21 @@
 # should not move silently under a rebuild, and the EF and pristine steps that consume
 # it run before the regression step that measures it. `check_normalisability()` closes
 # the drift risk by comparing the frozen table against what the regression step has
-# just computed.
+# just computed, over the groups the rule actually governs.
 
 refined_r2_limit <- function() 0.3
 
 refined_rho_limit <- function() 0.5
+
+#' What controls grain size in this fraction?
+#'
+#' "aluminium" in bulk, where the correction is statistical and has to be earned;
+#' "sieve" in the sieved fractions, where it is physical and already applied.
+#' Vectorised over `cat`.
+#' @noRd
+refined_gs_control <- function(cat) {
+  if_else(!is.na(cat) & cat == "bulk", "aluminium", "sieve")
+}
 
 refined_normalisability_table <- function() {
   path <- system.file("extdata", "normalisability", "refined_al_normalisability.csv",
@@ -54,26 +75,39 @@ refined_normalisability_table <- function() {
 #'
 #' Vectorised over `symbol` and `cat`. A group absent from the table is NOT
 #' normalisable: absence of a fit is absence of evidence that the normaliser works.
+#' A sieved group carries `normalisable = NA` (the question is not asked) and so is
+#' also FALSE here: metal/Al is not the control there. Read this as "may EF be
+#' computed", never as "may this group be judged" - for that, branch on
+#' `refined_gs_control()` first.
 #' @noRd
 refined_normalisable <- function(symbol, cat) {
   tab <- refined_normalisability_table()
   key <- paste(symbol, cat)
-  ok  <- paste(tab$symbol, tab$cat)[tab$normalisable]
+  ok  <- paste(tab$symbol, tab$cat)[!is.na(tab$normalisable) & tab$normalisable]
   !is.na(symbol) & !is.na(cat) & key %in% ok
 }
 
 #' The groups D4 withholds, as "SYMBOL fraction" labels, for reporting.
+#'
+#' Aluminium-controlled groups only: a sieved group is not withheld by D4, it is
+#' outside D4.
 #' @noRd
 refined_unnormalisable_groups <- function() {
   tab <- refined_normalisability_table()
-  paste(tab$symbol, tab$cat)[!tab$normalisable]
+  keep <- !is.na(tab$normalisable) & !tab$normalisable
+  paste(tab$symbol, tab$cat)[keep]
 }
 
 #' Warn if the frozen rule no longer describes the data it was cut from.
+#'
+#' Only over the groups the rule governs. A sieved group has no frozen verdict to
+#' drift from, so a change in its r2 is a diagnostic moving, not a rule breaking.
 #' @noRd
 check_normalisability <- function(fits, verbose = TRUE) {
-  frozen <- refined_normalisability_table()
+  frozen <- refined_normalisability_table() |>
+    filter(refined_gs_control(cat) == "aluminium")
   now <- fits |>
+    filter(refined_gs_control(as.character(cat)) == "aluminium") |>
     transmute(symbol = as.character(symbol), cat = as.character(cat),
               normalisable_now = normalisable)
   cmp <- frozen |>
@@ -89,7 +123,7 @@ check_normalisability <- function(fits, verbose = TRUE) {
             ". Re-cut inst/extdata/normalisability/ and re-run the background suite.",
             call. = FALSE)
   } else if (verbose) {
-    cat("normalisability rule verified against", nrow(cmp), "groups\n")
+    cat("normalisability rule verified against", nrow(cmp), "aluminium-controlled groups\n")
   }
   invisible(!nrow(bad))
 }

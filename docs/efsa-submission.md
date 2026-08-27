@@ -215,7 +215,7 @@ the actual cutoff in `fraction`.
 `pristineLoc` is the one field where our answer is stronger than EFSA's ask: the
 ReplyFHF spec explicitly prefers a local-background EF and warns against
 Turekian and Wedepohl values, which is what the refined pipeline already
-computes. It is also subject to D4, so it exists for CO, CU and ZN in bulk only
+computes. It is an enrichment factor, so it exists for CO, CU and ZN in bulk only
 (see [normalisability](../inst/extdata/normalisability/README.md)).
 
 ## 7. Decisions taken
