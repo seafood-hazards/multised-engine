@@ -131,11 +131,15 @@ analysis pages remain the authoritative ones.
 
 The map opens on the element it is drawing, not on a fixed window: it fits the
 extent of that element's own cells, capped at zoom 6 so iodine's eleven sites do
-not open at street level, and floored at zoom 3 because Mercator stretches the far
-north and an honest fit to copper's 36 to 81 degrees opens on a world map with
-Europe as a smudge in the middle. Zoom 3 is what the refined site's maps use. A
-reset button restores that view, and tiles come from OpenStreetMap: CARTO's free
-basemaps now stamp "API key required" across every tile.
+not open at street level and floored at zoom 3, which is what the refined site's
+maps use. A reset button restores that view, and tiles come from OpenStreetMap:
+CARTO's free basemaps now stamp "API key required" across every tile.
+
+**The map box is 700 px tall for a reason.** Mercator stretches the far north, so
+copper's 36 to 81 degrees needs about 630 px of map at zoom 3. In a shorter box the
+fit drops to zoom 2, and the result is the worst of both: North Africa fills the
+bottom of the frame while the Svalbard and Barents cells, which are real data, are
+cut off the top. Do not shrink it without redoing that arithmetic.
 
 The map draws bulk sediment only, and says so under itself.
 
@@ -157,15 +161,30 @@ Shared machinery, so the seven element pages stay in step:
 
 ### Why the sieved fractions carry no verdict, and where that is said
 
-The three fractions are reported side by side everywhere, but only bulk gets a
-pristine verdict, and readers noticed the asymmetry before the site explained it.
-The reason is in the frozen normalisability table: a sieved sample is **already**
-grain-size corrected, by the sieve, so aluminium has almost nothing left to track
-and every sieved group fails D4. It is explained once, in
-"And in bulk sediment only" on the pristine methods page, and pointed at from the
-two places a reader meets the asymmetry: the bulk-versus-sieved callout on the data
-page and the verdict table on each element page. The count in that section is cut
-from `summary_elements.csv` like everything else, so it cannot drift from the rule.
+The three fractions are reported side by side everywhere but only bulk gets a
+pristine verdict, and the asymmetry looks arbitrary until it is explained. It is
+explained once, in "And in bulk sediment only" on the pristine methods page, and
+pointed at from the two places a reader meets it: the bulk-versus-sieved callout on
+the data page and the verdict table on each element page.
+
+**Say why with the numbers, not with the conclusion.** The first version of that
+section gave the reason correctly and still left a reader concluding that there
+must not be enough sieved data. There is plenty: copper sieved below 63 um has
+4 502 measurements and 2 203 of them carry a paired aluminium. What fails is the
+normaliser. Aluminium explains 55.6% of the variation in bulk copper and 0.3% in
+sieved copper, on comparable numbers of samples, against a rule that asks for 30%.
+
+So D4's own measures travel with the flag it produced: `summary_elements.csv`
+carries `al_tested`, `al_n`, `al_r2` and `al_rho` from the frozen normalisability
+table, and `summary_meta.csv` carries `al_r2_limit`. The page states the finding by
+printing them.
+
+The underlying reason, which the page also gives in plain English: **a sieved
+sample has already been grain-size corrected, by the sieve.** Aluminium is a proxy
+for how muddy a sample is; cut the sample to below 63 or 20 um and the
+mud-versus-sand difference has been removed in the laboratory before the chemistry
+starts, so there is little left for aluminium to track. The normaliser has not
+failed, it has been made redundant by the sample preparation.
 
 ### Element pages are deliberately unequal
 

@@ -124,12 +124,22 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   withheld <- refined_withheld_elements()
   cens_all <- cens |> filter(source == "ALL") |> select(symbol, pct_censored)
 
+  # D4's own measures travel with the flag it produced. Without them the summary
+  # can only assert that aluminium fails on the sieved fractions, and the obvious
+  # reading of that is "not enough sieved data", which is the wrong one: copper
+  # sieved below 63 um has 2 203 aluminium-paired samples and an r-squared of
+  # 0.003. The numbers are the answer, so they are published rather than described.
+  al <- refined_normalisability_table() |>
+    transmute(symbol, cat, al_n = n_all, al_r2 = r2, al_rho = rho)
+
   elements <- extent |>
     left_join(elem_names, by = "symbol") |>
     left_join(cens_all, by = "symbol") |>
+    left_join(al, by = c("symbol", "cat")) |>
     mutate(
       withheld     = symbol %in% withheld,
       normalisable = refined_normalisable(symbol, cat),
+      al_tested    = !is.na(al_n),
       has_background = n >= MIN_N & !withheld,
       has_verdict    = has_background & normalisable,
       # one plain-English clause per group, for the Results landing matrix. The
@@ -145,7 +155,8 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     ) |>
     select(symbol, name, cat, n, n_sites, n_datasets, n_sources, year_min, year_max,
            n_elem, n_sites_elem, n_sources_elem, year_min_elem, year_max_elem,
-           pct_censored, withheld, normalisable, has_background, has_verdict, note) |>
+           pct_censored, withheld, al_tested, al_n, al_r2, al_rho, normalisable,
+           has_background, has_verdict, note) |>
     mutate(symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, match(cat, CATS))
 
@@ -422,6 +433,9 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     n_sites       = n_distinct(ext$site_id),
     n_elements    = n_distinct(ext$symbol),
     min_n         = MIN_N,
+    # D4's limit, so a page can say what "aluminium predicts it" means without
+    # typing the number that decides it.
+    al_r2_limit   = refined_r2_limit(),
     withheld      = paste(withheld, collapse = " "),
     source_module = "background")
 
