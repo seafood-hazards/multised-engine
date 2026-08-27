@@ -19,7 +19,7 @@ What it is instead:
 | Piece | Where |
 |-------|-------|
 | One analysis module | `R/analysis-refined-summary.R`, reached by `analyze_data("refined", module = "summary")` |
-| Its outputs | `data/analysis/summary/*.csv` (14 files) |
+| Its outputs | `data/analysis/summary/*.csv` (13 files) |
 | The site | `../multised-summary`, a sibling Quarto repo like the other nine |
 
 The generation token stays `refined`, because that is the database being read.
