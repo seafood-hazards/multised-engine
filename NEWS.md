@@ -1,5 +1,28 @@
 # multised.engine (development version)
 
+## Re-audit of slim and pilot
+
+Neither stage normalises anything, so the rule has nothing to violate there: pilot
+parses, and slim records Fe and Al as measurements and never divides by them. The
+seven slim files that mention a "normaliser" only categorise it (step 3), flag its
+existence (step 6) or name a downstream use in a comment.
+
+The one real finding is documentary, and it is the root of the bug the refined audit
+fixed. **`subsample.fines_lt63` describes the parent sediment as collected, and
+nothing said so.** A grain-size curve is measured on the whole sample, so the number
+belongs to that material rather than to whatever cut was later analysed for metals.
+The data settles it: a cut below 63 um would be 100% mud by definition, yet across
+subsamples whose targets are sieved to <63 um the median `fines_lt63` is about 15%,
+**lower** than the roughly 50% for bulk, because sandy sediment is what gets sieved
+in the first place.
+
+That silence is what let the refined grain-size-normalised background divide sieved
+concentrations by it. The meaning is now stated where the column is defined (slim
+step 15, in `R/slim-15-derive-fines.R` and `docs/slim-pipeline.md`) and in all three
+database schema pages (clean, merged, refined), each with the instruction that
+follows from it: never divide a sieved measurement by `fines_lt63`.
+
+
 ## Re-audit of the clean generation
 
 Clean came through almost intact, and one lead that looked promising turned out not

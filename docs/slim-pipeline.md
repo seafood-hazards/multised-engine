@@ -403,8 +403,24 @@ uses `value_std`; it has no correction step). It adds two columns to `subsample`
 
 | column        | type | meaning                                                        |
 |---------------|------|----------------------------------------------------------------|
-| `fines_lt63`  | REAL | percentage of material finer than 63µm (the clay + silt "mud" fraction), NULL where the subsample has no usable grain-size |
+| `fines_lt63`  | REAL | percentage of material finer than 63µm (the clay + silt "mud" fraction) **of the parent sediment as collected**, NULL where the subsample has no usable grain-size |
 | `fines_basis` | TEXT | how it was derived, for provenance / cross-source comparison   |
+
+> **It describes the parent sediment, never a sieved aliquot.** A grain-size curve is
+> measured on the sediment as collected, so `fines_lt63` belongs to that material and
+> not to whatever cut was later analysed for metals. The data says so plainly: a cut
+> below 63µm would be 100% mud by definition, yet across subsamples whose target
+> measurements are sieved to <63µm the median `fines_lt63` is about 15%, *lower* than
+> the ~50% for bulk subsamples, because sandy sediment is what gets sieved in the
+> first place.
+>
+> The consequence, and the reason this note exists: **never divide a sieved
+> measurement by `fines_lt63`.** Doing so scales a concentration by the mud content of
+> different material, and inflates it by roughly the reciprocal of that content. The
+> refined grain-size-normalised background did exactly this until 2026-08-27 and
+> published copper sieved63 at 65.1 against a raw offshore median of 19.7. Scaling a
+> <63µm aliquot to 100% mud is in any case the identity, and for a <20µm aliquot the
+> quantity is not defined. See the bulk-normalised, sieved-raw rule in CLAUDE.md.
 
 `fines_lt63` is taken from the corrected `value_std_corr` (step 14; Mareano uses
 `value_std`, which for its clean vol.%/wt.% data are the same) so units (`%`,

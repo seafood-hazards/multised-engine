@@ -2,6 +2,19 @@
 # Adds `subsample.fines_lt63` (% finer than 63µm, the clay + silt "mud"
 # fraction) + `subsample.fines_basis` (how it was derived).
 #
+# WHAT THE COLUMN MEANS. It describes the PARENT SEDIMENT as collected, never a
+# sieved aliquot: a grain-size curve is measured on the whole sample, so the number
+# belongs to that material and not to whatever cut was later analysed for metals.
+# The data shows it plainly. A cut below 63µm would be 100% mud by definition, yet
+# across subsamples whose targets are sieved to <63µm the median here is about 15%,
+# LOWER than the ~50% for bulk, because sandy sediment is what gets sieved.
+#
+# So never divide a sieved measurement by it: that scales a concentration by the mud
+# content of different material and inflates it by roughly the reciprocal of that
+# content. The refined grain-size-normalised background did exactly this until
+# 2026-08-27. See the bulk-normalised, sieved-raw rule in CLAUDE.md and step 15 in
+# docs/slim-pipeline.md.
+#
 # Source-specific, and present for every source with grain-size (all but
 # 4Demon). Three derivations, because each source encodes grain-size
 # differently. Mareano reads `value_std` (it has no step 14); the others read the
