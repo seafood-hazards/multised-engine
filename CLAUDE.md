@@ -52,9 +52,11 @@ Alongside the generations:
   finished DB, writing CSVs to `data/analysis/<module>/` for the websites. The
   generation token (`clean` / `merged` / `refined`) says which DB is read. Run
   with `analyze_data()`. See [analysis.md](docs/analysis.md).
-- **websites** — nine Quarto sites, each in a **sibling repo**, not in this
-  project: five per-source pilot sites (`../<source>-pilot`) plus one per later
-  generation. A pilot site depends only on its `<source>_pilot.sqlite`, taken
+- **websites** — ten Quarto sites, each in a **sibling repo**, not in this
+  project: five per-source pilot sites (`../<source>-pilot`), one per later
+  generation, and `../multised-summary`, the plain-English layer over the
+  refined results ([summary-site.md](docs/summary-site.md)). A pilot site
+  depends only on its `<source>_pilot.sqlite`, taken
   from that repo's *latest* release, so **every release there must carry the
   database as an asset**. See [websites.md](docs/websites.md).
 
@@ -78,10 +80,14 @@ export_data(generation = "refined", format = c("dataset", "efsa"),
 - `create_db()` covers **all five generations**. `source` is required for the
   per-source generations (pilot/slim/clean) and must be `NULL` for
   merged/refined.
-- `analyze_data()` covers **all 29 analyses** (6 clean, 13 merged, 10 refined);
+- `analyze_data()` covers **all 30 analyses** (6 clean, 13 merged, 11 refined);
   `generation` is `clean`, `merged` or `refined`. `module = NULL` runs every
   module for it. Most modules hold one analysis; `background` holds ten, and is
-  the only refined module. `analysis_modules(generation)` is the live answer.
+  one of two refined modules. `analysis_modules(generation)` is the live answer.
+  The second refined module is `summary`: it assembles what `background` wrote
+  into the tables the multised-summary site draws, and derives no verdict of its
+  own. It must run after `background`, which a full `analyze_data("refined")` run
+  does. See [summary-site.md](docs/summary-site.md).
 - `export_data()` denormalises a finished DB into a flat gzipped TSV plus a
   column dictionary. It derives nothing of its own, which is why it is not an
   analysis module; `refined` is the only generation with one. `format` picks
@@ -214,8 +220,8 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 - The `multised-engine` DESCRIPTION/NAMESPACE make this a package skeleton, but the
   code is a script pipeline, not an exported-function package.
 - **No em-dashes in the Quarto site pages** (`../multised-slim`,
-  `../multised-clean`, `../multised-merged`, `../multised-refined`): use commas,
-  colons, or parentheses instead.
+  `../multised-clean`, `../multised-merged`, `../multised-refined`,
+  `../multised-summary`): use commas, colons, or parentheses instead.
 
 ## Docs map
 
@@ -232,7 +238,8 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [inst/extdata/extraction-class/README.md](inst/extdata/extraction-class/README.md) | the frozen extraction-code table: EFSA extraction class, the ICES METCX vocabulary, the six judgement calls |
 | [efsa-submission.md](docs/efsa-submission.md) | recovering the EFSA optional fields: extraction class (recoverable, 51.5%) and porewater pH (absent everywhere) |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
-| [websites.md](docs/websites.md) | the nine sibling-repo Quarto sites (5 pilot + 4 generation), publishing, gotchas |
+| [summary-site.md](docs/summary-site.md) | the plain-English summary layer: why it is a module and not a 6th generation, the no-typed-numbers rule, the shared element template |
+| [websites.md](docs/websites.md) | the ten sibling-repo Quarto sites (5 pilot + 4 generation + summary), publishing, gotchas |
 | [sediment-composition-codes.md](docs/sediment-composition-codes.md) | grain-size code reference |
 | [inst/extdata/vannmiljo-programmes/README.md](inst/extdata/vannmiljo-programmes/README.md) | Vannmiljø programme codes as a stated pressure label: aquaculture / pressure / reference / survey |
 | [generation-gaps.md](docs/generation-gaps.md) | what each generation drops that the sources record: extraction, sieving, accreditation, pressure labels; Igeo/PLI and farm-size plan |
