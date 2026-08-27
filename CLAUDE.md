@@ -194,8 +194,12 @@ lists.
 | `composition` | grain-size mass-fraction parameters (ICES-DOME `GS…`/`GSMF…` codes) |
 
 **Al is the only valid enrichment normaliser, and only where it predicts the
-element**: EF and pristine verdicts exist for CO/CU/ZN in bulk alone (D4, see
-[normalisability](inst/extdata/normalisability/README.md)). **Fe is a reference, never a
+element**: EF exists for CO/CU/ZN in bulk alone (D4, see
+[normalisability](inst/extdata/normalisability/README.md)). **D4 governs bulk only.**
+The grain-size control is per fraction: aluminium in bulk, the sieve in the sieved
+fractions, where it was applied physically before the chemistry. So a sieved group
+gets a pristine verdict without an EF, from the two concentration criteria (offshore
+P90 and the mixture threshold); it is the conservative verdict only. **Fe is a reference, never a
 normaliser** — Norwegian fish feed contains iron, so Fe near a farm is partly the
 pressure being measured. It may be shown for comparison; it must not enter an EF
 or a pristine verdict.
@@ -234,7 +238,7 @@ as composition. Grain-size code naming is source-dependent (ICES `GSMF63` = belo
 | [refined-review-response.md](docs/refined-review-response.md) | external review of the refined site: dispositions, decisions, ordering |
 | [ef-source-bias.md](docs/ef-source-bias.md) | why the bulk EF background is not comparable across sources, and the options |
 | [inst/extdata/loq-censoring/README.md](inst/extdata/loq-censoring/README.md) | below-LOQ rows are removed at clean step 2; why Se and Mo verdicts are withheld |
-| [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF and pristine verdicts exist only where Al predicts the element (CO/CU/ZN bulk) |
+| [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF exists only where Al predicts the element (CO/CU/ZN bulk); D4 governs bulk only, the sieved fractions are controlled by the sieve |
 | [inst/extdata/extraction-class/README.md](inst/extdata/extraction-class/README.md) | the frozen extraction-code table: EFSA extraction class, the ICES METCX vocabulary, the six judgement calls |
 | [efsa-submission.md](docs/efsa-submission.md) | recovering the EFSA optional fields: extraction class (recoverable, 51.5%) and porewater pH (absent everywhere) |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
