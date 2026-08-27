@@ -31,6 +31,9 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   #
   # Outputs -> data/analysis/background/ (gitignored):
   #   refined_pristine_summary.csv     per element x fraction: % classifiable, % pristine (both rules)
+  #   refined_pristine_reference.csv   per fraction: what its offshore reference population IS
+  #   refined_pristine_sea_spread.csv  per group: how far the background moves between seas,
+  #                                    raw and after / Al (which control actually travels)
   #   refined_pristine_coverage.csv    % classifiable by distance band  (the data gap)
   #   refined_pristine_validation.csv  % pristine by distance band, among classifiable samples
   #   refined_pristine_validation_source.csv  the same, WITHIN each source (the confounding test)
@@ -55,7 +58,7 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   on.exit(dbDisconnect(con), add = TRUE)
   m <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
-           si.dist_to_coast, si.dist_to_fish_farm,
+           si.dist_to_coast, si.dist_to_fish_farm, si.latitude, si.depth, si.sea_name,
            n.fe AS norm_fe, n.al AS norm_al, d.source AS source
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
@@ -219,7 +222,71 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     ungroup() |>
     arrange(source, band)
 
+  # ── What each fraction's offshore reference actually is ──────────────────────
+  # The verdict is only as good as the population it is referenced to, and the two
+  # fractions are not referenced to the same sea. Sieving is a national convention
+  # rather than a property of a sample: Norway reports bulk and Germany, Belgium and
+  # the Netherlands sieve, so "offshore > 10 km" resolves to the deep Norwegian and
+  # Barents Sea in bulk and to the southern North Sea and Baltic in the sieved
+  # fractions. That is the standing caveat on a sieved verdict, and the pages that
+  # carry the caveat read its numbers from here rather than restating them.
+  reference <- m |>
+    filter(dist_to_coast > 10, !withheld) |>
+    group_by(cat) |>
+    summarise(gs_control = dplyr::first(gs_control),
+              n = n(),
+              lat_p50   = round(median(latitude, na.rm = TRUE), 1),
+              depth_p50 = round(median(depth, na.rm = TRUE)),
+              top_seas  = paste(names(sort(table(sea_name), decreasing = TRUE))[1:2],
+                                collapse = ", "),
+              .groups = "drop") |>
+    left_join(
+      m |> filter(!withheld) |>
+        group_by(cat) |>
+        summarise(n_north_60 = sum(latitude > 60, na.rm = TRUE),
+                  n_farm_lt5km = sum(dist_to_fish_farm < 5, na.rm = TRUE),
+                  .groups = "drop"),
+      by = "cat") |>
+    mutate(cat = factor(cat, levels = CATS)) |>
+    arrange(cat)
+
+  # ── Which control actually travels between seas ──────────────────────────────
+  # The claim behind the per-fraction rule is that the sieve is the better grain-size
+  # control, not merely a different one. This measures it: take each fraction's
+  # offshore background sea by sea and ask how far it moves, as the largest sea median
+  # over the smallest. A control that works should leave a background that is close to
+  # the same number in every sea. Reported raw and after dividing by aluminium, so the
+  # two controls are compared on one scale. Some of the spread is real contamination
+  # rather than method noise, which is why this is only read as a comparison between
+  # the two columns and never as an absolute.
+  MIN_SEA <- 30L
+  fold <- function(x) {
+    x <- x[!is.na(x)]
+    if (length(x) < 2) return(NA_real_)
+    round(max(x) / min(x), 1)
+  }
+  sea_spread <- m |>
+    filter(dist_to_coast > 10, !withheld, !is.na(sea_name)) |>
+    group_by(symbol, cat, sea_name) |>
+    summarise(n = n(),
+              med_raw = median(value_std, na.rm = TRUE),
+              med_al  = if (sum(!is.na(ratio_al)) >= MIN_SEA)
+                          median(ratio_al, na.rm = TRUE) else NA_real_,
+              .groups = "drop") |>
+    filter(n >= MIN_SEA) |>
+    group_by(symbol, cat) |>
+    summarise(n_seas = n(), n = sum(n),
+              fold_raw = fold(med_raw),
+              n_seas_al = sum(!is.na(med_al)),
+              fold_al = fold(med_al), .groups = "drop") |>
+    filter(n_seas >= 3) |>
+    mutate(symbol = factor(symbol, levels = elem_levels),
+           cat = factor(cat, levels = CATS)) |>
+    arrange(symbol, cat)
+
   write_csv(summary_tbl, file.path(adir, "refined_pristine_summary.csv"))
+  write_csv(reference,   file.path(adir, "refined_pristine_reference.csv"))
+  write_csv(sea_spread,  file.path(adir, "refined_pristine_sea_spread.csv"))
   write_csv(validation_source, file.path(adir, "refined_pristine_validation_source.csv"))
   write_csv(coverage,    file.path(adir, "refined_pristine_coverage.csv"))
   write_csv(coverage_source,
