@@ -1,5 +1,66 @@
 # multised.engine (development version)
 
+## The grain-size control is per fraction, and D4 governs bulk only
+
+The pristine verdict withheld itself from every sieved measurement, and the reason
+was a category error rather than a property of the data. D4 asks whether aluminium
+predicts the metal. On a sieved sample the honest answer is that the question does
+not arise: the sieve applied the grain-size correction physically, before the
+chemistry, so aluminium there is a spare measurement and not the normaliser. The
+frozen table scored the sieved fractions `normalisable = FALSE` all the same, and
+one line in `analysis_refined_pristine()` read that `FALSE` as grounds to withhold.
+**"No correction needed" was being read as "the correction failed"**, penalising the
+fraction that had the better control all along.
+
+- `refined_gs_control()` (new, in `R/analysis-refined-shared-normalisability.R`)
+  names the control: `aluminium` in bulk, `sieve` in `sieved63` / `sieved20`. Both
+  the aluminium-basis gate and D4 now apply only where aluminium is the control.
+- `refined_al_normalisability.csv` gains a `gs_control` column and carries
+  `normalisable = NA` (not asked) on its sieved rows. Their `r2` and `rho` stay,
+  because they are still the direct evidence that the sieve has already removed the
+  texture signal, but nothing reads them to decide anything.
+- `pristine_strict` becomes "every criterion that applies to the fraction agrees":
+  in bulk all three as before, in the sieved fractions the two concentration criteria
+  (offshore P90 and the mixture threshold), which need no aluminium.
+- `pristine_ef` stays exactly `EF < 1` and so stays empty off bulk. The EFSA
+  `pristineLoc` field keeps its meaning, and an earlier download stays a subset.
+- `export_data("refined")` carried its own copy of the rule; it now matches.
+  `summary_elements.csv` gains `gs_control`, and its `has_verdict` and plain-English
+  `note` no longer contradict `summary_verdicts.csv`.
+- `check_normalisability()` compares only the groups the rule governs, so a sieved
+  `r2` moving is a diagnostic moving, not a rule breaking.
+
+**27 971 sieved measurements gain a verdict.** No bulk number moves: Co 48/47, Cu
+44/44, Zn 43/43 before and after. New conservative verdicts, % pristine: Co sieved63
+96, Co sieved20 85, Cu sieved63 68, Cu sieved20 91, Zn sieved63 91, Zn sieved20 74,
+Mn sieved63 92, Mn sieved20 45. Selenium and molybdenum stay withheld everywhere on
+D1 (LOQ censoring), which is untouched by this.
+
+Manganese is the one judgement call. Its bulk verdict is withheld because aluminium
+does not carry it (redox-mobile, not clay-borne), and that is a real failure with no
+substitute. In the sieved fractions the sieve supplies the grain-size control D4 was
+testing for, so Mn qualifies under the architecture's own definition of a
+grain-size-controlled criterion. Its redox mobility remains a caveat on reading the
+verdict, and is not a grain-size question.
+
+Two new outputs carry the evidence and the caveat, so the pages can read them rather
+than restate them: `refined_pristine_reference.csv` (what each fraction's offshore
+reference population actually is: where it sits, how deep, how little of it is in the
+far north, and how much of it is near a farm) and `refined_pristine_sea_spread.csv`
+(how far each background moves between seas, raw and after dividing by aluminium,
+which is the measurement behind the claim that the sieve is the better control). Both
+travel to the summary layer as `summary_reference.csv` and `summary_sea_spread.csv`.
+
+Two things this does **not** settle. The sieved offshore reference is the southern
+North Sea and the Baltic (median 52-54N, 29-32 m depth) against the Norwegian and
+Barents Sea for bulk (66N, 249 m), because sieving is a national convention: Norway
+reports 63 056 bulk measurements of Co/Cu/Zn and 293 sieved, Germany the reverse.
+There are 174 sieved measurements north of 60N in the database against 51 789 bulk, so
+the sieved background cannot be checked in Norwegian waters. That is why the sieved fractions
+get the conservative verdict only. And it is why the fish-farm validation stays on
+bulk: the sieved fractions hold 0 measurements within 5 km of a Norwegian farm.
+
+
 ## A summary layer over the refined results
 
 A new analysis module, `analyze_data("refined", module = "summary")`, and a tenth

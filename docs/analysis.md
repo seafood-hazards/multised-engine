@@ -221,10 +221,20 @@ cannot ask about itself: whether the intercept the ratio assumes away is really
 zero, and whether aluminium predicts the metal at all. The second turned out to
 matter more: R2 is about 0.5 for Co, Cu and Zn in bulk and under 0.1 for
 everything else, sieved fractions included. Those three groups are therefore the
-only ones the EF and pristine steps classify. The rule itself is frozen in
+only ones the EF step computes an enrichment factor for.
+
+**D4 governs bulk only.** The grain-size control is a property of the fraction, not
+of the rule: aluminium in bulk, where the control has to be statistical, and the
+sieve in the sieved fractions, where it was applied physically before the chemistry.
+Aluminium scoring near zero on a sieved fraction is that control working, not
+failing, so it withholds nothing; the sieved `r2` and `rho` stay in the frozen table
+as a diagnostic and nothing reads them to decide. `refined_gs_control()` is the
+split. Before 2026-08-27 the sieved rows were scored `normalisable = FALSE` and that
+flag withheld a verdict from 27 971 sieved measurements. The rule itself is frozen in
 `inst/extdata/normalisability/` and read through
 `R/analysis-refined-shared-normalisability.R`, because steps 4 and 6 consume it
-and run first; step 8 recomputes it and warns if the frozen table has gone stale.
+and run first; step 8 recomputes it and warns if the frozen table has gone stale,
+over the groups the rule governs.
 
 Step 10 adds the **geo-accumulation index**, `Igeo = log2(C / (1.5 * B))`, against the
 same offshore (> 10 km) population the EF reference is cut from but using the median raw
@@ -372,9 +382,9 @@ references behind them, added by `add_background_flags()`:
 | Column | Is |
 |---|---|
 | `ef` | the enrichment factor, `ratio_al / bg_ratio_al` |
-| `classifiable` | whether an EF exists, so a pristine verdict is possible |
-| `pristine_ef` | `EF < 1`, the permissive rule |
-| `pristine_strict` | `EF < 1` and below the mixture threshold and below the offshore P90 |
+| `classifiable` | whether a pristine verdict exists for the row: in bulk, that an EF could be computed; in the sieved fractions, that the element is not withheld and an offshore P90 exists |
+| `pristine_ef` | `EF < 1`, the permissive rule. Bulk only, since no EF is defined off the aluminium-controlled fraction |
+| `pristine_strict` | every criterion that applies to the fraction agrees. Bulk: `EF < 1` and below the mixture threshold and below the offshore P90. Sieved: below the mixture threshold and below the offshore P90, with the sieve as the grain-size control |
 | `background_p90` | below the offshore P90 (raw concentration, not grain-size controlled) |
 | `background_mixture` | below the mixture threshold (likewise) |
 | `bg_ratio_al`, `p90_off`, `mixture_threshold` | the three references applied to that row |

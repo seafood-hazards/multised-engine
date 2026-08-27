@@ -152,6 +152,7 @@ utils::globalVariables(c(
   "name", "name_ices", "name_src", "navn", "new", "new_unit", "ngu_id",
   "Ni", "norm_val", "normaliser", "ny", "nyear", "oom", "operator",
   "org_exist", "organisation", "other", "outlier_extreme_flag",
+  "gs_control", "al_gated",
   "outlier_flag", "outlier_stdev_flag", "P", "P2301_NGU ID", "p25",
   "p25_rel_pct", "p50", "p75", "p75_rel_pct", "p90", "p90_global",
   "p90_off", "p90_off10", "p_sign", "PARAM", "param", "param_description",

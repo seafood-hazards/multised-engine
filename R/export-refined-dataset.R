@@ -156,9 +156,9 @@ export_refined_dataset <- function(db_dir = multised_db_dir(),
     "accredited",              "",           "Whether the analysing laboratory was accredited, as the source states it: yes, partly (the lab holds accreditation but not for every parameter), no. Empty where the source does not say, which is ICES-DOME, Vannmiljo and 4Demon entirely.",
     "extraction_class",        "",           "EFSA extraction class derived from the code: 1 = strong (aqua regia or strong acid digestion, aimed at total recovery), 2 = milder (nitric acid, with or without peroxide), 3 = weak or none (no extraction, or not reported). Only ICES-DOME, MUDAB and Mareano record the digestion; Vannmiljo and 4Demon do not, so they are all class 3.",
     "ef",                      "",           "Enrichment factor: (element/Al) divided by the offshore background (element/Al) for the same element and fraction. EF < 1 means at or below background. Empty where aluminium is missing, where the sample is off its fraction's aluminium basis, or where aluminium does not predict that element (see the row on which groups get an ef).",
-    "classifiable",            "",           "TRUE where an EF could be computed, so a pristine verdict exists. FALSE otherwise; the two pristine columns are then empty.",
-    "pristine_ef",             "",           "Pristine under the permissive rule: EF < 1. Empty where not classifiable.",
-    "pristine_strict",         "",           "Pristine under the conservative rule: EF < 1 AND below the mixture threshold AND below the offshore P90. Empty where not classifiable.",
+    "classifiable",            "",           "TRUE where a pristine verdict exists for the row. In bulk that means an EF could be computed; in the sieved fractions, where the sieve is the grain-size control, it means the element is not withheld and an offshore P90 exists for the group. FALSE otherwise; the pristine columns are then empty.",
+    "pristine_ef",             "",           "Pristine under the permissive rule: EF < 1. Bulk only: the sieved fractions are controlled by the sieve rather than by aluminium, so no enrichment factor is defined for them and this column is empty there. Also empty where not classifiable.",
+    "pristine_strict",         "",           "Pristine under the conservative rule: every background criterion that applies to the fraction agrees. In bulk, where aluminium is the grain-size control, that is EF < 1 AND below the mixture threshold AND below the offshore P90. In the sieved fractions the sieve is the grain-size control, so the enrichment factor is not one of the criteria and the rule is below the mixture threshold AND below the offshore P90. Empty where not classifiable.",
     "background_p90",          "",           "TRUE where the concentration is below the offshore P90 for its element and fraction (the Global Background definition). Not grain-size controlled.",
     "background_mixture",      "",           "TRUE where the concentration is below the distribution-mixture threshold separating the background from the enriched population. Not grain-size controlled.",
     "igeo",                    "",           "Geo-accumulation index: log2(concentration / (1.5 * local background)), where the local background is the offshore (> 10 km) median for the same element and fraction. Uses no aluminium, so it is present on about 97% of rows, against 10% for ef. Empty for selenium and molybdenum on the same grounds as their other verdicts: a background censored at the LOQ is in the denominator. It is NOT a verdict and is not part of pristine_ef: in bulk it correlates with grain size strongly enough (cobalt rho 0.70) that a verdict built on it would be partly a verdict about texture. Read it beside ef, not instead of it.",
@@ -251,24 +251,38 @@ add_background_flags <- function(df, out_dir) {
       # R/analysis-refined-shared-basis.R; the finding is in docs/ef-source-bias.md.
       al_basis = refined_al_basis(fe_mgkg, al_mgkg),
       on_al_basis = refined_on_basis(al_basis, fraction),
+      # Which correction controls grain size, and therefore which gates apply. Bulk is
+      # controlled by aluminium and has to earn it; a sieved sample was cut to size
+      # before the chemistry started and needs neither the basis gate nor D4. Same
+      # split as the analysis, from R/analysis-refined-shared-normalisability.R.
+      gs_control = refined_gs_control(fraction),
+      al_gated   = gs_control == "aluminium",
       # D4, the normalisability gate: metal/Al is only a grain-size control where
       # aluminium predicts the metal, which it does for CO/CU/ZN in bulk and nowhere
-      # else. Those groups get no EF and so no pristine verdict. It gates ONLY the
+      # else. Those bulk groups get no EF and so no pristine verdict. It gates ONLY the
       # aluminium-derived columns: background_p90 and background_mixture use no
       # aluminium and are unaffected. See inst/extdata/normalisability/README.md.
       normalisable = refined_normalisable(element, fraction),
-      al_ok = in_scope & on_al_basis & normalisable,
+      al_ok = al_gated & in_scope & on_al_basis & normalisable,
       ef_raw = if_else(al_ok & !is.na(ratio_al) &
                          !is.na(bg_ratio_al) & bg_ratio_al > 0,
                        ratio_al / bg_ratio_al, NA_real_),
-      classifiable    = !is.na(ef_raw),
-      pristine_ef     = if_else(classifiable, ef_raw < 1, NA),
+      classifiable    = if_else(al_gated, !is.na(ef_raw),
+                                in_scope & !is.na(p90_off)),
+      # the permissive verdict stays exactly EF < 1, so it stays empty off the
+      # aluminium-controlled fraction and the EFSA pristineLoc field keeps its meaning
+      pristine_ef     = if_else(al_gated & classifiable, ef_raw < 1, NA),
       # an unusable mixture threshold is not applied; see the Distribution-Mixture page
       mix_ok = case_when(is.na(mixture_usable) ~ NA,
                          !mixture_usable       ~ TRUE,
                          TRUE                  ~ value_mgkg < mixture_threshold),
-      pristine_strict = if_else(classifiable,
-                                (ef_raw < 1) & mix_ok & (value_mgkg < p90_off), NA),
+      # every criterion that applies to the fraction has to agree: all three in bulk,
+      # the two concentration ones in the sieved fractions, where the sieve is the
+      # grain-size control and the enrichment factor is not one of the criteria
+      pristine_strict = case_when(
+        !classifiable ~ NA,
+        al_gated      ~ (ef_raw < 1) & mix_ok & (value_mgkg < p90_off),
+        TRUE          ~ mix_ok & (value_mgkg < p90_off)),
       # 6 significant digits, not 3 decimals: at 3 dp an EF of 0.9996 prints as
       # 1.000 next to pristine_ef = TRUE, and a reader checking `ef < 1` gets a
       # different answer from the flag. Asserted below.
@@ -302,6 +316,7 @@ add_background_flags <- function(df, out_dir) {
       igeo_class = if_else(igeo_ok, refined_igeo_class(igeo), NA_character_),
       igeo_background = if_else(igeo_ok, igeo_background, NA_real_)) |>
     select(-in_scope, -ef_raw, -ef_p90ref_raw, -on_al_basis, -mix_ok, -mixture_usable,
+           -gs_control, -al_gated,
            -withheld, -normalisable, -al_ok, -igeo_ok, -igeo_reliable) |>
     check_ef_consistent()
 }

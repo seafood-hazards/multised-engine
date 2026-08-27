@@ -68,6 +68,8 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   igm  <- rd("refined_igeo_pressure_matched.csv")
   ps   <- rd("refined_pristine_summary.csv")
   pcov <- rd("refined_pristine_coverage.csv")
+  pref <- rd("refined_pristine_reference.csv")
+  pspr <- rd("refined_pristine_sea_spread.csv")
   pctl <- rd("refined_pressure_controls.csv")
   iws  <- rd("refined_igeo_within_site.csv")
   cens <- rd("refined_censoring.csv")
@@ -138,10 +140,15 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     left_join(al, by = c("symbol", "cat")) |>
     mutate(
       withheld     = symbol %in% withheld,
+      # what controls grain size here, and so which gate the verdict has to pass.
+      # Aluminium is the control in bulk and has to earn it (D4); in the sieved
+      # fractions the sieve is the control and did the job before the chemistry
+      # started, so D4 does not apply and the r2 beside it is a diagnostic only.
+      gs_control   = refined_gs_control(cat),
       normalisable = refined_normalisable(symbol, cat),
       al_tested    = !is.na(al_n),
       has_background = n >= MIN_N & !withheld,
-      has_verdict    = has_background & normalisable,
+      has_verdict    = has_background & (gs_control == "sieve" | normalisable),
       # one plain-English clause per group, for the Results landing matrix. The
       # order matters: censoring is checked first because a withheld element has no
       # background to normalise in the first place.
@@ -149,14 +156,15 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
         withheld ~ sprintf("withheld: %s%% of measurements fell below the limit of quantification",
                            format(pct_censored, trim = TRUE)),
         n < MIN_N ~ sprintf("too few measurements (%d, the reporting threshold is %d)", n, MIN_N),
+        gs_control == "sieve" ~ "full: concentrations, background and a pristine verdict, grain-size controlled by the sieve rather than by aluminium",
         !normalisable ~ "concentrations and background only: aluminium does not predict this element, so no enrichment factor",
         TRUE ~ "full: concentrations, background and a pristine verdict"
       )
     ) |>
     select(symbol, name, cat, n, n_sites, n_datasets, n_sources, year_min, year_max,
            n_elem, n_sites_elem, n_sources_elem, year_min_elem, year_max_elem,
-           pct_censored, withheld, al_tested, al_n, al_r2, al_rho, normalisable,
-           has_background, has_verdict, note) |>
+           pct_censored, withheld, gs_control, al_tested, al_n, al_r2, al_rho,
+           normalisable, has_background, has_verdict, note) |>
     mutate(symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, match(cat, CATS))
 
@@ -451,7 +459,21 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
 
   # ── 11. Write ────────────────────────────────────────────────────────────────
   wr <- function(x, f) { write_csv(x, file.path(adir, f), na = ""); invisible(x) }
+  # What each fraction's offshore reference actually is, and which grain-size control
+  # holds a background steady across seas. Both travel to the summary layer because the
+  # sieved verdicts cannot be read honestly without them: the pages that carry the
+  # caveat must read its numbers rather than restate them.
+  reference <- pref |>
+    transmute(cat, gs_control, n, lat_p50, depth_p50, top_seas,
+              n_north_60, n_farm_lt5km,
+              label = if_else(gs_control == "sieve",
+                              "grain-size controlled by the sieve",
+                              "grain-size controlled by aluminium"))
+  sea_spread <- pspr |> transmute(symbol, cat, n_seas, n, fold_raw, fold_al)
+
   wr(elements,   "summary_elements.csv")
+  wr(reference,  "summary_reference.csv")
+  wr(sea_spread, "summary_sea_spread.csv")
   wr(bg_long,    "summary_background.csv")
   wr(verdicts,   "summary_verdicts.csv")
   wr(coverage,   "summary_coverage.csv")
