@@ -64,6 +64,25 @@ Then a second pass, this one reaching the module:
   data lands at zoom 3. Shorter, and it dropped to zoom 2: North Africa filling the
   bottom of the frame while the Svalbard and Barents cells were cut off the top.
 
+And a third, which answered the question that was actually being asked:
+
+- **"Why can the sieved fractions not be judged pristine?" is not the same question
+  as "why does aluminium fail on them".** Nothing in the data prevents it. What
+  prevents it is that the verdict *is* an enrichment factor, so a sample with no
+  aluminium falls outside the rule rather than failing it. The
+  concentration-against-background judgement that does work on a sieved sample is
+  already published under another name, the contamination class, and the strict
+  rule's two non-EF criteria survive too. The pristine methods page now says so,
+  and names the open decision instead of implying a closed one.
+- **The fines-normalised background is bulk only.** `fines_lt63` describes the
+  parent sediment, not the aliquot: its median across sieved <20 um measurements is
+  79%, which an aliquot cut to below 20 um could not have. Dividing a sieved
+  concentration by it inflates material that is already all fines, and copper
+  sieved63's grain-size-normalised offshore median came out at 65.1 against a raw
+  offshore median of 19.7. `summary_background.csv` now takes the fines basis for
+  bulk alone. Suppressed here, not fixed at source: `refined_gsnorm_percentiles.csv`
+  still carries the sieved rows and the refined site still draws them.
+
 ## A before/after control that needs no matching, and zinc stops being null
 
 Every Igeo control so far matched one population against another and paid for it: texture
