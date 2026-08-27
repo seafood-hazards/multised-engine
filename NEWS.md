@@ -36,12 +36,15 @@ fraction that had the better control all along.
 Mn sieved63 92, Mn sieved20 45. Selenium and molybdenum stay withheld everywhere on
 D1 (LOQ censoring), which is untouched by this.
 
-Manganese is the one judgement call. Its bulk verdict is withheld because aluminium
-does not carry it (redox-mobile, not clay-borne), and that is a real failure with no
-substitute. In the sieved fractions the sieve supplies the grain-size control D4 was
-testing for, so Mn qualifies under the architecture's own definition of a
-grain-size-controlled criterion. Its redox mobility remains a caveat on reading the
-verdict, and is not a grain-size question.
+Manganese gains a sieved verdict while keeping none in bulk, and that is the rule read
+consistently rather than an anomaly. Its bulk verdict is withheld because aluminium
+does not carry it, manganese not being clay-borne, which makes aluminium an
+inappropriate normaliser for it rather than a failed one. That is a fact about
+aluminium and it does not travel to a fraction that uses none: in the sieved fractions
+the sieve supplies the grain-size control D4 was testing for, and the two criteria that
+remain are concentration comparisons against manganese's own offshore population for
+its own fraction. Sieved manganese stands on exactly the footing sieved copper and zinc
+do, and carries no caveat they do not.
 
 Two new outputs carry the evidence and the caveat, so the pages can read them rather
 than restate them: `refined_pristine_reference.csv` (what each fraction's offshore
