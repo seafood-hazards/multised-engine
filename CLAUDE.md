@@ -193,13 +193,37 @@ lists.
 | `organic`     | CORG (ices-dome, mudab) / TOC, TOC63 (mareano, vannmiljo) |
 | `composition` | grain-size mass-fraction parameters (ICES-DOME `GS…`/`GSMF…` codes) |
 
-**Al is the only valid enrichment normaliser, and only where it predicts the
-element**: EF exists for CO/CU/ZN in bulk alone (D4, see
-[normalisability](inst/extdata/normalisability/README.md)). **D4 governs bulk only.**
-The grain-size control is per fraction: aluminium in bulk, the sieve in the sieved
-fractions, where it was applied physically before the chemistry. So a sieved group
-gets a pristine verdict without an EF, from the two concentration criteria (offshore
-P90 and the mixture threshold); it is the conservative verdict only. **Fe is a reference, never a
+### The bulk-normalised, sieved-raw rule
+
+**Never normalise a sieved measurement to make a decision.** Grain-size control is a
+property of the fraction: in **bulk** it is statistical and must be earned (a
+normaliser has to predict the metal); in the **sieved** fractions it is physical and
+was already applied, by the sieve, before the chemistry. A normaliser ratio on a
+sieved sample is a **diagnostic only**, valid for checking trends and never for
+gating, withholding or judging.
+
+The merged generation states this rule and follows it (`R/analysis-merged-*.R`: bulk
+gets metal/Fe, sieved gets raw mg/kg; `normalisation`, `organic`, `spatial`,
+`temporal`, `depthprofile` and `siteyears` all filter `frac_class = 'bulk'` before
+fitting). The refined generation broke it in D4 and was corrected on 2026-08-27.
+
+Two ways it has crept back in, both worth checking for by name:
+
+1. **The flag.** A test of the normaliser scored the sieved fractions and something
+   read that score to withhold. Near-zero R2 on a sieved fraction is the sieve having
+   worked, not the normaliser having failed.
+2. **The justification.** Even after the flag is fixed, the *explanation* of a
+   normaliser result can be reattached as a caveat. "Manganese is redox-mobile" is
+   D4's reason why Al fails for Mn in bulk; it is not evidence about a sieved Mn
+   verdict, which uses no Al.
+
+Consequences in the refined generation: **Al is the only valid enrichment normaliser,
+and only where it predicts the element**, so EF exists for CO/CU/ZN in bulk alone (D4,
+see [normalisability](inst/extdata/normalisability/README.md)). **D4 governs bulk
+only.** A sieved group gets a pristine verdict without an EF, from the two
+concentration criteria (offshore P90 and the mixture threshold); it is the
+conservative verdict only, because the sieved offshore reference is the southern North
+Sea (see `refined_pristine_reference.csv`). **Fe is a reference, never a
 normaliser** — Norwegian fish feed contains iron, so Fe near a farm is partly the
 pressure being measured. It may be shown for comparison; it must not enter an EF
 or a pristine verdict.
