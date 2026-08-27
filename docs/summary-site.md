@@ -167,32 +167,64 @@ explained once, in "And in bulk sediment only" on the pristine methods page, and
 pointed at from the two places a reader meets it: the bulk-versus-sieved callout on
 the data page and the verdict table on each element page.
 
-**Say why with the numbers, not with the conclusion.** The first version of that
-section gave the reason correctly and still left a reader concluding that there
-must not be enough sieved data. There is plenty: copper sieved below 63 um has
-4 502 measurements and 2 203 of them carry a paired aluminium. What fails is the
-normaliser. Aluminium explains 55.6% of the variation in bulk copper and 0.3% in
-sieved copper, on comparable numbers of samples, against a rule that asks for 30%.
+That section was rewritten twice, and the second rewrite is the one worth keeping
+in mind, because the first two attempts each answered a question nobody was asking.
 
-So D4's own measures travel with the flag it produced: `summary_elements.csv`
-carries `al_tested`, `al_n`, `al_r2` and `al_rho` from the frozen normalisability
-table, and `summary_meta.csv` carries `al_r2_limit`. The page states the finding by
-printing them.
+**Attempt one gave the mechanism and let the reader infer the conclusion.** It said
+aluminium does not predict the metal in a sieved sample, and a reader concludes
+from that that there must not be enough sieved data. There is plenty: copper sieved
+below 63 um has 4 502 measurements and 2 203 of them carry a paired aluminium.
 
-The underlying reason, which the page also gives in plain English: **a sieved
-sample has already been grain-size corrected, by the sieve.** Aluminium is a proxy
-for how muddy a sample is; cut the sample to below 63 or 20 um and the
-mud-versus-sand difference has been removed in the laboratory before the chemistry
-starts, so there is little left for aluminium to track. The normaliser has not
-failed, it has been made redundant by the sample preparation.
+**Attempt two proved that with numbers and then over-explained the mechanism.**
+Aluminium explains 55.6% of the variation in bulk copper and 0.3% in sieved copper,
+which settles it; the three paragraphs after it on why sieving is itself a
+grain-size correction were telling a sediment chemist something they already knew.
+D4's own measures now travel with the flag it produced so the numbers can be shown
+instead of described: `summary_elements.csv` carries `al_tested`, `al_n`, `al_r2`
+and `al_rho`, and `summary_meta.csv` carries `al_r2_limit`.
 
-### Element pages are deliberately unequal
+**The question actually being asked was the next one.** If a sieved sample needs no
+grain-size correction, why can it not be judged pristine without one? Nothing in
+the data prevents it. What prevents it is that the verdict *is* an enrichment
+factor, so a sample with no aluminium falls outside the rule rather than failing
+it. The concentration-against-background judgement that does work on a sieved
+sample is already computed and published under another name, the contamination
+class, and the strict rule's two non-EF criteria survive as well: an offshore P90
+for all six sieved groups of CO/CU/ZN, a mixture bound for three.
 
-Three elements carry a full page, one carries background only, and three are close
-to empty. That is the finding, so the thin pages say plainly what cannot be said
-and why, and are not padded out to match. Filling them with source coverage and
-censoring detail until they looked as substantial as copper's was considered and
-rejected: it would imply more is known about selenium than is.
+The page now says that, and stops at the boundary of the decision:
+
+> A concentration-based pristine verdict for the sieved fractions could be built
+> from what is already computed. It has not been, because it would be a different
+> test wearing the same word.
+
+**That is an open decision and it belongs to the project, not to the page.** If it
+is ever taken, the reference is the thing to argue about: the contamination class
+measures against the offshore median, and offshore is not the same as clean.
+
+### The fines-normalised background is bulk only
+
+Found while checking the above, and the same species of error as the two
+withholding bugs: a correction applied to material that has already been corrected.
+
+The `fines` basis divides a concentration by the sample's mud fraction to scale it
+to 100% mud. `fines_lt63` sits on `subsample` and describes the **parent sediment**,
+not the aliquot that was measured, which is provable from the data: its median
+across sieved <20 um measurements is 79%, and an aliquot cut to below 20 um is by
+definition entirely below 63 um. Applied to a sieved measurement the correction
+therefore inflates a value that is already all fines, by the reciprocal of the
+parent's mud content. Copper sieved63's grain-size-normalised offshore median came
+out at 65.1 against a raw offshore median of 19.7.
+
+`summary_background.csv` now takes the fines basis for bulk only. Done correctly,
+sieved63 normalised to 100% mud is the identity, so the column would only duplicate
+the offshore median, and for sieved20 the quantity is not defined at all.
+
+**This is suppressed in the summary layer, not fixed at source.**
+`refined_gsnorm_percentiles.csv` still carries the sieved rows, and the refined
+site's Grain-Size-Normalised page still draws them. Fixing it there means deciding
+what the fines basis should mean for a sieved fraction, which is a change to the
+background module and is not made here.
 
 ### House style
 
