@@ -1,5 +1,33 @@
 # multised.engine (development version)
 
+## Re-audit of the clean generation
+
+Clean came through almost intact, and one lead that looked promising turned out not
+to be one.
+
+- **Slim step 14 is not a metal normalisation.** `value_std_corr` / `gs_corr`
+  renormalise grain-size *curves* that were reported mis-scaled (every code inflated
+  by the same factor, so a curve sums to 13 481 "percent" instead of 100). It equals
+  `value_std` everywhere else, and clean step 3 consumes it only to derive the
+  composition percentages. Nothing there corrects a metal for grain size, so the
+  sieved-raw rule does not reach it.
+- **The clean pipeline decides nothing on a normaliser.** `fines_lt63` and
+  `fines_basis` are carried through as columns by `clean-shared-subsample-meta.R` and
+  read by no gate.
+- **`analysis_clean_normalisation()` and `analysis_clean_organic()` do fit the sieved
+  fractions**, unlike their merged successors which restrict to bulk. That is allowed:
+  they produce correlation tables, not verdicts, and a normaliser ratio on a sieved
+  sample is a legitimate diagnostic. The clean site then reports bulk only
+  (`filter(frac_class == "bulk")` on every table and figure), so nothing sieved is
+  presented as a normalised result.
+
+One defect, on the clean site's Normalisation page: its closing callout said the
+enrichment factor and pristine cutoff "are built on these normalised values at the
+later merged / background stage". The stage is refined, not merged; the verdict rests
+on normalised values in **bulk** alone; and the sentence swept iron in alongside
+aluminium, which it never may. Corrected.
+
+
 ## Re-audit of the summary layer
 
 Same sweep as the refined one, plus the summary site's own rule that no page
