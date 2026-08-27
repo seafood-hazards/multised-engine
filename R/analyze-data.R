@@ -4,8 +4,13 @@
 
 # The analysis registry. `module` groups the scripts a site page set is cut
 # from; `step` orders them within a module. Only `background` has more than one
-# step: its six scripts build on each other and map onto the six background
-# pages of multised-refined.
+# step: its ten scripts build on each other and map onto the background and
+# enrichment pages of multised-refined.
+#
+# Modules are otherwise independent, with one exception: `refined`/`summary`
+# assembles what `refined`/`background` has written, so it is listed after it and
+# a full analyze_data("refined") run reaches it in that order. Run on its own it
+# errors rather than reading a stale directory.
 analysis_module_table <- function() {
   tibble::tribble(
     ~generation, ~module,          ~step, ~fun,
@@ -39,7 +44,9 @@ analysis_module_table <- function() {
     "refined", "background",      7L, "analysis_refined_pressure_controls",
     "refined", "background",      8L, "analysis_refined_regression",
     "refined", "background",      9L, "analysis_refined_method_changes",
-    "refined", "background",     10L, "analysis_refined_background_igeo"
+    "refined", "background",     10L, "analysis_refined_background_igeo",
+
+    "refined", "summary",         1L, "analysis_refined_summary"
   )
 }
 # The refined flat-dataset export used to sit here as a "download" module. It

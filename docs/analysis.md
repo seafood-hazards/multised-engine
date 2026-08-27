@@ -58,7 +58,7 @@ consumes the output:
 |-----------|----------------------------------------------|------------------|
 | `clean`   | `data/db/<source>_clean.sqlite` (per source) | multised-clean |
 | `merged`  | `data/db/multised_merged.sqlite`             | multised-merged |
-| `refined` | `data/db/multised_refined.sqlite`            | multised-refined |
+| `refined` | `data/db/multised_refined.sqlite`            | multised-refined, multised-summary |
 
 A module can hold more than one generation of the same analysis (e.g.
 `analysis_clean_grainsize()` and `analysis_merged_grainsize()`), which is
@@ -95,7 +95,7 @@ why the token exists rather than the module name alone.
 | `siteyears`      | `analysis_merged_siteyears()`      | location-controlled temporal trend (2dp grid, within-cell) |
 | `outlier_review` | `analysis_merged_outlier_review()` | **review prototype, not a site input.** Settled the distributional `outlier_flag` rule now applied by merged step 4 (`merge_mark_outliers`); writes candidate/summary CSVs + distribution plots for eyeballing. Needs ggplot2. Its stored outputs in `data/analysis/outlier_review/` are **stale** (they predate the merge-stage outlier flagging); re-run it if you need current numbers |
 
-### Refined generation (feeds multised-refined)
+### Refined generation (feeds multised-refined and multised-summary)
 
 | Module       | Function                                 | What it covers |
 |--------------|------------------------------------------|-----------------------------------|
@@ -109,6 +109,23 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_regression()`          | regression normalisation as a check on the ratio, and whether Al predicts each metal |
 | `background` | `analysis_refined_method_changes()`      | pre/post comparison for the Method Revisions page |
 | `background` | `analysis_refined_background_igeo()`     | geo-accumulation index: a background-ratio classifier that needs no normaliser |
+| `summary`    | `analysis_refined_summary()`             | assembles the `background` outputs, plus extent counts and map layers, into the tables the multised-summary site draws |
+
+`summary` is the only module in the project that depends on another. It derives
+no background, no enrichment factor and no verdict: it reshapes what `background`
+wrote, and adds only the things no background CSV holds (per-element and
+per-source extent, the pipeline funnel, and the site and grid map layers). It
+errors rather than reading a stale directory if `background` has not run, and a
+full `analyze_data("refined")` reaches it in the right order because it is listed
+after `background` in the registry. Full spec:
+[summary-site.md](summary-site.md).
+
+Two things it must keep doing, both learned by getting them wrong first:
+**withholding propagates** (a `reliable` flag that ignores `withheld` published a
+molybdenum background on a page that said molybdenum has none, and an Igeo built
+on a withheld `B` reached the map layer), and **element-level counts are their
+own columns** (summing the per-fraction site counts reported 25 347 copper sites
+where there are 24 908).
 
 The `background` module is a single ordered suite: each script builds on the
 previous one, and steps 1-6 map onto the six background estimate and verdict

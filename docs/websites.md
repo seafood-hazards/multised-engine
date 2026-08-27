@@ -1,7 +1,7 @@
 # Websites
 
-Nine Quarto sites present the pipeline, each published to GitHub Pages. **All
-nine live in sibling repositories, not inside this project** (one source of
+Ten Quarto sites present the pipeline, each published to GitHub Pages. **All
+ten live in sibling repositories, not inside this project** (one source of
 truth; do not re-create a copy under `multised-engine/`). Each publishes on push
 to `main` via a GitHub Action whose pre-render script downloads what it needs
 from that repo's own release; nothing large is committed.
@@ -91,7 +91,7 @@ Each repo keeps a slim `CLAUDE.md` naming those rules, with the detail in its ow
 one before changing a pilot site.
 
 The home page of each carries `_generations.qmd`, a shared block listing the five
-generations and linking to all nine sites. **It is duplicated across the five
+generations and linking to all the sites. **It is duplicated across the five
 repos** and differs only in which row reads "this site", so a change to it has to
 be copied to the other four.
 
@@ -115,7 +115,7 @@ project produces.
 | MUDAB | 10 tables. **The geo columns are on `survey`, not `station`** (only source where that holds), and raw field names are German: `data-preparation.qmd` has the translations |
 | 4Demon | 6 tables, the smallest. The only pilot fact table with source-native quality flags (which slim step 13 folds into `src_flag`), and no grain size or organic carbon at all |
 
-## The four generation sites
+## The five generation sites
 
 | Site             | Repo (`seafood-hazards/…`) | Sibling path        | Presents                                  |
 |------------------|----------------------------|---------------------|-------------------------------------------|
@@ -123,8 +123,17 @@ project produces.
 | multised-clean   | `multised-clean`           | `../multised-clean` | analyses on the clean DBs + aquaculture + merge build steps |
 | multised-merged  | `multised-merged`          | `../multised-merged`| the merged DB: schema, interactive explorers, outlier flagging |
 | multised-refined | `multised-refined`         | `../multised-refined`| the refined DB: schema, background/pristine analyses, downloads |
+| multised-summary | `multised-summary`         | `../multised-summary`| the plain-English answer: Home, Methods, Results per element, Downloads |
 
-These still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
+`multised-summary` is the odd one out and deliberately so. It is not fed by a
+database at all: it downloads only the CSVs written by
+`analyze_data("refined", module = "summary")`, opens nothing, and links to
+multised-refined for every working. It resolves `latest` rather than pinning a
+tag, and its `_scripts/release-assets.txt` is read by both its uploader and its
+pre-render downloader, so the two cannot drift. See
+[summary-site.md](summary-site.md).
+
+The other four still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
 several read analysis CSVs as well as databases, so they are not interchangeable
 with the pilot contract above.
 
@@ -137,10 +146,10 @@ which is precisely the case where a stale cached database surfaces as "no such
 column". `multised-slim` and `multised-clean` render their queries in R and cache
 nothing, so they never needed it.
 
-`multised-clean`, `multised-merged` and `multised-refined` use gitflow
-(`main`/`develop`); so do all five pilot repos.
+`multised-clean`, `multised-merged`, `multised-refined` and `multised-summary`
+use gitflow (`main`/`develop`); so do all five pilot repos.
 
-**No em-dashes in these four sites' pages.** Use commas, colons, or parentheses
+**No em-dashes in these five sites' pages.** Use commas, colons, or parentheses
 instead. Some older pilot pages predate the rule and still contain them; new
 pilot text follows it.
 
