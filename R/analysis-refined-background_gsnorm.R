@@ -15,7 +15,9 @@ analysis_refined_background_gsnorm <- function(db_dir = multised_db_dir(),
   #   fe    : metal / Fe  (iron, the secondary carrier)
   #   fines : metal per unit mud fraction, value_std / (fines_lt63 / 100), i.e. the
   #           concentration scaled to 100% mud. Computed only where fines_lt63 >=
-  #           FINES_MIN%, since dividing a sandy sample by a tiny mud fraction is unstable.
+  #           FINES_MIN%, since dividing a sandy sample by a tiny mud fraction is unstable,
+  #           and BULK ONLY, since fines_lt63 describes the parent sediment rather than a
+  #           sieved aliquot (see the note at the mutate below).
   #
   # For each (element, fraction, basis) we take the global percentiles and the offshore
   # (dist_to_coast > DIST_MAIN km) percentiles, as on page 1, so the offshore/global
@@ -63,7 +65,20 @@ analysis_refined_background_gsnorm <- function(db_dir = multised_db_dir(),
                            TRUE ~ NA_character_)) |>
     filter(cat %in% CATS) |>
     mutate(al = ratio_al, fe = ratio_fe,
-           fines = if_else(!is.na(fines_lt63) & fines_lt63 >= FINES_MIN,
+           # BULK ONLY, and not for the usual reason. `fines_lt63` lives on the
+           # SUBSAMPLE and describes the PARENT sediment, not the aliquot that was
+           # analysed: across sieved20 measurements its median is 79%, which it could
+           # not be if it described a cut below 20 um. So on a sieved fraction this
+           # divides a concentration by a mud fraction belonging to different material,
+           # and inflates it by the reciprocal of the parent's mud content (copper
+           # sieved63's offshore median went from 19.7 to 65.1 for no physical reason).
+           # Done correctly, scaling a sieved63 aliquot to 100% mud is the identity, so
+           # it would only duplicate the raw column, and for sieved20 the quantity is
+           # not defined at all. The `al` and `fe` bases stay on every fraction: they
+           # are ratios of two measurements of the same aliquot, so they remain
+           # well defined, and under the bulk-normalised, sieved-raw rule they are
+           # published here as diagnostics and never used to judge anything.
+           fines = if_else(cat == "bulk" & !is.na(fines_lt63) & fines_lt63 >= FINES_MIN,
                            value_std / (fines_lt63 / 100), NA_real_))
   dbDisconnect(con)
 
