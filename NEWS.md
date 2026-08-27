@@ -50,6 +50,20 @@ the module:
 - The site is titled `multised (summary)`, so a reader with several of the sites
   open can tell the tabs apart.
 
+Then a second pass, this one reaching the module:
+
+- **D4's measures are published alongside its flag.** `summary_elements.csv` gains
+  `al_tested`, `al_n`, `al_r2` and `al_rho` from the frozen normalisability table,
+  and `summary_meta.csv` gains `al_r2_limit`. Saying only that aluminium fails on
+  the sieved fractions invites the wrong conclusion, that there is not enough
+  sieved data. There is plenty: copper sieved below 63 um has 4 502 measurements
+  and 2 203 aluminium-paired samples, and aluminium explains 0.3% of the variation
+  in them against 55.6% in bulk. The pristine methods page now prints that
+  comparison instead of asserting the conclusion.
+- The element map box is 700 px tall, so a fit to the full latitude range of the
+  data lands at zoom 3. Shorter, and it dropped to zoom 2: North Africa filling the
+  bottom of the frame while the Svalbard and Barents cells were cut off the top.
+
 ## A before/after control that needs no matching, and zinc stops being null
 
 Every Igeo control so far matched one population against another and paid for it: texture
