@@ -1,5 +1,33 @@
 # multised.engine (development version)
 
+## Re-audit of the summary layer
+
+Same sweep as the refined one, plus the summary site's own rule that no page
+computes anything. The module came through clean: `has_verdict` already branches on
+`refined_gs_control()`, and the one page that reads `normalisable` scopes it to bulk
+in the column heading. The site did not.
+
+- **`index.qmd` announced "3 of 7 elements with a pristine verdict".** Typed, and
+  wrong since manganese started carrying one in the sieved fractions. It is now
+  derived from `summary_elements.csv` and reads 4 of 7 (Co, Cu, Mn, Zn).
+- **The far-north column heading typed its own threshold.** "Above 60 degrees" is a
+  constant in `analysis_refined_pristine()`, restated in three page headings across
+  two sites. The threshold now travels with the counts (`north_cut_deg`,
+  `farm_near_km` in `refined_pristine_reference.csv` and `summary_reference.csv`) and
+  the headings are built from it, so moving the cutoff cannot leave a page lying
+  about which cutoff it used. `n_north_60` / `n_farm_lt5km` are renamed `n_north` /
+  `n_farm_near` accordingly, since a column name should not carry a number either.
+- **Iodine's "15 measurements in total"** was typed into the results decision
+  diagram. Now summed from the data. The value is unchanged.
+- **Two download sizes had drifted** (about 22 MB against 21, about 3 MB against 2).
+  They describe assets released from another repo, so the module cannot derive them;
+  the false precision is gone instead.
+
+A prose scan of every summary page found no other typed result. What remains are
+method descriptions covered by the stated exception: fraction cutoffs, distance
+bands, the grid resolution, the coordinate rounding.
+
+
 ## Re-audit of the refined generation against the sieved-raw rule
 
 A sweep of every place a normaliser value or a normaliser-derived flag reaches a

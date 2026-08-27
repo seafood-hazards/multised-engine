@@ -230,6 +230,10 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
   # Barents Sea in bulk and to the southern North Sea and Baltic in the sieved
   # fractions. That is the standing caveat on a sieved verdict, and the pages that
   # carry the caveat read its numbers from here rather than restating them.
+  # the latitude that counts as "the far north" for this caveat, published with the
+  # counts so a page can label the column from the data instead of restating it
+  NORTH_CUT <- 60
+  FARM_NEAR <- 5
   reference <- m |>
     filter(dist_to_coast > 10, !withheld) |>
     group_by(cat) |>
@@ -243,10 +247,11 @@ analysis_refined_pristine <- function(db_dir = multised_db_dir(),
     left_join(
       m |> filter(!withheld) |>
         group_by(cat) |>
-        summarise(n_north_60 = sum(latitude > 60, na.rm = TRUE),
-                  n_farm_lt5km = sum(dist_to_fish_farm < 5, na.rm = TRUE),
+        summarise(n_north = sum(latitude > NORTH_CUT, na.rm = TRUE),
+                  n_farm_near = sum(dist_to_fish_farm < FARM_NEAR, na.rm = TRUE),
                   .groups = "drop"),
       by = "cat") |>
+    mutate(north_cut_deg = NORTH_CUT, farm_near_km = FARM_NEAR) |>
     mutate(cat = factor(cat, levels = CATS)) |>
     arrange(cat)
 

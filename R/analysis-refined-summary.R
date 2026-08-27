@@ -460,7 +460,7 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   # caveat must read its numbers rather than restate them.
   reference <- pref |>
     transmute(cat, gs_control, n, lat_p50, depth_p50, top_seas,
-              n_north_60, n_farm_lt5km,
+              n_north, north_cut_deg, n_farm_near, farm_near_km,
               label = if_else(gs_control == "sieve",
                               "grain-size controlled by the sieve",
                               "grain-size controlled by aluminium"))
