@@ -181,16 +181,11 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     mix |> transmute(symbol, cat, method = "mixture",
                      label = "Distribution-mixture upper bound",
                      value = threshold, n = n, usable),
-    # Bulk only, and not for the reason the other suppressions have. The fines
-    # basis divides a concentration by the sample's mud fraction to scale it to
-    # 100% mud, and `fines_lt63` describes the PARENT sediment, not the aliquot
-    # that was measured: for a sieved <20 um measurement its median is 79%, which
-    # it could not be if it described the aliquot. So on a sieved fraction the
-    # correction is applied to material that is already all fines, and inflates it
-    # by the reciprocal of the parent's mud content: copper sieved63's offshore
-    # median goes from 19.7 to 65.1 for no physical reason. Normalising sieved63
-    # to 100% mud correctly is the identity, which would only duplicate the
-    # offshore column, and for sieved20 the quantity is not defined at all.
+    # Bulk only. This is now enforced upstream, in
+    # analysis_refined_background_gsnorm(), which stopped computing a fines basis off
+    # bulk once it was clear that `fines_lt63` describes the PARENT sediment rather
+    # than the sieved aliquot. The filter stays as an assertion: if a sieved fines row
+    # ever reappears in the input it should not reach a summary page.
     gsp |> filter(basis == "fines", subset == "offshore>10km", cat == "bulk") |>
       transmute(symbol, cat, method = "gsnorm",
                 label = "Grain-size-normalised offshore median", value = p50, n = n),

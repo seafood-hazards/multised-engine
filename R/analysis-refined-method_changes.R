@@ -83,8 +83,16 @@ analysis_refined_method_changes <- function(db_dir = multised_db_dir(),
         before == after              ~ "unchanged",
         before == 0                  ~ "changed",
         TRUE ~ sprintf("%+.0f%%", 100 * (after - before) / abs(before))),
+      # The aluminium reasons only explain an aluminium-gated group. A sieved row is
+      # controlled by the sieve, so neither the basis restriction nor D4 applies to it,
+      # and attributing its change to them would be backwards: sieved classifiability
+      # ROSE to 100% precisely because those gates were lifted. See
+      # R/analysis-refined-shared-normalisability.R.
+      al_gated = refined_gs_control(as.character(cat)) == "aluminium",
       reason = case_when(
         as.character(symbol) %in% withheld ~ "verdicts withheld: over half the measurements were below the LOQ and removed upstream",
+        !al_gated & measure == "% classifiable" ~ "grain-size control is the sieve here, so the aluminium gates no longer apply and every sample is classifiable",
+        !al_gated                          ~ "judged on the sieve: the enrichment factor is no longer one of this fraction's criteria",
         measure == "% classifiable"        ~ "aluminium-basis restriction: samples off their fraction's basis are no longer classified",
         measure == "% pristine (strict rule)" ~ "aluminium-basis restriction, and an unusable mixture threshold now drops out of the rule",
         grepl("^mixture", measure)         ~ "k selected by BIC; an unseparated threshold is now marked unusable",
