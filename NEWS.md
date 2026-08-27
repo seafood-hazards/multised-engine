@@ -33,6 +33,23 @@ the refined site, and it links there for every working.
 No verdict changes. The module reads the refined database and writes CSVs; nothing
 in the pipeline, the exports or the refined site moved.
 
+A first pass of presentation fixes after publication, all on the site and none in
+the module:
+
+- The pipeline diagram on the home page runs top to bottom. Seven stages laid out
+  sideways were scaled down to fit the page and the labels became unreadable.
+- Thousands are separated with a non-breaking space, so a site count no longer
+  wraps to two lines inside a narrow table column.
+- The element maps open on the extent of the element they draw, held between zoom
+  3 and 6, and carry a reset button. They also draw OpenStreetMap tiles: CARTO's
+  free basemaps now stamp "API key required" across every tile.
+- **Why the sieved fractions carry no verdict is now stated**, in "And in bulk
+  sediment only" on the pristine methods page, and pointed at from the data page
+  and every element page. A sieved sample is already grain-size corrected by the
+  sieve, so aluminium has nothing left to track.
+- The site is titled `multised (summary)`, so a reader with several of the sites
+  open can tell the tabs apart.
+
 ## A before/after control that needs no matching, and zinc stops being null
 
 Every Igeo control so far matched one population against another and paid for it: texture
