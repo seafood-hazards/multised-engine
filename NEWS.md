@@ -1,5 +1,45 @@
 # multised.engine (development version)
 
+## Re-audit of the refined generation against the sieved-raw rule
+
+A sweep of every place a normaliser value or a normaliser-derived flag reaches a
+decision in `R/analysis-refined-*.R`, `R/export-refined-*.R` and the refined and
+summary pages, looking for the two ways the rule creeps back (a normaliser test used
+to withhold, and a normaliser result reattached as a justification) rather than for
+the D4 bug specifically. Four defects, all of the second kind except the first.
+
+- **The `fines` grain-size basis is now computed for bulk only, at source.** It divides
+  a concentration by `fines_lt63`, which lives on the subsample and describes the
+  **parent sediment**, not the analysed aliquot: its median across sieved20
+  measurements is 79%, impossible for a cut below 20 um. On a sieved fraction it was
+  therefore dividing by the mud content of different material, inflating copper
+  sieved63's offshore median from 19.7 to 65.1. This was suppressed in the summary
+  layer on 2026-08-27 and left wrong in `analysis_refined_background_gsnorm()`; it is
+  now fixed there, and the summary filter stays as an assertion. The `al` and `fe`
+  bases keep every fraction: they are ratios of two measurements of the same aliquot,
+  so they stay well defined and are published as diagnostics.
+- **`refined_method_changes.csv` attributed sieved changes to aluminium.** Sieved
+  classifiability rose to 100% and the table credited "aluminium-basis restriction:
+  samples off their fraction's basis are no longer classified", which is backwards: it
+  rose because those gates were lifted. The reason now branches on
+  `refined_gs_control()`.
+- **The EFSA and flat-dataset dictionaries described `pristineLoc` and `ef` as empty
+  "where no verdict exists".** On a sieved row that is false; what is absent is the
+  enrichment factor, not the verdict.
+- **Site prose separating "no enrichment factor" from "no verdict".** The Igeo page
+  said the verdicts "stay on EF" (true in bulk only, and its texture-confounding
+  objection to promoting Igeo does not apply to a sieved fraction, where the real
+  reason not to promote it is that the offshore-P90 criterion already makes that
+  comparison). The EF page said the sieved fractions are absent "because aluminium does
+  not predict them". The grain-size page presented near-zero sieved R2 as a caveat on
+  the sieved background rather than on its own normalised columns. Manganese's summary
+  page was still subtitled "Background only: aluminium does not predict it".
+
+No verdict moved as a result of this pass; the fines fix moves published background
+numbers on the refined Grain-Size-Normalised page, which had carried the inflated
+sieved column since that page was written.
+
+
 ## The grain-size control is per fraction, and D4 governs bulk only
 
 The pristine verdict withheld itself from every sieved measurement, and the reason
