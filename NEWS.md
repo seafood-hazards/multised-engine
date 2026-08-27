@@ -1,5 +1,38 @@
 # multised.engine (development version)
 
+## A summary layer over the refined results
+
+A new analysis module, `analyze_data("refined", module = "summary")`, and a tenth
+Quarto site (`../multised-summary`) that draws it: Home, Methods, one page per
+element, Downloads. It is the plain-English answer for a reader who will not open
+the refined site, and it links there for every working.
+
+- **It is a module, not a sixth generation.** There is no `multised_summary.sqlite`
+  and no `create_db("summary")`. A sixth database would restate the refined mart
+  rather than derive anything, and every generation so far exists because it
+  changes the data. See [summary-site.md](docs/summary-site.md).
+- **It derives no verdict.** Every background, pristine share and enrichment number
+  is read from what the `background` module wrote and only reshaped. What it
+  computes itself is extent (counts, year ranges, per-source and per-stage totals)
+  and the two map layers.
+- **No page holds a number.** Four numbers were typed into pages during the build
+  (the pipeline funnel, the classifiability-by-band chart, the four-controls table
+  and the zinc comparison) and all four moved into the module before it shipped.
+- **Withholding now propagates to the summary layer.** Two bugs found and fixed in
+  the same build: `summary_background.csv` marked molybdenum and selenium
+  `reliable`, so the site printed a molybdenum background two paragraphs above the
+  sentence saying it has none; and the map layer carried an Igeo for both, built on
+  a `B` cut from a distribution whose low end was deleted. Both are now `NA`, and
+  the map hides its Igeo control where there is no Igeo.
+- **Element-level counts are their own columns.** Summing the per-fraction site
+  counts reported 25 347 copper sites where there are 24 908.
+- **One counted population.** Everything outside the funnel counts the same
+  115 231 rows; the funnel carries the difference from the database's 115 811 as a
+  visible last rung rather than leaving two unexplained totals on one page.
+
+No verdict changes. The module reads the refined database and writes CSVs; nothing
+in the pipeline, the exports or the refined site moved.
+
 ## A before/after control that needs no matching, and zinc stops being null
 
 Every Igeo control so far matched one population against another and paid for it: texture
