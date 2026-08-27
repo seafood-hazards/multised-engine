@@ -43,12 +43,20 @@ testing for, so Mn qualifies under the architecture's own definition of a
 grain-size-controlled criterion. Its redox mobility remains a caveat on reading the
 verdict, and is not a grain-size question.
 
+Two new outputs carry the evidence and the caveat, so the pages can read them rather
+than restate them: `refined_pristine_reference.csv` (what each fraction's offshore
+reference population actually is: where it sits, how deep, how little of it is in the
+far north, and how much of it is near a farm) and `refined_pristine_sea_spread.csv`
+(how far each background moves between seas, raw and after dividing by aluminium,
+which is the measurement behind the claim that the sieve is the better control). Both
+travel to the summary layer as `summary_reference.csv` and `summary_sea_spread.csv`.
+
 Two things this does **not** settle. The sieved offshore reference is the southern
 North Sea and the Baltic (median 52-54N, 29-32 m depth) against the Norwegian and
 Barents Sea for bulk (66N, 249 m), because sieving is a national convention: Norway
 reports 63 056 bulk measurements of Co/Cu/Zn and 293 sieved, Germany the reverse.
-There are about 90 sieved measurements north of 60N in the database, so the sieved
-background cannot be checked in Norwegian waters. That is why the sieved fractions
+There are 174 sieved measurements north of 60N in the database against 51 789 bulk, so
+the sieved background cannot be checked in Norwegian waters. That is why the sieved fractions
 get the conservative verdict only. And it is why the fish-farm validation stays on
 bulk: the sieved fractions hold 0 measurements within 5 km of a Norwegian farm.
 
