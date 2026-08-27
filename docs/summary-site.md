@@ -129,6 +129,16 @@ Cells are summaries, and the page says so: a cell holding both clean and enriche
 sites shows the middle of them, so the per-measurement counts on the refined
 analysis pages remain the authoritative ones.
 
+The map opens on the element it is drawing, not on a fixed window: it fits the
+extent of that element's own cells, capped at zoom 6 so iodine's eleven sites do
+not open at street level, and floored at zoom 3 because Mercator stretches the far
+north and an honest fit to copper's 36 to 81 degrees opens on a world map with
+Europe as a smudge in the middle. Zoom 3 is what the refined site's maps use. A
+reset button restores that view, and tiles come from OpenStreetMap: CARTO's free
+basemaps now stamp "API key required" across every tile.
+
+The map draws bulk sediment only, and says so under itself.
+
 ## The site
 
 Four sections, as the brief asked: Home, Methods (four pages), Results (a coverage
@@ -144,6 +154,18 @@ Shared machinery, so the seven element pages stay in step:
   element gets a "Why this element is withheld" section and no distance chart, an
   element below the reporting threshold gets "Why there is no result", and the map
   hides its Igeo control where there is no Igeo.
+
+### Why the sieved fractions carry no verdict, and where that is said
+
+The three fractions are reported side by side everywhere, but only bulk gets a
+pristine verdict, and readers noticed the asymmetry before the site explained it.
+The reason is in the frozen normalisability table: a sieved sample is **already**
+grain-size corrected, by the sieve, so aluminium has almost nothing left to track
+and every sieved group fails D4. It is explained once, in
+"And in bulk sediment only" on the pristine methods page, and pointed at from the
+two places a reader meets the asymmetry: the bulk-versus-sieved callout on the data
+page and the verdict table on each element page. The count in that section is cut
+from `summary_elements.csv` like everything else, so it cannot drift from the rule.
 
 ### Element pages are deliberately unequal
 
@@ -180,8 +202,14 @@ copy of the file list and 404'd on files that were sitting on the release.
 
 ## Status
 
-Built and rendering. Not yet published: the repository does not exist on GitHub
-yet, so there is no release and no Pages deployment.
+Published and live at <https://seafood-hazards.github.io/multised-summary/>, from
+release `v0.1.0` and its 13 assets.
+
+One trap worth recording for the next site: Pages was created by API while
+`develop` was still the default branch, so the `github-pages` environment's
+deployment branch policy allowed only `develop` and the deploy job silently ran
+with no steps while the build succeeded. Set the default branch first, or fix the
+policy afterwards.
 
 The site says on its home page and its Downloads page that it is not the final
 submission. That stays true until the pristine-filtered submission subset exists;
