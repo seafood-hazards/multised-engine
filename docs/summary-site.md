@@ -137,8 +137,8 @@ Cells are summaries, and the page says so: a cell holding both clean and enriche
 sites shows the middle of them, so the per-measurement counts on the refined
 analysis pages remain the authoritative ones.
 
-The map opens on the element it is drawing, not on a fixed window: it fits the
-extent of that element's own cells, capped at zoom 6 so iodine's eleven sites do
+The map opens on what it is drawing, not on a fixed window: it fits the extent of
+the cells of that element and fraction, capped at zoom 6 so iodine's eleven sites do
 not open at street level and floored at zoom 3, which is what the refined site's
 maps use. A reset button restores that view, and tiles come from OpenStreetMap:
 CARTO's free basemaps now stamp "API key required" across every tile.
@@ -149,7 +149,25 @@ fit drops to zoom 2, and the result is the worst of both: North Africa fills the
 bottom of the frame while the Svalbard and Barents cells, which are real data, are
 cut off the top. Do not shrink it without redoing that arithmetic.
 
-The map draws bulk sediment only, and says so under itself.
+### All three fractions, one at a time
+
+The map used to draw bulk sediment only, which made it the one place on an element
+page where the sieved fractions disappeared: every table above it reports the three
+side by side. A **Fraction** radio now picks between them, offering only the
+fractions that element actually has, so iodine gets bulk and sieved <63 um and no
+empty third button.
+
+What the old restriction was really protecting against was a **shared colour
+scale**, and that is still forbidden. Each fraction is scaled on its own cells, so
+the same colour means different things between fractions: copper bulk runs 2.83 to
+48.4 mg/kg across the bar where sieved <20 um runs 16.4 to 62.0. The page says so
+under the map, and the legend names the fraction it is describing. Compare a
+fraction with itself across the map, never one fraction's colour with another's.
+
+This is not the sieved-normaliser trap: Igeo is a concentration measured against a
+regional background, with no aluminium in it, and the element pages already publish
+the contamination class for all three fractions in a table. Drawing that same
+quantity on a map adds no new judgement.
 
 ### The legend
 
@@ -160,7 +178,7 @@ from the same ramp the markers are drawn with**, not a restatement of the palett
 so a change to the scale cannot leave the legend describing the previous one. The
 Igeo bar carries a tick at its true zero, which is not the middle of the bar: the
 domain is `[min(-2, p05), max(2, p95)]`, so zero sits between 50% and 66% across
-the four elements that have an Igeo.
+the fourteen element and fraction combinations that have an Igeo.
 
 Its numbers are the ends of the ramp, which the page already computed in order to
 draw the map, so this does not breach the no-typed-numbers rule: nothing is stated
