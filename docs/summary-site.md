@@ -261,8 +261,9 @@ downstream of it disappears without saying so.
 
 ## The site
 
-Four sections, as the brief asked: Home, Methods (four pages), Results (a coverage
-matrix plus one page per element), Downloads.
+Five sections: Home, Methods (four pages), Results (a coverage matrix plus one page
+per element), Open Questions, Downloads. The brief asked for the first three and the
+last; Open Questions was added afterwards (see below).
 
 Shared machinery, so the seven element pages stay in step:
 
@@ -345,16 +346,42 @@ sieved fines row ever reappears upstream, it must not reach a summary page.
 
 ### The Open Questions page
 
-`open-questions.qmd`, a fifth navbar entry, lists seven questions the project knows
-are open, two or three sentences each. It exists because the rest of the site reads
-as settled, and a reader who finds a gap should meet it as a known one rather than
-as an oversight.
+`open-questions.qmd` lists eleven questions the project knows are open, two or three
+sentences each. It exists because the rest of the site reads as settled, and a reader
+who finds a gap should meet it as a known one rather than as an oversight.
 
 It states plainly that nothing on it changes what the site reports and that none of
 it is a commitment. Keep it that way: the moment an item becomes work in progress
 it belongs in the plan, and the moment it is answered it belongs in the methods
 pages. **The page carries no numbers**, only links to the pages that hold them,
 which is what keeps it from going stale between rebuilds.
+
+The eleven sit in four groups, numbered straight through so an item can be cited by
+its number alone:
+
+| Group | Items | What the group has in common |
+|-------|-------|------------------------------|
+| Is the answer right? | 1-3 | Could change what is already published |
+| What the database already holds and does not use | 4-6 | Needs no new sampling; the measurements exist |
+| Judging more of the seabed, and judging it more fairly | 7-10 | Four routes at the same wall, and only one has to work |
+| Working with the data | 11 | Tooling, not method |
+
+The grouping carries one point the list alone did not: **the first group is not like
+the other three.** Those three would extend what the site says; the first could
+overturn it. The intro states that asymmetry outright rather than leaving it to be
+inferred from the order.
+
+Two things about the structure are load-bearing. The groups are **contiguous blocks
+of the existing order**, so grouping cost the reading order nothing; if a new item
+does not fall into a block without reordering the rest, it wants a new group rather
+than a resequencing. And the third group's title ends "and judging it more fairly"
+because item 10 is not a reach problem: the sieved fractions are already fully
+classifiable, and the question there is whether the reference they are judged
+against resembles them. Filing it under reach alone would mislabel it.
+
+Its navbar entry sits **before Downloads**, fourth of five. The page's first group
+is the one that could change what is published and Downloads is where a reader
+leaves with the files, so the caveats belong on the near side of the exit.
 
 ### House style
 
