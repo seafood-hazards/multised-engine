@@ -343,6 +343,19 @@ carries no sieved fines rows and the refined site's Grain-Size-Normalised page n
 longer draws them. The `cat == "bulk"` filter here stays as an assertion: if a
 sieved fines row ever reappears upstream, it must not reach a summary page.
 
+### The Open Questions page
+
+`open-questions.qmd`, a fifth navbar entry, lists seven questions the project knows
+are open, two or three sentences each. It exists because the rest of the site reads
+as settled, and a reader who finds a gap should meet it as a known one rather than
+as an oversight.
+
+It states plainly that nothing on it changes what the site reports and that none of
+it is a commitment. Keep it that way: the moment an item becomes work in progress
+it belongs in the plan, and the moment it is answered it belongs in the methods
+pages. **The page carries no numbers**, only links to the pages that hold them,
+which is what keeps it from going stale between rebuilds.
+
 ### House style
 
 - No em-dashes, as on the other four generation sites.
