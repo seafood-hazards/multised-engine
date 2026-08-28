@@ -122,7 +122,7 @@ Written to `data/analysis/summary/`, all listed in the site's
 | `summary_sources.csv` | what each of the five sources contributes |
 | `summary_flow.csv` | the pilot-to-reported funnel |
 | `summary_map_sites.csv` | per site x element x fraction: the full-resolution layer |
-| `summary_map_grid.csv` | the same on a 0.1 degree grid: what the site draws |
+| `summary_map_grid.csv` | the same on a 0.1 degree grid: what the site draws, including the per-cell pristine class and the site counts behind it |
 | `summary_meta.csv` | provenance: which database, built when, under which rules |
 
 ### Why the map is gridded
@@ -168,6 +168,45 @@ This is not the sieved-normaliser trap: Igeo is a concentration measured against
 regional background, with no aluminium in it, and the element pages already publish
 the contamination class for all three fractions in a table. Drawing that same
 quantity on a map adds no new judgement.
+
+### The pristine layer
+
+A third **Colour by** option, added August 2026, draws the verdict rather than a
+level. It exists only where the group has one: the option follows the fraction on
+show, so manganese offers it in the sieved fractions and not in bulk, and iodine
+and the two withheld elements never offer it.
+
+The classification is applied **per measurement, with the predicate of
+`analysis_refined_background_pristine()` and none of its own** (same thresholds,
+same gates, same treatment of an unusable mixture bound), then aggregated to a
+site and then to a cell, each step by majority. This module still derives no
+verdict; it carries one down to a point on a map. The per-measurement counts
+reproduce `refined_pristine_summary.csv` exactly, group by group, which is the
+check to re-run after touching any of it.
+
+Two properties fall out of the predicate rather than out of a caption, which is
+the point:
+
+- `pristine_ef` is NA off the aluminium-controlled fraction, so the `ef` class
+  cannot arise on a sieved map and the legend cannot name one. **A sieved map can
+  never show an "EF < 1" swatch**, whatever anyone later writes in a label.
+- The sieved fractions are fully classifiable (their criteria need only a
+  concentration and a threshold), so they carry no grey at all. Grey appears only
+  on the three bulk maps that have an EF, where it is the commonest cell by far:
+  83% of copper's bulk cells and 82% of zinc's.
+
+That last number is the reason the layer needed a fourth class rather than three.
+Aluminium is almost never measured near a farm or near the coast (0% classifiable
+under 1 km from a farm, 44% beyond 20 km), so a map without an explicit "cannot be
+classified" colour would show the coast as unjudged-therefore-clean. The legend
+says "Grey is a gap in the data, not a clean result", the page says it again in
+bold under the map, and the popup gives the composition behind every cell so a
+reader can see that a green cell over mostly-unclassifiable sites is a different
+object from a green cell where everything was judged.
+
+Also worth knowing: the `ef` class (EF < 1 but failing a concentration criterion)
+is nearly empty, 1 to 7 cells per element. Most cells that clear the enrichment
+factor clear the other two as well.
 
 ### The legend
 
