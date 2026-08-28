@@ -378,7 +378,7 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     left_join(igb |> select(symbol, cat, bg_median), by = c("symbol", "cat"))
 
   # The pristine classification is applied PER MEASUREMENT, with the predicate of
-  # `analysis_refined_background_pristine()` and none of its own: same thresholds,
+  # `analysis_refined_pristine()` and none of its own: same thresholds,
   # same gates, same treatment of an unusable mixture bound. This module still
   # derives no verdict, it only carries one down to a point on a map. Doing it per
   # measurement rather than on the site median is what keeps it agreeing with the
