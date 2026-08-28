@@ -63,6 +63,7 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   gsp  <- rd("refined_gsnorm_percentiles.csv")
   prc  <- rd("refined_pressure_compare.csv")
   prp  <- rd("refined_pressure_percentiles.csv")
+  efb  <- rd("refined_ef_background.csv")
   igb  <- rd("refined_igeo_background.csv")
   igc  <- rd("refined_igeo_classes.csv")
   igm  <- rd("refined_igeo_pressure_matched.csv")
@@ -373,16 +374,32 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   thr <- cmp |> select(symbol, cat, p90_off = p90_off10) |>
     left_join(mix |> select(symbol, cat, mix_thr = threshold, mix_usable = usable),
               by = c("symbol", "cat")) |>
+    left_join(efb |> select(symbol, cat, bg_ratio_al), by = c("symbol", "cat")) |>
     left_join(igb |> select(symbol, cat, bg_median), by = c("symbol", "cat"))
 
-  map_sites <- as_tibble(dbGetQuery(con, "
-    SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std,
+  # The pristine classification is applied PER MEASUREMENT, with the predicate of
+  # `analysis_refined_background_pristine()` and none of its own: same thresholds,
+  # same gates, same treatment of an unusable mixture bound. This module still
+  # derives no verdict, it only carries one down to a point on a map. Doing it per
+  # measurement rather than on the site median is what keeps it agreeing with the
+  # published shares; the aggregation to a site and then to a cell is a majority at
+  # each step, and both compositions travel with the point so a reader can see the
+  # mixing rather than infer it.
+  map_meas <- as_tibble(dbGetQuery(con, "
+    SELECT me.symbol, me.frac_class, me.sieve_um_std, me.value_std, me.ratio_al,
            si.site_id, si.latitude, si.longitude,
-           si.dist_to_coast, si.dist_to_fish_farm
+           si.dist_to_coast, si.dist_to_fish_farm,
+           n.fe AS norm_fe, n.al AS norm_al
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
     JOIN site  si    ON si.site_id     = e.site_id
+    -- the normaliser table holds one row per subsample PER FRACTION CLASS, so this
+    -- join must match frac_class too, or a subsample carrying both a bulk and a
+    -- sieved normaliser duplicates its measurements and can attach the wrong
+    -- fraction's aluminium. Same trap as in the pristine module.
+    LEFT JOIN normaliser n ON n.subsample_id = me.subsample_id
+                          AND n.frac_class   = me.frac_class
     WHERE me.value_std > 0 AND me.outlier_flag IS NULL
       AND si.latitude IS NOT NULL AND si.longitude IS NOT NULL")) |>
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk",
@@ -390,6 +407,30 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
                            sieve_um_std == 20 ~ "sieved20",
                            TRUE ~ NA_character_)) |>
     filter(cat %in% CATS) |>
+    left_join(thr, by = c("symbol", "cat")) |>
+    mutate(
+      al_basis   = refined_al_basis(norm_fe, norm_al),
+      on_basis   = refined_on_basis(al_basis, cat),
+      withheld_el = symbol %in% refined_withheld_elements(),
+      al_gated   = refined_gs_control(cat) == "aluminium",
+      unnorm     = al_gated & !refined_normalisable(symbol, cat),
+      EF = if_else(al_gated & !withheld_el & !unnorm & on_basis &
+                     !is.na(ratio_al) & !is.na(bg_ratio_al) & bg_ratio_al > 0,
+                   ratio_al / bg_ratio_al, NA_real_),
+      classifiable = if_else(al_gated, !is.na(EF),
+                             !withheld_el & !is.na(value_std) & !is.na(p90_off)),
+      # an unusable mixture bound drops out of the test rather than being enforced
+      # with a number that marks nothing, exactly as the pristine module has it.
+      mix_ok = case_when(is.na(mix_usable) ~ NA,
+                         !mix_usable       ~ TRUE,
+                         TRUE              ~ value_std < mix_thr),
+      pristine_ef = if_else(al_gated & classifiable, EF < 1, NA),
+      pristine_strict = case_when(
+        !classifiable ~ NA,
+        al_gated      ~ (EF < 1) & mix_ok & (value_std < p90_off),
+        TRUE          ~ mix_ok & (value_std < p90_off)))
+
+  map_sites <- map_meas |>
     group_by(symbol, cat, site_id) |>
     summarise(latitude = round(first(latitude), 4),
               longitude = round(first(longitude), 4),
@@ -397,6 +438,9 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
               value_p50 = median(value_std),
               dist_to_coast = round(first(dist_to_coast), 1),
               dist_to_fish_farm = round(first(dist_to_fish_farm), 1),
+              n_class  = sum(classifiable %in% TRUE),
+              n_ef     = sum(pristine_ef %in% TRUE),
+              n_strict = sum(pristine_strict %in% TRUE),
               .groups = "drop") |>
     left_join(thr, by = c("symbol", "cat")) |>
     mutate(
@@ -410,9 +454,30 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
       igeo      = ifelse(is.na(bg_median) | bg_median <= 0 |
                            symbol %in% withheld, NA_real_,
                          round(refined_igeo(value_p50, bg_median), 3)),
-      value_p50 = signif(value_p50, 4)) |>
+      value_p50 = signif(value_p50, 4),
+      # the strictest class a majority of the site's classifiable measurements meet.
+      # `pristine_ef` is NA off the aluminium-controlled fraction, so `ef` cannot
+      # arise on a sieved map: the fraction that has no EF cannot be labelled with
+      # one, and that is enforced here by the data rather than by a caption.
+      pristine_class = case_when(
+        n_class == 0             ~ "unclassified",
+        2 * n_strict > n_class   ~ "strict",
+        2 * n_ef     > n_class   ~ "ef",
+        TRUE                     ~ "not")) |>
+    # a group with no verdict carries no class at all, which is not the same as a
+    # site that could not be classified. Iodine's sieved fraction would pass the
+    # concentration criteria, but its background sits under the reporting
+    # threshold, so there is nothing there to be pristine against.
+    left_join(elements |> select(symbol, cat, has_verdict, gs_control, normalisable),
+              by = c("symbol", "cat")) |>
+    mutate(pristine_class = if_else(has_verdict, pristine_class, NA_character_),
+           verdict_basis = case_when(
+             !has_verdict                    ~ NA_character_,
+             gs_control == "aluminium" & normalisable ~ "ef",
+             TRUE                            ~ "conservative")) |>
     select(symbol, cat, site_id, latitude, longitude, n, value_p50, igeo,
-           dist_to_coast, dist_to_fish_farm, offshore, below_p90, below_mix) |>
+           dist_to_coast, dist_to_fish_farm, offshore, below_p90, below_mix,
+           n_class, n_ef, n_strict, pristine_class, verdict_basis) |>
     mutate(symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, match(cat, CATS), site_id)
 
@@ -430,8 +495,20 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
               pct_below_p90 = round(100 * mean(below_p90), 1),
               pct_offshore = round(100 * mean(offshore), 1),
               dist_to_fish_farm = round(median(dist_to_fish_farm, na.rm = TRUE), 1),
+              # sites, not measurements, because the map draws sites. `strict` is a
+              # subset of `ef`, so the EF count includes it.
+              n_sites_class  = sum(pristine_class %in% c("strict", "ef", "not")),
+              n_sites_strict = sum(pristine_class %in% "strict"),
+              n_sites_ef     = sum(pristine_class %in% c("strict", "ef")),
+              verdict_basis  = dplyr::first(verdict_basis),
               .groups = "drop") |>
-    mutate(igeo_p50 = ifelse(is.finite(igeo_p50), igeo_p50, NA_real_),
+    mutate(pristine_class = case_when(
+             is.na(verdict_basis)                ~ NA_character_,
+             n_sites_class == 0                  ~ "unclassified",
+             2 * n_sites_strict > n_sites_class  ~ "strict",
+             2 * n_sites_ef     > n_sites_class  ~ "ef",
+             TRUE                                ~ "not"),
+           igeo_p50 = ifelse(is.finite(igeo_p50), igeo_p50, NA_real_),
            dist_to_fish_farm = ifelse(is.finite(dist_to_fish_farm),
                                       dist_to_fish_farm, NA_real_),
            symbol = factor(symbol, levels = elem_levels)) |>
