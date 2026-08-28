@@ -91,6 +91,14 @@ pages it summarises. Both have bitten in this module already:
   still computes a `B` for it. That `B` is cut from a distribution whose low end
   was deleted, so the map would have offered a colour scale with no meaning. Igeo
   is now `NA` for a withheld element, and the map hides the control.
+- The element map was still *coloured* by median concentration for molybdenum and
+  selenium, the two withheld elements. Every other concentration statistic is
+  suppressed on those two pages (they carry four sections: extent, why it is
+  withheld, and where the samples are), so the colour scale would have been the
+  only place on the site publishing a molybdenum concentration, and it would have
+  published it as the median of the rows that cleared the detection limit: the
+  upper tail the page above it warns against. Their maps now draw every cell in
+  one colour, and the legend says why.
 
 The general form: **a rule that withholds a verdict has to be applied everywhere
 the verdict could surface**, including derived columns and map layers, not only in
@@ -158,6 +166,24 @@ Its numbers are the ends of the ramp, which the page already computed in order t
 draw the map, so this does not breach the no-typed-numbers rule: nothing is stated
 that was not already being drawn. The end labels say the scale is clipped, because
 it is: everything past the 5th and 95th percentile takes the end colour.
+
+A withheld element gets the single-swatch form instead: one colour, "Cells with
+data", and a line pointing at the section that explains the withholding.
+
+### The placeholder that has to carry a value
+
+The "Colour by" radio only exists where there is an Igeo, and the else branch used
+to be a bare `html\`<span></span>\``. That silently removed the map from the
+molybdenum and selenium pages for as long as the map existed. Observable derives
+the value of a `viewof` through `Generators.input`, which yields nothing at all
+when the element has no `value` property, so `chosen` never resolved, `layer`
+never resolved, and the map cell sat pending for ever. Nothing throws, so the
+console is clean and the page just quietly ends after the heading.
+
+The placeholder is now `Object.assign(html\`<span></span>\`, { value: "value_p50" })`
+and `layer` reads it directly rather than branching around it. **Any OJS
+placeholder standing in for an input has to carry a value**, or every cell
+downstream of it disappears without saying so.
 
 ## The site
 
