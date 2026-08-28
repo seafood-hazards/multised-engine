@@ -143,6 +143,22 @@ cut off the top. Do not shrink it without redoing that arithmetic.
 
 The map draws bulk sediment only, and says so under itself.
 
+### The legend
+
+Colour is the only thing on the map carrying a value, so it needs a key, and the
+two scales need different ones: concentration is sequential and Igeo is diverging
+about a zero that means "at background". The legend is a gradient bar **sampled
+from the same ramp the markers are drawn with**, not a restatement of the palette,
+so a change to the scale cannot leave the legend describing the previous one. The
+Igeo bar carries a tick at its true zero, which is not the middle of the bar: the
+domain is `[min(-2, p05), max(2, p95)]`, so zero sits between 50% and 66% across
+the four elements that have an Igeo.
+
+Its numbers are the ends of the ramp, which the page already computed in order to
+draw the map, so this does not breach the no-typed-numbers rule: nothing is stated
+that was not already being drawn. The end labels say the scale is clipped, because
+it is: everything past the 5th and 95th percentile takes the end colour.
+
 ## The site
 
 Four sections, as the brief asked: Home, Methods (four pages), Results (a coverage
