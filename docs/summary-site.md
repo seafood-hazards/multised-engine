@@ -208,6 +208,23 @@ Also worth knowing: the `ef` class (EF < 1 but failing a concentration criterion
 is nearly empty, 1 to 7 cells per element. Most cells that clear the enrichment
 factor clear the other two as well.
 
+**A fraction with no verdict still gets the layer**, drawn entirely grey, with the
+reason in the legend: manganese bulk says aluminium does not predict it, iodine
+says there is no background to judge against. Hiding the option there made the
+absence look like an oversight; showing it makes the same statement the grey cells
+make elsewhere, over a whole fraction. The two withheld elements are the exception
+and keep no colour control at all, because their concentrations are withheld too
+and a verdict layer over them would be answering a question the page does not ask.
+
+**The unjudged cells are drawn small (2.5 px against 4) and faint (0.3 against
+0.85), and drawn first so the judged ones sit on top.** They outnumber everything
+else four to one on the bulk maps, and at full weight they buried the result the
+map exists to show. Being quiet is not the same as being hidden: the legend swatch
+is faded to match, the note still says grey is a gap in the data rather than a
+clean result, and the page repeats it in bold. If that balance is ever revisited,
+the thing to protect is that a reader cannot mistake a faint cell for an absent
+one.
+
 ### The legend
 
 Colour is the only thing on the map carrying a value, so it needs a key, and the
