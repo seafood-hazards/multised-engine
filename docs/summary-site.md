@@ -209,9 +209,10 @@ withholding bugs: a correction applied to material that has already been correct
 
 The `fines` basis divides a concentration by the sample's mud fraction to scale it
 to 100% mud. `fines_lt63` sits on `subsample` and describes the **parent sediment**,
-not the aliquot that was measured, which is provable from the data: its median
-across sieved <20 um measurements is 79%, and an aliquot cut to below 20 um is by
-definition entirely below 63 um. Applied to a sieved measurement the correction
+not the aliquot that was measured, which is provable from the data: an aliquot cut
+to below 20 um is by definition entirely below 63 um, yet the median `fines_lt63`
+across sieved <20 um measurements is 52%, and 78% across the subset the fines basis
+would actually use (those clearing the 10% mud floor). Applied to a sieved measurement the correction
 therefore inflates a value that is already all fines, by the reciprocal of the
 parent's mud content. Copper sieved63's grain-size-normalised offshore median came
 out at 65.1 against a raw offshore median of 19.7.
@@ -220,11 +221,11 @@ out at 65.1 against a raw offshore median of 19.7.
 sieved63 normalised to 100% mud is the identity, so the column would only duplicate
 the offshore median, and for sieved20 the quantity is not defined at all.
 
-**This is suppressed in the summary layer, not fixed at source.**
-`refined_gsnorm_percentiles.csv` still carries the sieved rows, and the refined
-site's Grain-Size-Normalised page still draws them. Fixing it there means deciding
-what the fines basis should mean for a sieved fraction, which is a change to the
-background module and is not made here.
+**This was fixed at source in August 2026.** `analysis_refined_background_gsnorm()`
+now computes the fines basis for bulk only, so `refined_gsnorm_percentiles.csv`
+carries no sieved fines rows and the refined site's Grain-Size-Normalised page no
+longer draws them. The `cat == "bulk"` filter here stays as an assertion: if a
+sieved fines row ever reappears upstream, it must not reach a summary page.
 
 ### House style
 
