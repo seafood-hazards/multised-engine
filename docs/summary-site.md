@@ -177,7 +177,7 @@ show, so manganese offers it in the sieved fractions and not in bulk, and iodine
 and the two withheld elements never offer it.
 
 The classification is applied **per measurement, with the predicate of
-`analysis_refined_background_pristine()` and none of its own** (same thresholds,
+`analysis_refined_pristine()` and none of its own** (same thresholds,
 same gates, same treatment of an unusable mixture bound), then aggregated to a
 site and then to a cell, each step by majority. This module still derives no
 verdict; it carries one down to a point on a map. The per-measurement counts
@@ -276,48 +276,81 @@ Shared machinery, so the seven element pages stay in step:
   element below the reporting threshold gets "Why there is no result", and the map
   hides its Igeo control where there is no Igeo.
 
-### Why the sieved fractions carry no verdict, and where that is said
+### Igeo is reported and never decides
 
-The three fractions are reported side by side everywhere but only bulk gets a
-pristine verdict, and the asymmetry looks arbitrary until it is explained. It is
-explained once, in "And in bulk sediment only" on the pristine methods page, and
-pointed at from the two places a reader meets it: the bulk-versus-sieved callout on
-the data page and the verdict table on each element page.
+The pristine methods page carried a decision diagram that branched on "Is aluminium
+measured?" and sent the no-branch to the geo-accumulation index, ending at "Igeo at
+or below 0 = unpolluted". **Nothing in the pipeline does that.**
+`analysis_refined_pristine()` contains no Igeo at all, and both exports
+carry it as a provenance column whose dictionary entry already said "It is NOT a
+verdict and is not part of pristine_ef". The diagram was inviting a reader to think
+the submission rests partly on Igeo, and a reader did.
 
-That section was rewritten twice, and the second rewrite is the one worth keeping
-in mind, because the first two attempts each answered a question nobody was asking.
+It was wrong twice over, because it also predated the sieved correction below and so
+named the wrong two ways round grain size. Both are fixed: the diagram now branches
+on **was it sieved**, bulk without a usable aluminium ends at an explicit **no
+verdict** box, and Igeo moves into a callout of its own.
+
+Why Igeo is computed at all, since it decides nothing: EFSA asked for aquaculture
+monitoring data by name, and it is the one request the pipeline answers with silence,
+because Vannmiljo's MOMC programme carries aluminium on 5 of 13 996 subsamples, so no
+near-cage sample gets an enrichment factor. EFSA names Igeo as the alternative in
+EF's absence. Computing it keeps that coverage visible without changing what pristine
+means. The decision not to promote it is recorded at the head of
+`R/analysis-refined-background_igeo.R` (2026-08-25), and that step deliberately runs
+**after** the synthesis.
+
+**The reason not to promote it is per fraction, and this is where the justification
+creeps.** In bulk the objection is texture: Igeo divides by a background rather than
+a normaliser, so it does no grain-size correction, and it tracks the mud fraction
+closely enough that a verdict built on it would be partly a verdict about texture. On
+a sieved fraction that objection does not apply, because the sieve already did the
+correcting. The reason there is a different one: the strict rule's offshore
+comparison already asks what Igeo asks. Both reasons are on the page. Writing only
+the bulk one is creep pattern 2 in CLAUDE.md, "the justification": a bulk normaliser
+result reattached as a caveat on a sieved verdict that used no normaliser.
+
+### The sieved fractions do carry a verdict now, and the page had to be rewritten three times
+
+For most of this site's life only bulk got a pristine verdict, and the asymmetry
+looked arbitrary until it was explained. Explaining it took three attempts, and the
+sequence is worth keeping because each attempt answered a question nobody was asking.
 
 **Attempt one gave the mechanism and let the reader infer the conclusion.** It said
-aluminium does not predict the metal in a sieved sample, and a reader concludes
-from that that there must not be enough sieved data. There is plenty: copper sieved
-below 63 um has 4 502 measurements and 2 203 of them carry a paired aluminium.
+aluminium does not predict the metal in a sieved sample, and a reader concludes from
+that that there must not be enough sieved data. There is plenty: copper sieved below
+63 um has 4 502 measurements and 2 203 of them carry a paired aluminium.
 
 **Attempt two proved that with numbers and then over-explained the mechanism.**
 Aluminium explains 55.6% of the variation in bulk copper and 0.3% in sieved copper,
-which settles it; the three paragraphs after it on why sieving is itself a
-grain-size correction were telling a sediment chemist something they already knew.
-D4's own measures now travel with the flag it produced so the numbers can be shown
-instead of described: `summary_elements.csv` carries `al_tested`, `al_n`, `al_r2`
-and `al_rho`, and `summary_meta.csv` carries `al_r2_limit`.
+which settles it; the three paragraphs after it on why sieving is itself a grain-size
+correction were telling a sediment chemist something they already knew. D4's own
+measures were published alongside the flag they produced so a page could show the
+numbers rather than describe them: `summary_elements.csv` carries `al_tested`,
+`al_n`, `al_r2` and `al_rho`, and `summary_meta.csv` carries `al_r2_limit`. **They
+are still in the CSV and no page currently draws them**, which is a live option
+rather than an oversight.
 
 **The question actually being asked was the next one.** If a sieved sample needs no
-grain-size correction, why can it not be judged pristine without one? Nothing in
-the data prevents it. What prevents it is that the verdict *is* an enrichment
-factor, so a sample with no aluminium falls outside the rule rather than failing
-it. The concentration-against-background judgement that does work on a sieved
-sample is already computed and published under another name, the contamination
-class, and the strict rule's two non-EF criteria survive as well: an offshore P90
-for all six sieved groups of CO/CU/ZN, a mixture bound for three.
+grain-size correction, why can it not be judged pristine without one? Nothing in the
+data prevented it. The page ended by naming that as an open decision belonging to the
+project rather than to the page.
 
-The page now says that, and stops at the boundary of the decision:
+**It was then taken** (NEWS.md, "The grain-size control is per fraction, and D4
+governs bulk only"). `refined_gs_control()` names the control per fraction,
+`pristine_strict` became "every criterion that applies to the fraction agrees", and
+27 971 sieved measurements gained a verdict with no bulk number moving. The page's
+section is now "The sieved samples are judged on the sieve", and it argues from
+`summary_sea_spread.csv` rather than from R2: a grain-size control that works should
+leave a background near the same number wherever you look, and the sieved rows come
+closest to that **before** aluminium is applied at all. That is the better evidence,
+because it tests what the control achieves instead of how it works, and it is the
+form in which a near-zero sieved R2 stops reading as a failure.
 
-> A concentration-based pristine verdict for the sieved fractions could be built
-> from what is already computed. It has not been, because it would be a different
-> test wearing the same word.
-
-**That is an open decision and it belongs to the project, not to the page.** If it
-is ever taken, the reference is the thing to argue about: the contamination class
-measures against the offshore median, and offshore is not the same as clean.
+What survives the rewrite is the caveat, and it is the one to protect: a sieved
+verdict is judged against the shallow southern North Sea and Baltic, not Norwegian
+waters, and there is almost no sieved data in the far north to build a northern
+background from. That is why the sieved fractions get the strict rule only.
 
 ### The fines-normalised background is bulk only
 
