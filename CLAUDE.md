@@ -267,7 +267,7 @@ carries the grain-size signal best, which is why merged reports facies as "bulk:
 | [refined-review-response.md](docs/refined-review-response.md) | external review of the refined site: dispositions, decisions, ordering |
 | [ef-source-bias.md](docs/ef-source-bias.md) | why the bulk EF background is not comparable across sources, and the options |
 | [inst/extdata/loq-censoring/README.md](inst/extdata/loq-censoring/README.md) | below-LOQ rows are removed at clean step 2; why Se and Mo verdicts are withheld |
-| [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF exists only where Al predicts the element (CO/CU/ZN bulk); D4 governs bulk only, the sieved fractions are controlled by the sieve |
+| [inst/extdata/normalisability/README.md](inst/extdata/normalisability/README.md) | D4: EF exists only where Al predicts the element (CO/CU/ZN bulk); D4 governs bulk only, the sieved fractions are controlled by the sieve; and why no alternative normaliser closes the coverage gap |
 | [inst/extdata/extraction-class/README.md](inst/extdata/extraction-class/README.md) | the frozen extraction-code table: EFSA extraction class, the ICES METCX vocabulary, the six judgement calls |
 | [efsa-submission.md](docs/efsa-submission.md) | recovering the EFSA optional fields: extraction class (recoverable, 51.5%) and porewater pH (absent everywhere) |
 | [analysis.md](docs/analysis.md) | the analysis modules and which site each feeds |
