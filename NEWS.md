@@ -1,4 +1,33 @@
-# multised.engine (development version)
+# multised.engine 0.4.0
+
+The sieved-raw release. The pristine verdict withheld itself from every sieved
+measurement on a reason that only holds in bulk, and correcting that meant
+re-auditing every stage for the same mistake: a normaliser test used to withhold,
+or a normaliser result reattached afterwards as a justification. Four sweeps
+followed, over slim and pilot, clean, the summary layer and refined, turning up
+four defects in refined and one documentary root cause in slim. **The sieved
+fractions now carry a verdict**, on the sieve rather than on aluminium.
+
+Alongside it, a plain-English layer over the refined results (a `summary` analysis
+module and a tenth Quarto site), and the refined analyses moved onto the fish-farm
+axis, where a before/after control and a location-controlled Igeo replaced two
+comparisons that were measuring siting rather than pressure.
+
+## The element maps open on the verdict, and gain a Show filter
+
+The **Colour by** radio on the summary site's element maps now runs verdict,
+concentration, enrichment, and opens on the verdict wherever the fraction has one.
+A **Show** control under it narrows what is drawn: the verdict layer offers its
+classes as checkboxes, the concentration and enrichment layers offer bands cut at
+the fraction's own 10th percentile, median and 90th percentile, and the enrichment
+layer also offers the cut that is not about the other cells: above the natural
+background, or at or below it.
+
+The filter changes what is drawn and nothing else. Both scales are built from every
+cell in the fraction before anything is hidden, so a band keeps the colours of the
+full map and the two can be read against each other; the legend lists only the
+classes still on the map and counts what is left. See
+[summary-site.md](docs/summary-site.md).
 
 ## Re-audit of slim and pilot
 
