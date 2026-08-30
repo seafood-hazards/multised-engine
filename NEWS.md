@@ -1,4 +1,17 @@
-# multised.engine (development version)
+# multised.engine 0.4.0
+
+The sieved-raw release. The pristine verdict withheld itself from every sieved
+measurement on a reason that only holds in bulk, and correcting that meant
+re-auditing every stage for the same mistake: a normaliser test used to withhold,
+or a normaliser result reattached afterwards as a justification. Four sweeps
+followed, over slim and pilot, clean, the summary layer and refined, turning up
+four defects in refined and one documentary root cause in slim. **The sieved
+fractions now carry a verdict**, on the sieve rather than on aluminium.
+
+Alongside it, a plain-English layer over the refined results (a `summary` analysis
+module and a tenth Quarto site), and the refined analyses moved onto the fish-farm
+axis, where a before/after control and a location-controlled Igeo replaced two
+comparisons that were measuring siting rather than pressure.
 
 ## The element maps open on the verdict, and gain a Show filter
 
