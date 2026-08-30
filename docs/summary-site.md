@@ -412,6 +412,20 @@ because item 10 is not a reach problem: the sieved fractions are already fully
 classifiable, and the question there is whether the reference they are judged
 against resembles them. Filing it under reach alone would mislabel it.
 
+**Item 7 was narrowed on 2026-08-30 and stayed on the page.** It asked whether an
+element other than aluminium could normalise, and the measurement says the
+alternatives are there but sit on the same samples aluminium sits on: lithium is held
+at nearly aluminium's scale and buys 0-2.4 points of coverage, because the gap is
+Vannmiljø, which measured no normaliser at all. The numbers and the query are in
+[normalisability/README.md](../inst/extdata/normalisability/README.md); the page
+states the finding in words, since it carries no numbers. It stays an open question
+rather than moving to the methods pages because what is settled is only the coverage
+half: whether an alternative is confounded by fish farming the way iron is was never
+asked, and does not need asking while the substitution buys nothing. The item's last
+sentence used to claim a substitute would do more for coverage than anything else on
+the list, which was the thing the measurement disproved, so it now names item 7 as
+the least promising of its group rather than the most.
+
 Its navbar entry sits **before Downloads**, fourth of five. The page's first group
 is the one that could change what is published and Downloads is where a reader
 leaves with the files, so the caveats belong on the near side of the exit.

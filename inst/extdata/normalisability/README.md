@@ -96,6 +96,66 @@ because they are redox-mobile or organic-associated rather than clay-borne, so t
 never rode on aluminium in the first place. That failure is real and does withhold their
 bulk verdict: unlike the sieved case, nothing else corrected the grain size.
 
+## Would another normaliser cover more ground? (measured 2026-08-30: no)
+
+D4 asks whether aluminium predicts the metal. A different question, raised as item 7
+of the summary site's Open Questions, is whether some other element could stand in
+**where aluminium was never measured**, which is where the coverage is actually lost:
+only **40.5%** of the 99 700 cobalt, copper and zinc rows in `multised_refined.sqlite`
+have an aluminium value on the same subsample and fraction.
+
+The alternatives named in the sediment literature survive in the **pilot** databases
+only. Slim keeps the targets, the two normalisers, organic carbon and grain size, so
+lithium and the rest are dropped there and the question has to be asked upstream:
+
+| Source | AL | LI | TI | SC | ZR | RB | CS |
+|--------|---:|---:|---:|---:|---:|---:|---:|
+| mareano   |  3 254 |  3 254 | 3 254 | 3 254 | 3 254 |   0 |  0 |
+| vannmiljo |    776 |    672 |   135 |    40 |    35 |   0 |  0 |
+| ices-dome | 17 749 | 14 263 | 1 470 |   271 |   331 | 108 | 56 |
+| mudab     |  6 323 |  5 365 |   966 |     0 |     0 | 112 |  0 |
+| 4demon    |      0 |      0 |     0 |     0 |     0 |   0 |  0 |
+| **total** | **28 102** | **23 554** | 5 825 | 3 565 | 3 620 | 220 | 56 |
+
+So the answer to "did anyone measure them" is yes, for four of the five sources, and
+**lithium is held at nearly aluminium's scale**. That is the encouraging half.
+
+The other half is where those measurements fall. Counting the pilot subsamples that
+carry at least one target (CO, CU, ZN):
+
+| Source | with Al | with Li | Li but no Al | any alternative but no Al | no normaliser at all |
+|--------|--------:|--------:|-------------:|--------------------------:|---------------------:|
+| mareano   | 99.2% | 99.2% | 0.0% | 0.0% |  0.8% |
+| vannmiljo |  1.7% |  2.1% | 1.5% | 1.6% | 96.7% |
+| ices-dome | 85.4% | 68.7% | 2.4% | 2.4% | 12.2% |
+| mudab     | 63.8% | 45.1% | 1.8% | 2.4% | 33.8% |
+
+**Lithium is measured on the samples aluminium is measured on.** Swapping it in gains
+between 0.0 and 2.4 percentage points of coverage, and accepting any of the six
+alternatives per subsample adds at most another point. The gap is not a choice-of-normaliser
+problem: it is Vannmiljø, which supplies **52 649 of the 99 700** target rows, all
+bulk, with aluminium on 1.6% of them and **no normaliser of any kind on 96.7%** of its
+target subsamples. 4Demon measured no alternative at all.
+
+Two consequences worth carrying:
+
+- **Substitution is the least promising route to coverage, not the most.** Item 8
+  (transferring a clean location across elements) and item 10 (regional references)
+  are where that group's weight actually sits.
+- **Confounding was not tested**, and does not need to be yet. Whether lithium is
+  affected by fish farming the way iron is would matter only if the substitution
+  bought coverage, and it does not. Ask that question again only if item 8 or a new
+  source changes the arithmetic above.
+
+Nothing reads these numbers. They are recorded here so the question does not have to
+be reopened from scratch, and because the pilot databases are the only place left
+that can answer it. To regenerate, count `UPPER(symbol)` over each pilot `sediment`
+table joined to its `parameter` table, keying subsamples on the source's own
+sample/layer columns (`cruise_id|core_id|sample_id` for mareano, `sample_id` for
+vannmiljo, `sample_id|sub_no|depth_from|depth_to` for ices-dome,
+`station_no|survey_id|sample_no|sediment_no` for mudab). Other reasonable keyings
+shift the percentages by a point or two and the conclusion not at all.
+
 ## Why frozen
 
 Same reason as `inst/extdata/loq-censoring/`. This is a **rule**, so it should not
