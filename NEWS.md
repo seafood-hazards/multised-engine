@@ -1,5 +1,21 @@
 # multised.engine (development version)
 
+## The element maps open on the verdict, and gain a Show filter
+
+The **Colour by** radio on the summary site's element maps now runs verdict,
+concentration, enrichment, and opens on the verdict wherever the fraction has one.
+A **Show** control under it narrows what is drawn: the verdict layer offers its
+classes as checkboxes, the concentration and enrichment layers offer bands cut at
+the fraction's own 10th percentile, median and 90th percentile, and the enrichment
+layer also offers the cut that is not about the other cells: above the natural
+background, or at or below it.
+
+The filter changes what is drawn and nothing else. Both scales are built from every
+cell in the fraction before anything is hidden, so a band keeps the colours of the
+full map and the two can be read against each other; the legend lists only the
+classes still on the map and counts what is left. See
+[summary-site.md](docs/summary-site.md).
+
 ## Re-audit of slim and pilot
 
 Neither stage normalises anything, so the rule has nothing to violate there: pilot

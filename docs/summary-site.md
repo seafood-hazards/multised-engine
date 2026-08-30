@@ -225,6 +225,61 @@ clean result, and the page repeats it in bold. If that balance is ever revisited
 the thing to protect is that a reader cannot mistake a faint cell for an absent
 one.
 
+### Show: narrowing without recalculating
+
+**Colour by** opens on **Pristine** wherever the fraction has a verdict, and the
+options run verdict, concentration, enrichment. The verdict is what the page is
+for; concentration was first only because it was the option that existed first.
+The default is read off the head of the option list rather than named, so it
+follows the fraction: where there is no verdict layer, the map opens on
+concentration as before.
+
+A **Show** control sits under it and narrows what is drawn. What it offers follows
+the layer, because the values do:
+
+- the verdict layer offers its classes, as checkboxes, all ticked. Only the
+  classes the fraction actually has are listed, named through the same
+  `PR[k][basis]` lookup the legend uses, so a sieved map can no more offer an
+  "EF < 1" box than it can show the swatch.
+- the concentration and enrichment layers offer bands cut at the fraction's own
+  10th percentile, median and 90th percentile, as a radio, opening on all cells.
+  Each label carries the value it cuts at (`Top 10% (36.7 and above)`), which is a
+  number the page computed in order to draw the map rather than one typed into it,
+  so the no-typed-numbers rule holds the same way the legend's end labels do. The
+  halves meet at the median rather than splitting it, so a cell sitting exactly on
+  it is in both rather than in neither.
+- the enrichment layer offers one more pair, ahead of the bands: **Above
+  background (Igeo > 0)** and **At or below background (Igeo <= 0)**. A percentile
+  is a statement about the other cells; zero is a statement about the sediment, and
+  it is already the point the ramp diverges about and the legend ticks. The pair
+  partitions the fraction, which is the check to re-run after touching it: copper
+  bulk splits 1068 and 2596 against 3664 cells. A side the fraction has none of is
+  left out rather than offered as an empty map, which is why iodine bulk, entirely
+  at or below its background, gets only the one option.
+
+**The filter decides what is drawn and nothing else.** The colour ramp and the
+class palette are built from every cell in the fraction, before anything is
+hidden, so narrowing to the top decile does not restretch the scale under it:
+copper bulk still runs 2.83 to 48.4 whichever band is on show. Recomputing the
+ramp on the survivors would turn the filter into a second, undeclared scale, every
+band would come out looking like the full map, and nothing could be compared with
+anything.
+
+The legend follows the filter rather than the fraction, because it describes what
+is on the map: it lists only the classes still drawn, drops the "grey is a gap in
+the data" note when grey is not among them, and adds "Showing N of M cells"
+whenever anything is hidden.
+
+The control appears only where it has more than one thing to offer. Manganese and
+iodine bulk, whose every cell is unclassified, get no checkbox that could only
+blank the map, and the two withheld elements get no filter at all, having no
+values to band and no colour control either.
+
+The palette, the class order, the verdict basis and the number format moved out of
+the map cell into OJS cells of their own when this went in, because three cells
+now read them: the map, its legend, and the filter. A second copy is a second
+place for the filter to disagree with the map it filters.
+
 ### The legend
 
 Colour is the only thing on the map carrying a value, so it needs a key, and the
@@ -254,10 +309,12 @@ when the element has no `value` property, so `chosen` never resolved, `layer`
 never resolved, and the map cell sat pending for ever. Nothing throws, so the
 console is clean and the page just quietly ends after the heading.
 
-The placeholder is now `Object.assign(html\`<span></span>\`, { value: "value_p50" })`
+The placeholder is now `Object.assign(html\`<span></span>\`, { value: colour_opts[0][1] })`
 and `layer` reads it directly rather than branching around it. **Any OJS
 placeholder standing in for an input has to carry a value**, or every cell
-downstream of it disappears without saying so.
+downstream of it disappears without saying so. The Show filter stands behind the
+same placeholder for the same reason, carrying either every class key or `"all"`
+depending on the layer it is standing in for.
 
 ## The site
 
