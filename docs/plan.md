@@ -33,3 +33,13 @@ At the end of the processess, we would like to craate a single database containi
 ## Merged version
 
 Based on the single database, we would like to perform different analyses to define background and pristine sediment data.
+
+## Refined version
+
+Based on the merged database, we cut a mart holding only what the background and pristine work needs: the seven target elements, the normalisers as a separate table, the baked ratios, and the links to aquaculture sites and repeat-sampled sites. The analyses on it define the background level per element and fraction, and classify each measurement as pristine or not.
+
+## Summary layer
+
+The refined site reports those analyses in full, for a reader who works with the data. On top of it we would like a short site that states what the work found in plain English, per element, for a reader who will not open the analysis sites.
+
+This is not a sixth database. It is one analysis module that assembles the numbers the refined analyses already wrote, plus the site that draws them, so that the plain-English answer can never disagree with the analysis it summarises. No number is typed into a page: a number the site needs that no CSV holds is added to the module instead.

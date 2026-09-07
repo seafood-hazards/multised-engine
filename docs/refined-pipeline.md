@@ -149,6 +149,12 @@ vocabulary) and it is not carried through the pipeline. See
 - **Analyses** on the refined DB (the pristine/background work): the
   `multised-refined` site (created and published). See
   [websites.md](websites.md).
+- **The plain-English layer** over those analyses: the `multised-summary` site,
+  fed by the `summary` analysis module (`analyze_data("refined", module =
+  "summary")`). It reads the same refined DB but states results rather than
+  deriving them, and is not a sixth generation: there is no
+  `multised_summary.sqlite` and no `create_db("summary")`. See
+  [summary-site.md](summary-site.md).
 
 ## Resolved decisions
 

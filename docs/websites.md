@@ -133,6 +133,15 @@ tag, and its `_scripts/release-assets.txt` is read by both its uploader and its
 pre-render downloader, so the two cannot drift. See
 [summary-site.md](summary-site.md).
 
+Every other site's home page links to it, so a reader who lands anywhere in the
+project can find the plain-English answer: the four generation sites carry a
+paragraph after their "Pipeline generations" list, and the five pilot sites carry
+the same paragraph in their shared `_generations.qmd` include. All of them say the
+same three things: it is not a sixth generation, it has no database, and it
+computes nothing. The link runs both ways: the summary home page closes with a
+**Where the workings live** table pointing back at all nine, one row per
+generation, with the five pilot sites in the pilot row.
+
 The other four still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
 several read analysis CSVs as well as databases, so they are not interchangeable
 with the pilot contract above.
