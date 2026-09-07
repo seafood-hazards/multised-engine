@@ -1,3 +1,35 @@
+# multised.engine 0.4.1
+
+A documentation release. The summary layer shipped in 0.4.0 without the project's
+own description of itself catching up, and the nine earlier sites had no link to
+it. Both are fixed here, and the site releases that carry the links were cut
+alongside this one.
+
+## The project describes its own summary layer
+
+The summary layer shipped in 0.4.0; the project's description of itself did not
+follow it. The README still counted 25 analyses and four companion sites,
+`docs/plan.md` stopped at the merged generation, and `refined-pipeline.md` listed
+what the refined database feeds without the site that states its results in plain
+English. All three now say the same three things about it: not a sixth
+generation, no database of its own, and it computes nothing.
+
+`plan.md` gained the two sections it was missing, refined and summary, so the arc
+it describes reaches the layer that ends it.
+
+## Every site links to the summary site, and it links back
+
+The four generation sites carry a paragraph after their pipeline-generations
+list; the five pilot sites carry the same paragraph in the shared
+`_generations.qmd` include. The summary site's home page closes with a "Where the
+workings live" table pointing back at all nine, one row per generation with the
+five pilot sites in the pilot row. `websites.md` records where both halves live,
+so the next edit does not have to rediscover them.
+
+The nine site releases cut alongside this one carry no assets: nothing about the
+data changed, so each site keeps downloading from the release that `latest`
+already resolved to.
+
 # multised.engine 0.4.0
 
 The sieved-raw release. The pristine verdict withheld itself from every sieved
