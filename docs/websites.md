@@ -17,14 +17,14 @@ stage where the five providers still look like five different databases.
 
 | Site | Repo (`seafood-hazards/…`) | Sibling path | Database | Version |
 |---|---|---|---|---|
-| Mareano   | `mareano-pilot`   | `../mareano-pilot`   | `mareano_pilot.sqlite`   | v0.1.28 |
-| Vannmiljø | `vannmiljo-pilot` | `../vannmiljo-pilot` | `vannmiljo_pilot.sqlite` | v0.1.23 |
-| ICES-DOME | `ices-dome-pilot` | `../ices-dome-pilot` | `ices_dome_pilot.sqlite` | v0.1.19 |
-| MUDAB     | `mudab-pilot`     | `../mudab-pilot`     | `mudab_pilot.sqlite`     | v0.1.11 |
-| 4Demon    | `4demon-pilot`    | `../4demon-pilot`    | `4demon_pilot.sqlite`    | v0.1.7  |
+| Mareano   | `mareano-pilot`   | `../mareano-pilot`   | `mareano_pilot.sqlite`   | v0.1.30 |
+| Vannmiljø | `vannmiljo-pilot` | `../vannmiljo-pilot` | `vannmiljo_pilot.sqlite` | v0.1.25 |
+| ICES-DOME | `ices-dome-pilot` | `../ices-dome-pilot` | `ices_dome_pilot.sqlite` | v0.1.21 |
+| MUDAB     | `mudab-pilot`     | `../mudab-pilot`     | `mudab_pilot.sqlite`     | v0.1.13 |
+| 4Demon    | `4demon-pilot`    | `../4demon-pilot`    | `4demon_pilot.sqlite`    | v0.1.9  |
 
 Site versions are independent of each other and of this package; the table
-records where each stood in August 2026.
+records where each stood in September 2026.
 
 ### The contract, identical across all five
 
@@ -128,9 +128,8 @@ project produces.
 `multised-summary` is the odd one out and deliberately so. It is not fed by a
 database at all: it downloads only the CSVs written by
 `analyze_data("refined", module = "summary")`, opens nothing, and links to
-multised-refined for every working. It resolves `latest` rather than pinning a
-tag, and its `_scripts/release-assets.txt` is read by both its uploader and its
-pre-render downloader, so the two cannot drift. See
+multised-refined for every working. Its `_scripts/release-assets.txt` is read by
+both its uploader and its pre-render downloader, so the two cannot drift. See
 [summary-site.md](summary-site.md).
 
 Every other site's home page links to it, so a reader who lands anywhere in the
@@ -142,9 +141,29 @@ computes nothing. The link runs both ways: the summary home page closes with a
 **Where the workings live** table pointing back at all nine, one row per
 generation, with the five pilot sites in the pilot row.
 
-The other four still pin their release tag (`v0.1.0`) rather than resolving `latest`, and
-several read analysis CSVs as well as databases, so they are not interchangeable
-with the pilot contract above.
+All five resolve `latest` exactly as the pilot sites do (`DB_RELEASE=v0.1.0`
+pins an older release when reproducing a build), so the pilot contract's hard
+rule holds project-wide: **a release object must carry the full asset set, or the
+next render 404s.** An older note here said the other four pinned `v0.1.0`; they
+do not, and acting on that would publish an assetless release onto `latest`.
+
+What differs between them is only what the set contains: slim takes ten
+databases, clean and merged take databases plus analysis CSVs, refined takes a
+database, the flat dataset and its CSVs, and summary takes CSVs alone. Each repo
+lists its own in `_scripts/release-assets.txt`, which `_scripts/publish-release.sh`
+uploads; in multised-refined and multised-summary the pre-render downloader reads
+that same file, so uploader and downloader cannot drift. In slim, clean and
+merged the downloader keeps its own list, so there the manifest and the
+downloader have to be kept in step by hand.
+
+**The rule is about release objects, not tags.** A version that changes only site
+code needs no release: cut the annotated tag, push, and `latest` stays on the
+release that already carries the assets. That is how the ten site versions of
+2026-09-07 were published (`multised-summary` v0.1.7 before them); nine are still
+tag-only, and `multised-summary` v0.1.8 was afterwards given a release through
+`publish-release.sh`, which is why `latest` resolves to it there. Creating a
+release object and leaving it empty is the thing that breaks a site, so a release
+either goes out through `publish-release.sh` or is not created at all.
 
 `multised-merged` and `multised-refined` load their databases **client-side**, so
 they cache them in the browser and were the two sites still carrying a
