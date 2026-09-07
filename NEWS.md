@@ -1,4 +1,9 @@
-# multised.engine (development version)
+# multised.engine 0.4.1
+
+A documentation release. The summary layer shipped in 0.4.0 without the project's
+own description of itself catching up, and the nine earlier sites had no link to
+it. Both are fixed here, and the site releases that carry the links were cut
+alongside this one.
 
 ## The project describes its own summary layer
 
