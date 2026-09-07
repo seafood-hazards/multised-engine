@@ -35,6 +35,12 @@ Data moves through five generations. The first three produce one SQLite database
 | 4 | merged     | `multised_merged.sqlite`    | union all five sources, remove cross-source duplicates        |
 | 5 | refined    | `multised_refined.sqlite`   | a mart cut from the merged database for background / pristine work |
 
+A sixth **summary** layer sits over the refined results, but it is not a
+generation: it derives no data and has no database of its own. It is one analysis
+module (`analyze_data("refined", module = "summary")`) plus the plain-English
+site it feeds, `multised-summary`. See
+[docs/summary-site.md](docs/summary-site.md).
+
 ## Installation
 
 ```r
@@ -89,10 +95,15 @@ steps where it is not installed: `create_db("pilot", src, steps = c(1, 5))`,
 Three public verbs cover the whole project:
 
 ```r
-create_db(generation, source = NULL, steps = NULL)   # all five generations
-analyze_data(generation, module = NULL, steps = NULL) # all 25 analyses
-export_data("refined")                                # flat TSV + dictionary
+create_db(generation, source = NULL, steps = NULL)    # all five generations
+analyze_data(generation, module = NULL, steps = NULL) # all 30 analyses
+export_data("refined", format = "dataset")            # flat TSV + dictionary
 ```
+
+The 30 analyses are 6 on the clean databases, 13 on the merged one and 11 on the
+refined one; `analysis_modules(generation)` is the live list. The last refined
+module, `summary`, assembles what the others wrote into the tables the
+multised-summary site draws, so it runs after them.
 
 The package is flat: R collates only top-level `R/*.R`. The original script
 trees were removed at v0.3.0 after every generation and analysis had been
@@ -101,8 +112,10 @@ interface are in `inst/scripts/`.
 
 ## Companion sites
 
-Four Quarto sites present the pipeline and its analyses, each built from its own
-repository and published to GitHub Pages:
+Ten Quarto sites present the pipeline and its analyses, each built from its own
+repository and published to GitHub Pages. Five document one data source each at
+the pilot stage (`mareano-pilot`, `vannmiljo-pilot`, `ices-dome-pilot`,
+`mudab-pilot`, `4demon-pilot`); the other five follow the data outwards:
 
 | Site             | Presents                                                        |
 |------------------|-----------------------------------------------------------------|
@@ -110,12 +123,18 @@ repository and published to GitHub Pages:
 | multised-clean   | analyses on the clean databases, aquaculture, and the merge build steps |
 | multised-merged  | the merged database: schema, interactive explorers, outlier flagging |
 | multised-refined | the refined database: background and pristine-classification analyses |
+| multised-summary | the plain-English answer over the refined results: what was found, per element |
+
+multised-summary is the outermost layer and the only one written for a reader who
+will not open the analysis sites. It computes nothing: every number on it is read
+from a CSV written by the `summary` module.
 
 ## Documentation
 
 Specifications for each stage live under `docs/`: `slim-pipeline.md`,
 `clean-pipeline.md`, `merge-pipeline.md`, `refined-pipeline.md`, plus
-`analysis.md` (the analysis modules) and `websites.md` (the companion sites).
+`analysis.md` (the analysis modules), `summary-site.md` (the summary layer) and
+`websites.md` (the ten companion sites).
 
 ## Licence
 
