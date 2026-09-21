@@ -90,8 +90,8 @@ Row counts of the five stored clean databases.
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
 | `mareano` | 2 | 13 | 397 | 404 | 3,280 | 24,098 | 18 | 13,060 |
 | `vannmiljo` | 27 | 20 | 17,960 | 25,187 | 28,022 | 82,011 | 371 | 14,768 |
-| `ices-dome` | 28 | 55 | 6,660 | 13,576 | 14,756 | 69,719 | 908 | 55,715 |
-| `mudab` | 16 | 23 | 1,838 | 6,033 | 6,209 | 30,744 | 307 | 21,261 |
+| `ices-dome` | 28 | 55 | 6,660 | 13,576 | 14,756 | 69,719 | 959 | 55,715 |
+| `mudab` | 16 | 23 | 1,838 | 6,033 | 6,209 | 30,744 | 315 | 21,261 |
 | `4demon` | 5 | 4 | 160 | 1,480 | 1,480 | 4,459 | 38 | — |
 
 `measurement` drops sharply against slim — 41,789 to 24,098 for Mareano — partly
@@ -117,18 +117,23 @@ vapply(DBI::dbListTables(a), function(t)
   identical(DBI::dbReadTable(a, t), DBI::dbReadTable(b, t)), logical(1))
 ```
 
-**Step 4 is judged on plausibility, not reproduction.** The code uses seastamp's
-own `region = "auto"`; the stored databases hold `"global"` values from before
-that default changed. Measured over the 27,015 clean sites, `dist_to_coast`
-moves on **every** row (median 4.8-11.3% by source, largest single shift 93 km),
-`municipality` is reassigned for 1,884 sites and `country` for 283, while
-`sea_name` changes for 2 and `depth` is unchanged everywhere — depth does not
-project, so it cannot depend on this.
+**Step 4 reproduces too, since 2026-08-25.** `clean_geo_enrich()` defaults to
+`partition = TRUE`, which is what the stored databases hold, and seastamp is
+deterministic for a given version and reference tree: 0.16.3 reproduces the
+stored values on 26,849 of 26,849 sites, max difference 0.0005 km, which is the
+output rounding.
 
-So: distances positive and sane, countries correct, `depth` matching the stored
-values exactly. Adopting `auto` for the published databases is a deliberate
-refresh, not something to do by accident: it will change the multised-clean and
-multised-merged pages.
+It was not always so. The stored databases used to hold `--region global`
+values, and the code moved to `--partition` after the two were measured against
+each other over the 26,849 sites: the all-site median moves only 0.046 km, but
+the error is proportional, so it hides on the 17,424 sites within 1 km of shore
+and reaches -10% to +12% on the 5,702 sites beyond 10 km, which is exactly where
+the EF reference is drawn. `depth` does not project and never moved. The
+reasoning and the full comparison are in
+[clean-pipeline.md](https://github.com/seafood-hazards/multised-engine/blob/main/docs/clean-pipeline.md).
+
+So what to check: distances positive and sane, countries correct, `depth`
+matching the stored values exactly.
 
 ## Step 5: distance to aquaculture
 

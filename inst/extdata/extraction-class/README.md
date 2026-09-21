@@ -93,11 +93,11 @@ Target elements only (CO, CU, I, MN, MO, SE, ZN), weighted by measurements:
 
 | Source | Rows | 1 strong | 2 milder | 3 weak-none |
 |---|---|---|---|---|
-| ICES-DOME | 58,164 | 79.1% | 19.3% | 1.6% |
-| MUDAB | 26,049 | 71.4% | 26.4% | 2.2% |
+| ICES-DOME | 58,014 | 79.2% | 19.2% | 1.6% |
+| MUDAB | 26,044 | 71.4% | 26.4% | 2.3% |
 | Mareano | 18,941 | 0% | 100% | 0% |
 | Vannmiljø | 62,017 | 0% | 0% | 100% |
-| 4Demon | 3,528 | 0% | ~0% | ~100% |
+| 4Demon | 3,528 | 0% | 0% | 100% |
 
 ## Regenerating
 

@@ -19,7 +19,7 @@ missing.
 
 ## The five classes
 
-Counts are target measurements in `multised_refined.sqlite`, 53,754 in total.
+Counts are target measurements in `multised_refined.sqlite`, 53,698 in total.
 Four of the 31 programmes carry no target chemistry, all of them `survey`.
 
 | Class | Meaning | Programmes | With data | Target measurements |
@@ -27,7 +27,7 @@ Four of the 31 programmes carry no target chemistry, all of them `survey`.
 | `aquaculture` | Monitoring at marine fish farms | 1 | 1 | **25,789** |
 | `pressure` | A named or presumed pressure at the site | 16 | 16 | 23,937 |
 | `unknown` | The source's own residual category (`ANNE`) | 1 | 1 | 2,415 |
-| `survey` | Status, trend or mapping work with no site-specific pressure premise | 12 | 8 | 1,549 |
+| `survey` | Status, trend or mapping work with no site-specific pressure premise | 12 | 8 | 1,493 |
 | `reference` | Reference conditions, deliberately unpressured | 1 | 1 | 64 |
 
 `MOMC` alone is 25,789 target measurements, the largest Vannmiljø programme and

@@ -50,11 +50,11 @@ Coverage over the 7 target elements, weighted by measurements, not by method row
 
 | Source | Pilot field | Target rows | Classifiable |
 |---|---|---|---|
-| ICES-DOME | `analysis_method.metcx` | 58,164 | **100%** (79.1% strong, 19.3% milder, 1.6% weak-none) |
-| MUDAB | `analysis_method.chemical_treatment` | 26,049 | **100%** (71.4% strong, 26.4% milder, 2.2% none) |
+| ICES-DOME | `analysis_method.metcx` | 58,014 | **100%** (79.2% strong, 19.2% milder, 1.6% weak-none) |
+| MUDAB | `analysis_method.chemical_treatment` | 26,044 | **100%** (71.4% strong, 26.4% milder, 2.3% none) |
 | Mareano | `parameter.method2` | all | **100%**, uniform "partial extraction by 7 M HNO3 in autoclave" |
 | Vannmiljø | `analysis_method.analysis` | 62,017 | **none**, see below |
-| 4Demon | `method.method_code` | 3,528 | **none**, 2 rows excepted |
+| 4Demon | `method.method_code` | 3,528 | **none**: every row maps to `UNK` |
 
 MUDAB uses the ICES METCX vocabulary verbatim, so one mapping serves both. That
 is the same arrangement `R/clean-shared-method-meta.R` already relies on for
@@ -172,7 +172,7 @@ the refined database or derivable from it:
 | Location | sampleLocGC, sampleLocCM, envComp, place | site lat/lon, municipality, country, sea_name |
 | Time | sampleDate | `event.year` / date |
 | Measurand | traceEl, spec, conc, unit, weight, converted mg/kg dw | `measurement.value_std` / `unit_std` |
-| Method | methAn, **extraction class**, LOD, LOQ, accLab | `method`, extraction **new**, accreditation partial |
+| Method | methAn, **extraction class**, LOD, LOQ, accLab | `method`, extraction and accreditation both carried; `accLab` filled for the two sources that state it |
 | Sediment | Sieve <63µm, Bulk analysis, fracBasis, ocSed / TOC%, texture clay/silt/sand | `frac_class`, `sieve_um_std`, `frac_basis`, organic, grain size |
 | Verdict | pristineLoc, igeo, igeo_class | `pristine_ef` and Igeo from the background module |
 | Pressure | dist_to_fish_farm_km, fish_farm_band, pressure_class | site distances, Vannmiljø programme |
@@ -290,11 +290,14 @@ column map, `refined-pipeline.md`, and a page on multised-refined.
 
 ## 9. Open, not in scope
 
-- **Accreditation.** MUDAB's `analysis_method.accreditation` is in the very table
-  phase 2 already opens, and covers 12,204 of 26,049 target rows (46.9%) with a
-  yes/no, though the vocabulary is messy (`true` / `ja` / `y` / `1` / `false` /
-  `n`). It fills EFSA's `accLab`. Cheap to add while we are there, but it is a
-  widening of scope and is not started without a decision.
+- ~~**Accreditation.**~~ **Done.** Two sources state it, not one: MUDAB in
+  `analysis_method.accreditation` (a messy `true` / `ja` / `y` / `1` / `false` /
+  `n` vocabulary) and Mareano in `lld.comment`, mixed in with unrelated notes.
+  Both are normalised to `yes` / `partly` / `no` by `R/accreditation.R` and
+  carried on `method` from slim to the export. It reaches **20,589 of 115,755**
+  target rows (17.8%): Mareano 13,496 of 14,325 (94.2%), MUDAB 7,093 of 17,889
+  (39.6%), NULL everywhere else. `accLab` in the export reads Y on 20,322 rows
+  and N on 267, with Mareano's `partly` folded into Y.
 - **Vannmiljø extraction.** Recoverable only if IMR can state the digestion
   standard behind the Vannmiljø submissions. Would move 62,017 rows off the
   class 3 default.

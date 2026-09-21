@@ -135,11 +135,16 @@ table, all the way from pilot to the export. See
 Recorded for **51.5%** of the 115,755 target measurements: ICES-DOME and MUDAB record
 it per analysis, Mareano has one stated method for every target element, and Vannmiljø
 and 4Demon record nothing, so they take the `UNK` code and EFSA class 3. The extraction
-is part of method identity, so `method` grew from 949 rows to 983.
+is part of method identity, so it splits method rows that would otherwise collapse:
+**67** at slim (ICES-DOME 54, MUDAB 13), the only two sources that record it per
+analysis. Refined carries **979** method rows, 910 distinct identities, 876 of them
+distinct without the extraction columns.
 
-`accredited` remains a gap of the kind this one turned out not to be, but a real one:
-only MUDAB records it (46.9% of its target rows, in a messy `true`/`ja`/`y`/`1`
-vocabulary) and it is not carried through the pipeline. See
+**`accredited` is carried too**, and by two sources rather than the one this section
+once claimed: MUDAB in `analysis_method.accreditation` and Mareano in `lld.comment`,
+both normalised to `yes` / `partly` / `no` by `R/accreditation.R`. It reaches 20,589
+of the 115,755 target measurements (17.8%): Mareano 94.2% of its rows, MUDAB 39.6%,
+NULL for ICES-DOME, Vannmiljø and 4Demon, which do not state it. See
 [efsa-submission.md](efsa-submission.md) section 9.
 
 ## Websites
