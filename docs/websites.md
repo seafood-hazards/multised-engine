@@ -56,6 +56,18 @@ Three rules follow, and they are what breaks a site when missed:
   to an empty release and 404s the next render. The pilot sites have no escape
   hatch for this: they hard-code the URL, where multised-refined at least honours
   `DB_RELEASE` to pin an older tag.
+- **A data-only refresh has no push, so it has no render.** CI fires on a push to
+  `main`. When the pipeline is rebuilt but no page changes, re-uploading the
+  assets updates what `latest` serves and nothing re-renders, so the site goes on
+  showing the previous numbers until someone asks it to:
+
+  ```bash
+  gh workflow run "Publish site" --ref main    # "Publish Quarto Website" on the pilot sites
+  ```
+
+  This is the standing pattern for a pipeline rebuild: re-upload onto Latest,
+  then `workflow_dispatch` each affected site. Both 2026-08-25 and 2026-09-21
+  went out this way.
 - **The browser cache key tracks the file, so there is nothing to bump.**
   stratum-sqlite caches the database in the browser under the `cacheKey` set in
   `_db-setup.qmd`, and a stale cache surfaces as "no such column", or worse, as

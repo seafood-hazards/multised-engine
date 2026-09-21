@@ -151,7 +151,7 @@ classify from `fraction_range`, keep `matrix` as provenance.
 ### 4b. Vannmiljø and Mareano: not "bulk", but "unknown"
 
 Neither source has a matrix field. `classify_fraction()` maps absent to `bulk`,
-so **53,754 Vannmiljø and 14,325 Mareano target measurements are positively
+so **53,698 Vannmiljø and 14,325 Mareano target measurements are positively
 labelled bulk on no evidence**.
 
 To the direct question -- could some Vannmiljø be sieved? -- the honest answer
@@ -625,5 +625,14 @@ seastamp `region = "auto"` vs `"global"` decision. **Do not rebuild five times.*
    The EFSA export is deliberately **not** on any release: the submission will be a
    filtered subset of representative pristine records, not the whole table. See
    [efsa-submission.md](efsa-submission.md) section 7.
+
+   **Superseded 2026-09-21.** The counts above are what that rebuild produced and
+   are left as the record of it. The current figures are **115,755** target
+   measurements and **190,771** merged rows, after the Mareano year fix (engine
+   0.6.1) let merged's rule 1 dedup see 56 Vannmiljø re-hosts of native Mareano
+   rows that a NULL year had been hiding from it. 59,666 and 59,372 are unchanged,
+   because the 56 are Vannmiljø, which records no digestion. All six sites were
+   re-released the same way, by re-upload onto the existing latest release plus a
+   `workflow_dispatch`, which is now the standing pattern for a data-only refresh.
 
 Steps 1-3 are one unit of work. Step 4 is where the coverage number moves.

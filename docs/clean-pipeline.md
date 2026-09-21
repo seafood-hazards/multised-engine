@@ -201,7 +201,7 @@ Order: harmonise → **remove** flagged rows → **aggregate** replicates.
   source gave a matrix, `assumed` where it gave nothing and `bulk` is the fallback.
   Defaulting to bulk is what EFSA's spec instructs for the submission ("If not
   reported, there is also this option in the drop-down menu"), so the export stays
-  correct, but 68,079 target measurements rest on it and an EF or background cut
+  correct, but 68,027 target measurements rest on it and an EF or background cut
   should be able to tell the two apart. Mareano and Vannmiljø are `assumed`
   throughout; ICES-DOME, MUDAB and 4Demon are `reported`. Summarised onto
   `subsample` as `target_frac_basis`, which is `reported` only where every target
@@ -318,7 +318,7 @@ Measured against each other:
 | auto vs global | 0.046 km | 727 (2.71%) |
 
 **The median understates what is at stake, and this is the point to hold on to.**
-A projection error is proportional, so it is invisible on the 17,267 sites within
+A projection error is proportional, so it is invisible on the 17,424 sites within
 1 km of shore and largest exactly where the EF reference is drawn. Over the 5,702
 sites beyond 10 km:
 
@@ -418,8 +418,9 @@ aquaculture data yet).
 
 `fish_farm` and `size_band` are set in the build, not the distance step.
 
-`fish_types` is the licence's species list, and it is noisy: **335 distinct
-entries** across the register, most of them wild organisms recorded against
+`fish_types` is the licence's species list, and it is noisy: **270 distinct
+strings** across the register, naming **338 distinct species** once split, most of
+them wild organisms recorded against
 research and multi-species licences (herring, tuna, starfish). So the test is a
 **positive list** of the finfish Norway grows in sea cages, and a site is called a
 fish farm only on evidence: `fish_farm = 1` where the licence names one of them

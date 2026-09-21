@@ -1,3 +1,73 @@
+# multised.engine 0.6.2
+
+Documentation only: every figure in the docs and vignettes re-derived from the
+current databases, and two sections that described removed behaviour rewritten.
+No code changes.
+
+Reproducing the vintages these numbers came from is no longer practical, so the
+rule applied throughout is **state what is true now**, with dated history kept
+only where it records a decision rather than a measurement.
+
+## Two things the docs described that no longer happen
+
+**The pilot stage has no seastamp step.** Step 4 was removed on 2026-08-25,
+because `clean_geo_enrich()` overwrites all five location columns
+unconditionally and no pilot value ever survived. `vignette("pilot")` still
+carried it end to end: the 7.7 GB requirement, the step table, the `steps = c(1, 5)`
+escape hatch, a console transcript with a geo step in it, the seastamp error
+messages, and a table comparing `sf` against seastamp values that the stored
+databases no longer hold. The five location columns are present and NULL in all
+five stored pilot databases; the vignette now says so and sends the reader to
+the clean stage for everything else.
+
+**Clean step 4 reproduces.** `vignette("clean")` said it was "judged on
+plausibility, not reproduction", on the grounds that the code used
+`region = "auto"` while the stored databases held `"global"`. Both halves are
+out of date: `clean_geo_enrich()` has defaulted to `partition = TRUE` since
+2026-08-25 and that is what the stored databases hold, and seastamp 0.16.3
+reproduces them on 26,849 of 26,849 sites, max difference 0.0005 km.
+
+## Figures re-derived
+
+- **`method` and the extraction split.** `refined-pipeline.md` said extraction
+  "grew `method` from 949 rows to 983". Neither number is current, and the effect
+  is better stated where it happens: extraction splits **67** method rows at slim
+  (ICES-DOME 54, MUDAB 13), the two sources that record it per analysis. Refined
+  carries 979 method rows, 910 distinct identities, 876 without the extraction
+  columns.
+- **`accredited` is not a gap.** Two docs still called it unrecovered and
+  attributed it to MUDAB alone. It is carried on `method` from slim to the
+  export, from MUDAB's `analysis_method.accreditation` and Mareano's
+  `lld.comment`, and reaches 20,589 of the 115,755 target measurements (17.8%):
+  Mareano 94.2%, MUDAB 39.6%. `accLab` reads Y on 20,322 rows and N on 267.
+- **Extraction coverage.** ICES-DOME 58,164 -> 58,014 slim target rows
+  (79.2 / 19.2 / 1.6% by class), MUDAB 26,049 -> 26,044 (71.4 / 26.4 / 2.3%).
+  4Demon's "2 rows excepted" is gone: every 4Demon row maps to `UNK`.
+- **Row-count tables.** The slim and clean vignettes carried pre-extraction
+  `method` counts for the two sources extraction splits: slim ICES-DOME
+  1,314 -> 1,368 and MUDAB 423 -> 431; clean ICES-DOME 908 -> 959 and MUDAB
+  307 -> 315. The merged and refined vignettes carried a two-vintage-old
+  reconciliation (190,844 / 115,820 / 62,698 / 38,145 / 949) and an exported
+  dataset "115,820 rows by 25 columns" and "by 16 columns" against an export that
+  writes 40.
+- **Moved by the 0.6.1 Mareano year fix.** Vannmiljø's target total 53,754 ->
+  53,698 and its `survey` programme class 1,549 -> 1,493; the `assumed`
+  `frac_basis` count 68,079 -> 68,027; the aluminium coverage behind D4's
+  alternative-normaliser test, 40.5% of 99,700 cobalt/copper/zinc rows -> 40.6%
+  of 99,644, of which Vannmiljø supplies 52,593.
+- **Smaller drift.** Sites within 1 km of shore 17,267 -> 17,424; the
+  aquaculture register's species list, stated as 335 distinct entries, is 270
+  distinct licence strings naming 338 species once split.
+
+## Also
+
+`websites.md` gains the step that the last two rebuilds both needed and it did
+not state: a data-only refresh has no push, so CI never fires, and each affected
+site needs a `workflow_dispatch` after the assets are re-uploaded onto Latest.
+
+`slim-pipeline.md` documents the `event.year` fallback added in 0.6.1, and notes
+that a NULL year is not inert: merged's rule 1 dedup keys on it.
+
 # multised.engine 0.6.1
 
 Mareano's 2023 and 2025 surface samples were in the databases all along, with no
