@@ -1,3 +1,64 @@
+# multised.engine 0.6.1
+
+Mareano's 2023 and 2025 surface samples were in the databases all along, with no
+year on them. Every year axis on every site therefore ended Mareano at 2021, and
+the cross-source dedup could not see the rows at all.
+
+## A year that was stated but never read
+
+`pilot_extract_mareano()` appends the two surface-sample workbooks
+(`P2301_surfacedata_GISprepared_draft.xlsx`,
+`P2501_surfacesamples_GISprepared_ICP_coulter_POPs.xlsx`) from a hand-written
+cruise row. Neither workbook carries a cruise date, so the sampling year is
+stated on `cruise.year` and `cruise.start_year` stays NA. Slim step 1 built the
+event table with `year = start_year`, which is parsed from the date, so the year
+never arrived.
+
+`slim_transform_mareano()` now falls back: `year = coalesce(start_year, year)`.
+`start_year` still wins where both exist, because the two disagree for
+MA-2021-2005, a cruise labelled 2021 that started in 2020.
+
+Six cruises were affected, not two: MA-2004-mar, the three 2021 cruises, and the
+two workbooks. That is 93 of Mareano's 404 events and 6,723 slim measurements.
+Mareano now runs **2003-2025** everywhere a year appears, and 2004 and 2021 gain
+the events they were missing. `date` stays NULL for all six, because only the
+year is recoverable.
+
+Nothing was added or removed by the fix: Mareano still contributes 14,289
+analysed measurements. The rows were always counted in the totals and always on
+the maps. Only the year was absent.
+
+## A NULL year is not inert
+
+Merged's rule 1 dedup keys on location + year + element and filters to rows that
+have a year, so the yearless Mareano rows were exempt from it. With the year in
+place it now sees them, and removes **56** Vannmiljø measurements (28 CU, 28 ZN)
+that are re-hosted copies of native Mareano rows. Rule 2, the provenance rule for
+Vannmiljø's re-hosted MAREANO dataset, rises from 656 to 712 of its 1,054
+candidates.
+
+The knock-on figures, all re-derived and written into the docs:
+
+| | before | after |
+|---|--:|--:|
+| merged `measurement` | 190,827 | 190,771 |
+| refined `measurement` (targets) | 115,811 | 115,755 |
+| analysed (what the summary site reports) | 115,231 | 115,175 |
+| Vannmiljø analysed | 53,488 | 53,432 |
+| Vannmiljø sites | 17,682 | 17,654 |
+
+No verdict changed. CU bulk and ZN bulk lose 28 rows each and their pristine
+shares move by 0.1 percentage point; the pristine, background, enrichment and
+mixture outcomes are otherwise identical, and the withheld set is still MO and
+SE.
+
+## The 2025 cruise was keyed as 2023
+
+The appended cruise id for the 2025 workbook read `MA-2023-250`, copied from the
+line above it, while its `year` said 2025. It is now `MA-2025-250`. The id is not
+a foreign key anywhere downstream (core ids carry the `P2301` / `P2501` station
+prefixes), so nothing but the label moves.
+
 # multised.engine 0.6.0
 
 The per-source section gains the other half of coverage: which fraction of the

@@ -28,7 +28,14 @@ Seven tables, built by `02_create_tables.R` for every source. Common columns:
   `depth`.
 - **event** — `event_id` (PK), `dataset_id` (FK), `site_id` (FK),
   `sampling_tool`, `year`, `date`; some add `tool_description`, `time`,
-  `datetime`.
+  `datetime`. `year` is normally the sampling date's year, but where a source
+  states the year without a date it is taken from the source's own year field
+  instead, so the event still lands on a year axis. Mareano does this for six
+  cruises (MA-2004-mar, the three 2021 cruises, and the 2023 and 2025
+  surface-sample workbooks); `date` stays NULL there, because only the year is
+  recoverable. **A NULL `year` is not inert**: merged's rule 1 dedup keys on it
+  and skips rows without one, so a missing year silently exempts a row from
+  cross-source deduplication as well as from every year axis downstream.
 - **method** — `method_id` (PK), `symbol` (FK), `method`, `lab`, plus source
   detection/quantification limits (`lld`, or `lod`/`loq`), and optional
   `lab_name`/`method_description`/`uncertainty`. Also `extraction` /

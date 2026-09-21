@@ -76,8 +76,8 @@ generation:
    Mareano   24098    24098        100.0
     4Demon    4459     4459        100.0
      MUDAB   30744    30744        100.0
- Vannmiljø   82011    81355         99.2
- ICES-DOME   69719    50188         72.0
+ Vannmiljø   82011    81299         99.1
+ ICES-DOME   69719    50171         72.0
 ```
 
 ICES-DOME loses 28% because it is the aggregator: those rows are held by a
@@ -95,8 +95,8 @@ The stored `multised_merged.sqlite`:
 | `site` | 26,849 |
 | `event` | 46,091 |
 | `subsample` | 53,143 |
-| `measurement` | 190,844 |
-| `method` | 1,485 |
+| `measurement` | 190,771 |
+| `method` | 1,535 |
 | `grain_size_fraction` | 104,804 |
 
 Stage totals, which say what each step removed:
@@ -106,12 +106,12 @@ Stage totals, which say what each step removed:
 | `dataset` | 78 | 78 | 0 | 100.0 |
 | `event` | 46,680 | 46,091 | 589 | 98.7 |
 | `grain_size_fraction` | 104,804 | 104,804 | 0 | 100.0 |
-| `measurement` | 211,031 | 190,844 | 20,187 | 90.4 |
-| `method` | 1,642 | 1,485 | 157 | 90.4 |
+| `measurement` | 211,031 | 190,771 | 20,260 | 90.4 |
+| `method` | 1,701 | 1,535 | 166 | 90.2 |
 | `site` | 27,015 | 26,849 | 166 | 99.4 |
 | `subsample` | 53,747 | 53,143 | 604 | 98.9 |
 
-Outliers, from step 4: 381 high, 272 low, 190,191 in distribution.
+Outliers, from step 4: 381 high, 275 low, 190,115 in distribution.
 
 ## Checking a rebuild: mind the inputs
 
