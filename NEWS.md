@@ -1,3 +1,21 @@
+# multised.engine 0.6.3
+
+Documentation only, finishing 0.6.2. The two figures that release left alone are
+now resolved, each in the way that is actually true of it.
+
+- **27 971 sieved measurements** (the verdicts the 2026-08-27 D4 fix released) is
+  **correct and unchanged**, and the normalisability README now says what it counts.
+  A plain row count of the refined `measurement` table gives 28 196 for cobalt,
+  copper, zinc and manganese sieved, so the figure looked stale and was not: it is
+  the sum of `n_classifiable` over those groups, and the 225 difference is 166 rows
+  in the unscored `<37um` / `<90um` / `<500um` sieve classes plus 59 already flagged
+  as outliers at the merged stage.
+- **1 838 municipality reassignments**, and every other comparison in the
+  seastamp projection section of `clean-pipeline.md`, was measured once against the
+  pre-0.16 stored values. The databases now hold the partitioned values alone, so
+  none of it is recomputable. The section says so, and is marked as the record of a
+  decision rather than as current statistics.
+
 # multised.engine 0.6.2
 
 Documentation only: every figure in the docs and vignettes re-derived from the
