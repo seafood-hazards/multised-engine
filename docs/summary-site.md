@@ -123,6 +123,10 @@ Written to `data/analysis/summary/`, all listed in the site's
 | `summary_flow.csv` | the pilot-to-reported funnel |
 | `summary_map_sites.csv` | per site x element x fraction: the full-resolution layer |
 | `summary_map_grid.csv` | the same on a 0.1 degree grid: what the site draws, including the per-cell pristine class and the site counts behind it |
+| `summary_source_elements.csv` | per source x target element: what the archive carries and what it does not, as the full 5 x 7 grid |
+| `summary_source_flow.csv` | per source x stage: the same funnel, one archive at a time, target elements only |
+| `summary_source_removals.csv` | per source: why the measurements that leave at the clean stage leave |
+| `summary_source_map.csv` | per source x 0.1 degree cell: where each archive sampled, and how much |
 | `summary_meta.csv` | provenance: which database, built when, under which rules |
 
 ### Why the map is gridded
@@ -316,11 +320,95 @@ downstream of it disappears without saying so. The Show filter stands behind the
 same placeholder for the same reason, carrying either every class key or `"all"`
 depending on the layer it is standing in for.
 
+## The source pages
+
+Five pages plus an overview, built the way the element pages are: one shared body
+(`_source-body.qmd`) and five one-line pages that set `SRC`. Edit the body.
+
+They answer three questions per archive, and the third is the reason the section
+exists: what it carries, how much of it survives, and **why the rest does not**.
+
+### Counted over the seven targets, and only them
+
+Every number in this section is restricted to the target elements. The
+normalisers, organic carbon and the grain-size parameters travel through the same
+pipeline and are not counted.
+
+That is not a simplification, it is what makes the funnel honest. Counted over
+every parameter an archive publishes, Mareano falls from 144 040 rows to 41 789
+between pilot and slim, and a reader sees a pipeline that threw away seven rows in
+ten. Nothing was thrown away: the pilot database holds the whole archive and slim
+keeps what this study measures. Counted over the targets the same two rungs are
+18 941 and 18 941, and across all five sources the parse rung loses 155 rows in
+168 699. Every drop below it is then a decision the pipeline took and can name.
+
+### The funnel has six rungs and reconciles at both ends
+
+pilot, slim, clean, merged, refined, analysed. Counted by opening each database
+rather than remembered, as `summary_flow.csv` already was.
+
+Two checks hold it in place and should be re-run after touching any of it:
+the per-source `analysed` rows sum to the 115 231 in `summary_meta.csv`, and the
+per-source `refined` rows sum to the 115 811 that `refined_reconciliation.csv`
+calls `targets`. Merged and refined are equal for every source, because the
+refined cut keeps every target row: the page says so rather than hiding a rung
+that reads 100%.
+
+Sites are counted as the sites carrying a target measurement, the same definition
+at every rung, so the column is a funnel and not a table size. The pilot rung
+carries no site count at all: the pilot stage has no shared site table and Mareano
+has no site table of any kind. That gap is written as NA and shown as a blank
+rather than filled with a number that would mean something different.
+
+### Removals are attributed, not differenced
+
+`summary_source_removals.csv` reads the slim flags with the predicate clean step 2
+applies, in the order it applies it (`R/clean-02-clean.R`), so a row carrying two
+flags is attributed to the first and the reasons add up instead of overlapping.
+
+Everything that leaves **without** carrying a flag is the replicate collapse, and
+it is carried as the residual. That it is only the collapse was checked rather
+than assumed: MUDAB's 25 054 surviving slim rows group into exactly the 17 889 the
+clean database holds, and ICES-DOME's 56 165 into exactly 38 492. The consequence
+is worth keeping: a future step that drops rows for a new reason surfaces as a
+jump in the `combined` count rather than as a silent gap.
+
+It is also the finding the pages are built around. For three of the five archives
+most of what leaves the clean stage is not a rejection at all but the same sample
+reported more than once for one occasion and one method, averaged into a single
+row. The page says so in those words, because "27.5% removed" invites the wrong
+conclusion.
+
+### The source map colours by effort and never by concentration
+
+`summary_source_map.csv` carries site counts, measurement counts, elements
+measured, years and a median depth. It carries no concentration, and it must not
+start to.
+
+Two reasons, both load-bearing. The element pages own the concentration scales,
+and a second set on the source pages would compete with them over the same
+sediment. And a file with no level in it cannot leak a withheld one: the
+molybdenum and selenium problem that bit the element map three times cannot arise
+here, because there is nothing for it to arise in.
+
+### Why the per-source section is not a duplicate of methods-data.qmd
+
+The Data Collection page keeps the pooled five-source table and the pooled funnel,
+both read from the same CSVs, so the two cannot disagree. What it gained is a link
+column into the per-source pages and a sentence saying what changes when the same
+steps are counted one archive at a time. Two tables reading one file is fine; two
+tables reading two files is how drift starts.
+
 ## The site
 
-Five sections: Home, Methods (four pages), Results (a coverage matrix plus one page
-per element), Open Questions, Downloads. The brief asked for the first three and the
-last; Open Questions was added afterwards (see below).
+Six sections: Home, Methods (four pages), Sources (an overview plus one page per
+archive), Results (a coverage matrix plus one page per element), Open Questions,
+Downloads. The brief asked for Home, Methods, Results and Downloads; Open
+Questions was added afterwards (see below), and Sources after that.
+
+Sources sits before Results in the navbar because the archives come before what
+was found in them, and because its overview page answers the first question a
+reader of the Results pages asks: where did the numbers come from.
 
 Shared machinery, so the seven element pages stay in step:
 
@@ -514,8 +602,12 @@ copy of the file list and 404'd on files that were sitting on the release.
 
 ## Status
 
-Published and live at <https://seafood-hazards.github.io/multised-summary/>, from
-release `v0.1.0` and its 13 assets.
+Published and live at <https://seafood-hazards.github.io/multised-summary/>.
+The asset set has grown twice since the first release: 13 files at `v0.1.0`, 15
+once the reference and sea-spread tables were added, and 19 with the four
+`summary_source_*.csv` files behind the Sources section. `latest` resolves to
+whichever release last carried the whole set, which is why a release that adds a
+file has to carry the older ones too.
 
 One trap worth recording for the next site: Pages was created by API while
 `develop` was still the default branch, so the `github-pages` environment's
