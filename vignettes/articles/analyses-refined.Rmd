@@ -119,7 +119,7 @@ rather than deriving anything of its own, so it lives behind its own verb:
 export_data("refined", out_dir = "./data/analysis-test")
 ```
 
-115,820 rows by 25 columns, plus a column dictionary, under
+115,755 rows by 40 columns, plus a column dictionary, under
 `<out_dir>/download/` — the path the multised-refined pre-render expects.
 `refined` is the only generation with an export, and it is deliberately not
 reachable as an analysis module: there is exactly one public path to it. See

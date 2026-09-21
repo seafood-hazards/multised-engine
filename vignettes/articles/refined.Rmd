@@ -134,7 +134,7 @@ through into `site`.
 export_data("refined", out_dir = "./data/multised-test/analysis")
 ```
 
-The flat downloadable dataset comes from this database: 115,820 rows by 16
+The flat downloadable dataset comes from this database: 115,755 rows by 40
 columns, plus a column dictionary, both under `<out_dir>/download/`. It is a
 separate verb rather than an analysis module because it denormalises and
 computes nothing. See `export_data()`.
