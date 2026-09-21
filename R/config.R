@@ -225,9 +225,11 @@ utils::globalVariables(c(
 # Column names the per-source section of the summary module uses unquoted
 # (section 9 of R/analysis-refined-summary.R). Kept as a second call rather than
 # merged into the sorted list above, which is regenerated wholesale from check
-# output: reflowing 580 names to add eighteen buries the change.
+# output: reflowing 580 names to add a couple of dozen buries the change.
 utils::globalVariables(c(
-  "depth_p50", "in_archive", "key", "n_analysed", "n_elements", "n_slim",
-  "pct_censored", "pct_of_pilot", "pct_of_prev", "pct_of_slim", "reason",
-  "source", "src", "stage", "withheld", "year", "year_max", "year_min"
+  "depth_p50", "has_al", "has_corg", "has_fe", "in_archive", "key",
+  "n_analysed", "n_bulk", "n_elements", "n_paired", "n_reported", "n_sieved20",
+  "n_sieved63", "n_slim", "n_source", "pct_censored", "pct_of_pilot",
+  "pct_of_prev", "pct_of_slim", "reason", "source", "src", "stage", "withheld",
+  "year", "year_max", "year_min"
 ))

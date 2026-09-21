@@ -1,3 +1,50 @@
+# multised.engine 0.6.0
+
+The per-source section gains the other half of coverage: which fraction of the
+sediment each archive measured, and how much of what it reports carries an
+aluminium, an iron or an organic carbon beside it.
+
+## Which fraction, and what came with it
+
+The first per-source release answered what each archive carries in elements. Two
+things a reader needs before comparing two archives were still missing, and both
+are now written by `analysis_refined_summary()`.
+
+- `summary_source_fractions.csv` counts bulk, sieved <63 um and sieved <20 um per
+  archive, plus a fourth row for the sieve sizes this study does not pool with
+  them. The four rows are a partition of every target measurement that reached the
+  refined database with a positive value and no outlier flag, so the shares add to
+  100 and the fourth row explains part of the gap between the refined and analysed
+  rungs of the funnel instead of leaving it unexplained.
+- `summary_source_extras.csv` counts aluminium, iron and organic carbon. It is the
+  one table in the section that counts something other than a target element,
+  because an archive's coverage of these three is a ceiling on what can ever be
+  said about its metals.
+
+`summary_source_map.csv` gains the per-fraction counts in each cell and the name
+of the largest of them, so both maps in the Sources section can answer what was
+sampled as well as how much: the per-source map colours by fraction, the overview
+map filters by it.
+
+## Two counts that are not the same count
+
+`summary_source_extras.csv` carries `n_slim` (what the archive publishes) and
+`n_paired` (how many of the target measurements the site reports have one beside
+them, on the same subsample and the same fraction). The second is **not** a subset
+of the first and can be larger: one aluminium measurement can serve all seven
+targets taken from the same sample. The pages state that rather than letting a
+reader trip over it.
+
+The pairing column is where the five archives differ most. Mareano pairs 99.6% of
+what it reports with an aluminium, Vannmiljø 2.1%, and since Vannmiljø is also the
+archive carrying the fish-farm monitoring (99.8% of the measurements within 1 km
+of a farm come from it, of which 0.6% have an aluminium), that one column is the
+mechanism behind the coverage gap the `background` module reports.
+
+Coverage only, by instruction: what a fraction means for a verdict, and which
+grain-size control it gets, stays on the element pages and in
+`summary_reference.csv`. Nothing in the source section restates it.
+
 # multised.engine 0.5.0
 
 The summary module gains a per-source section: four new CSVs behind a new Sources

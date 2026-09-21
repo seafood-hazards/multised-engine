@@ -30,6 +30,8 @@
 #   summary_source_elements.csv  per source x target element: what it carries
 #   summary_source_flow.csv      per source x stage: the same funnel, one archive at a time
 #   summary_source_removals.csv  per source: why the rows that leave at the clean stage leave
+#   summary_source_fractions.csv per source x fraction: bulk, sieved <63, sieved <20
+#   summary_source_extras.csv    per source: aluminium, iron and organic carbon coverage
 #   summary_source_map.csv       per source x 0.1 degree cell: where it sampled
 #   summary_map_sites.csv   per site x element x fraction: the full-resolution layer
 #   summary_map_grid.csv    the same on a 0.1 degree grid: what the site draws
@@ -83,9 +85,18 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   con <- dbConnect(SQLite(), db_path)
   on.exit(dbDisconnect(con), add = TRUE)
 
-  ext <- as_tibble(dbGetQuery(con, "
+  # The three ratio columns travel with every row as flags rather than values:
+  # nothing here divides by them. They are what lets the per-source pages say how
+  # much of what this site reports could be paired with an aluminium, iron or
+  # organic-carbon measurement made on the same sample and the same fraction, which
+  # is the question that decides whether an archive's samples can carry an
+  # enrichment factor at all.
+  ext_all <- as_tibble(dbGetQuery(con, "
     SELECT me.symbol, me.frac_class, me.sieve_um_std,
-           e.site_id, e.dataset_id, e.year, me.source
+           e.site_id, e.dataset_id, e.year, me.source,
+           (me.ratio_al   IS NOT NULL) AS has_al,
+           (me.ratio_fe   IS NOT NULL) AS has_fe,
+           (me.ratio_corg IS NOT NULL) AS has_corg
     FROM measurement me
     JOIN subsample s ON s.subsample_id = me.subsample_id
     JOIN event e     ON e.event_id     = s.event_id
@@ -93,8 +104,13 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     mutate(cat = case_when(frac_class == "bulk" ~ "bulk",
                            sieve_um_std == 63 ~ "sieved63",
                            sieve_um_std == 20 ~ "sieved20",
-                           TRUE ~ NA_character_)) |>
-    filter(cat %in% CATS)
+                           TRUE ~ "other"))
+
+  # Everything this site reports is bulk or one of the two standard sieved
+  # fractions. `ext_all` keeps the rest so the per-source fraction table can say how
+  # much that is rather than leave it as an unexplained gap; it is the only thing
+  # the unfiltered frame is used for.
+  ext <- ext_all |> filter(cat %in% CATS)
 
   elem_names <- as_tibble(dbGetQuery(con, "SELECT symbol, name FROM element"))
 
@@ -374,11 +390,13 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
       stage == "refined" ~ "The mart for this work: target elements, normalisers, ratios",
       stage == "analysed" ~ "What this site reports: positive values, no outliers, bulk or a standard sieved fraction"))
 
-  # ── 9. The per-source pages: coverage, funnel, removals, map ─────────────────
-  # Everything in this section counts the SEVEN TARGET ELEMENTS and nothing else.
-  # The normalisers, organic carbon and the grain-size parameters travel through
-  # the same pipeline and are not counted here, because these pages answer what
-  # happened to the measurements this study is about.
+  # ── 9. The per-source pages: coverage, funnel, removals, fractions, map ──────
+  # Every count in this section is over the SEVEN TARGET ELEMENTS. The one
+  # exception is `source_extras`, which counts aluminium, iron and organic carbon
+  # because an archive's coverage of those three decides whether its target
+  # measurements can be read at all; even there the share that matters is measured
+  # against the target rows they pair with. The grain-size parameters travel
+  # through the same pipeline and are not counted anywhere here.
   #
   # That restriction is what makes the funnel readable rather than alarming.
   # Counted over every parameter an archive publishes, Mareano falls from 144 040
@@ -574,6 +592,112 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     select(source, key, symbol, name, in_archive, n_slim, n_analysed, n_sites,
            year_min, year_max, pct_censored, withheld)
 
+  # Which fraction of the sediment each archive measured. Grain size is the single
+  # largest control on a trace-element concentration, so two archives can agree on
+  # an element and still not be comparable: a sieved fraction concentrates the
+  # metals the fine grains carry. This is coverage only. What the fractions mean
+  # for a verdict is settled on the element pages, which is where the offshore
+  # reference and the grain-size control differ between them.
+  #
+  # Counted over every target measurement that reached the refined database with a
+  # positive value and no outlier flag, so the four rows are a partition of it and
+  # the shares add to 100. `other` is the non-standard sieve sizes this study does
+  # not pool with the rest, which is why the three standard rows do not by
+  # themselves reconcile against the funnel's last rung.
+  FRACS <- c(CATS, "other")
+  frac_what <- c(
+    bulk     = "The whole sediment, not sieved",
+    sieved63 = "Sieved to the fraction below 63 micrometres",
+    sieved20 = "Sieved to the fraction below 20 micrometres",
+    other    = "A sieve size this study does not pool with the other three, or none recorded")
+
+  ext_all_src <- ext_all |> left_join(src_names, by = "dataset_id")
+  frac_totals <- ext_all_src |> count(src, name = "n_source")
+
+  source_fractions <- ext_all_src |>
+    group_by(source = src, cat) |>
+    summarise(n = n(),
+              n_sites    = n_distinct(site_id),
+              n_elements = n_distinct(symbol),
+              year_min   = suppressWarnings(min(year, na.rm = TRUE)),
+              year_max   = suppressWarnings(max(year, na.rm = TRUE)),
+              .groups = "drop") |>
+    right_join(expand_grid(source = unname(SRC_LABEL), cat = FRACS),
+               by = c("source", "cat")) |>
+    left_join(frac_totals, by = c("source" = "src")) |>
+    mutate(across(c(n, n_sites, n_elements), ~ coalesce(.x, 0L)),
+           across(c(year_min, year_max), ~ ifelse(is.finite(.x), .x, NA_integer_)),
+           pct_of_source = round(100 * n / n_source, 1),
+           key    = unname(SRC_KEY[source]),
+           source = factor(source, levels = unname(SRC_LABEL)),
+           cat    = factor(cat, levels = FRACS),
+           what   = unname(frac_what[as.character(cat)])) |>
+    arrange(source, cat) |>
+    select(source, key, cat, n, pct_of_source, n_sites, n_elements,
+           year_min, year_max, what)
+
+  # Aluminium, iron and organic carbon: coverage and nothing else. These three are
+  # not what the study measures, they are what makes a measurement readable, and an
+  # archive that reports a metal without them reports a number that cannot be
+  # grain-size corrected. Two columns say it: what the archive publishes, and how
+  # much of what this site reports from it could actually be paired with one.
+  #
+  # `pct_paired` is the load-bearing one. An archive can publish thousands of
+  # aluminium measurements and still pair with almost nothing, because pairing
+  # requires the same subsample and the same fraction, not merely the same
+  # programme. That is why the ratio flags are read from the refined measurement
+  # table rather than a second count of the aluminium rows.
+  EXTRAS <- c("AL", "FE", "ORG")
+  extra_name <- c(AL = "Aluminium", FE = "Iron", ORG = "Organic carbon")
+  extra_what <- c(
+    AL  = "The grain-size normaliser: an enrichment factor exists only where it was measured on the same sample",
+    FE  = "A second normaliser, diagnostic only: it never enters a verdict here",
+    ORG = "Organic carbon, which binds metals and is read beside a concentration rather than dividing it")
+
+  # Organic carbon is named differently in every archive (CORG, TOC, TOC63) and
+  # Mareano writes its normalisers in title case, so the role is resolved in the
+  # query from the category slim step 3 assigned rather than from the symbol.
+  extra_sql <- paste(
+    "SELECT CASE WHEN upper(el.symbol) = 'AL' THEN 'AL'",
+    "            WHEN upper(el.symbol) = 'FE' THEN 'FE'",
+    "            ELSE 'ORG' END AS symbol,",
+    "       COUNT(*) AS n_slim, COUNT(DISTINCT ev.site_id) AS n_sites",
+    "FROM measurement m",
+    "JOIN element el ON el.symbol = m.symbol",
+    "JOIN subsample s ON s.subsample_id = m.subsample_id",
+    "JOIN event ev ON ev.event_id = s.event_id",
+    "WHERE el.category IN ('reference', 'organic')",
+    "GROUP BY 1")
+
+  extras_archive <- lapply(SRC_KEYS, function(k) {
+    p <- file.path(db_dir, paste0(source_stem(k), "_slim.sqlite"))
+    if (!file.exists(p)) return(tibble(key = k, symbol = character(),
+                                       n_slim = integer(), n_sites = integer()))
+    cn <- dbConnect(SQLite(), p); on.exit(dbDisconnect(cn), add = TRUE)
+    as_tibble(dbGetQuery(cn, extra_sql)) |> mutate(key = k, .before = 1)
+  }) |> bind_rows()
+
+  extras_paired <- ext_src |>
+    group_by(source = src) |>
+    summarise(n_reported = n(), AL = sum(has_al), FE = sum(has_fe),
+              ORG = sum(has_corg), .groups = "drop") |>
+    pivot_longer(all_of(EXTRAS), names_to = "symbol", values_to = "n_paired")
+
+  source_extras <- expand_grid(key = SRC_KEYS, symbol = EXTRAS) |>
+    mutate(source = unname(SRC_LABEL[key])) |>
+    left_join(extras_archive, by = c("key", "symbol")) |>
+    left_join(extras_paired, by = c("source", "symbol")) |>
+    mutate(across(c(n_slim, n_sites, n_paired), ~ coalesce(.x, 0L)),
+           in_archive = n_slim > 0,
+           pct_paired = round(100 * n_paired / n_reported, 1),
+           name       = unname(extra_name[symbol]),
+           what       = unname(extra_what[symbol]),
+           source     = factor(source, levels = unname(SRC_LABEL)),
+           symbol     = factor(symbol, levels = EXTRAS)) |>
+    arrange(source, symbol) |>
+    select(source, key, symbol, name, in_archive, n_slim, n_sites,
+           n_paired, n_reported, pct_paired, what)
+
   # Where each archive sampled, on the same 0.1 degree grid as the element maps so
   # the two are registered against each other.
   #
@@ -585,10 +709,28 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   site_xy <- as_tibble(dbGetQuery(con,
     "SELECT site_id, latitude, longitude, depth FROM site"))
 
-  source_map <- ext_src |>
+  ext_cell <- ext_src |>
     left_join(site_xy, by = "site_id") |>
     filter(!is.na(latitude), !is.na(longitude)) |>
-    mutate(lat = round(latitude, 1), lon = round(longitude, 1)) |>
+    mutate(lat = round(latitude, 1), lon = round(longitude, 1))
+
+  # The fraction counts ride on the same cells rather than in a file of their own,
+  # so the map can be coloured by what was sampled as well as by how much. Which
+  # fraction a cell is called is the one with the most measurements in it, ties
+  # going to the coarser: a map cannot draw a cell two colours, and the counts are
+  # in the popup for the cells where the call is close.
+  frac_cells <- ext_cell |>
+    count(source = src, lat, lon, cat) |>
+    pivot_wider(names_from = cat, values_from = n, values_fill = 0,
+                names_prefix = "n_")
+  for (cc in CATS) {
+    nm <- paste0("n_", cc)
+    if (!nm %in% names(frac_cells)) frac_cells[[nm]] <- 0L
+  }
+  frac_cells$frac_top <- CATS[max.col(
+    as.matrix(frac_cells[paste0("n_", CATS)]), ties.method = "first")]
+
+  source_map <- ext_cell |>
     group_by(source = src, lat, lon) |>
     summarise(n_sites  = n_distinct(site_id),
               n        = n(),
@@ -597,13 +739,15 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
               year_max = suppressWarnings(max(year, na.rm = TRUE)),
               depth_p50 = round(median(depth, na.rm = TRUE)),
               .groups = "drop") |>
+    left_join(frac_cells, by = c("source", "lat", "lon")) |>
     mutate(across(c(year_min, year_max), ~ ifelse(is.finite(.x), .x, NA_integer_)),
            depth_p50 = ifelse(is.finite(depth_p50), depth_p50, NA_real_),
            key = unname(SRC_KEY[source]),
            source = factor(source, levels = unname(SRC_LABEL))) |>
     arrange(source, lat, lon) |>
     select(source, key, lat, lon, n_sites, n, n_elements,
-           year_min, year_max, depth_p50)
+           year_min, year_max, depth_p50,
+           n_bulk, n_sieved63, n_sieved20, frac_top)
 
   # ── 10. summary_map_sites: one point per site x element x fraction ───────────
   # The site is the unit here, not the measurement, because a map draws points. A
@@ -797,6 +941,8 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   wr(source_elements, "summary_source_elements.csv")
   wr(source_flow,     "summary_source_flow.csv")
   wr(source_removals, "summary_source_removals.csv")
+  wr(source_fractions, "summary_source_fractions.csv")
+  wr(source_extras,    "summary_source_extras.csv")
   wr(source_map,      "summary_source_map.csv")
   wr(map_sites,  "summary_map_sites.csv")
   wr(map_grid,   "summary_map_grid.csv")
@@ -815,6 +961,8 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     cat("map points:", nrow(map_sites), "sites,", nrow(map_grid), "grid cells\n")
     cat("per source:", nrow(source_flow), "funnel rows,",
         nrow(source_removals), "removal rows,", nrow(source_map), "map cells\n")
+    cat("per source, coverage:", nrow(source_fractions), "fraction rows,",
+        nrow(source_extras), "normaliser rows\n")
     cat("written to:", adir, "\n")
   }
 
