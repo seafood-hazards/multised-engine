@@ -120,8 +120,8 @@ Row counts of the five stored slim databases.
 |---|--:|--:|--:|--:|--:|--:|--:|
 | `mareano` | 13 | 2 | 397 | 404 | 3,280 | 41,789 | 23 |
 | `vannmiljo` | 20 | 27 | 17,961 | 25,188 | 28,023 | 107,867 | 446 |
-| `ices-dome` | 55 | 28 | 6,660 | 13,576 | 14,756 | 158,858 | 1,314 |
-| `mudab` | 23 | 16 | 1,838 | 6,033 | 6,209 | 63,642 | 423 |
+| `ices-dome` | 55 | 28 | 6,660 | 13,576 | 14,756 | 158,858 | 1,368 |
+| `mudab` | 23 | 16 | 1,838 | 6,033 | 6,209 | 63,642 | 431 |
 | `4demon` | 4 | 5 | 160 | 1,480 | 1,480 | 6,739 | 38 |
 
 4Demon has 4 elements because it carries no grain size and no organic carbon;

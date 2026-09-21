@@ -101,7 +101,7 @@ bulk verdict: unlike the sieved case, nothing else corrected the grain size.
 D4 asks whether aluminium predicts the metal. A different question, raised as item 7
 of the summary site's Open Questions, is whether some other element could stand in
 **where aluminium was never measured**, which is where the coverage is actually lost:
-only **40.5%** of the 99 700 cobalt, copper and zinc rows in `multised_refined.sqlite`
+only **40.6%** of the 99 644 cobalt, copper and zinc rows in `multised_refined.sqlite`
 have an aluminium value on the same subsample and fraction.
 
 The alternatives named in the sediment literature survive in the **pilot** databases
@@ -133,7 +133,7 @@ carry at least one target (CO, CU, ZN):
 **Lithium is measured on the samples aluminium is measured on.** Swapping it in gains
 between 0.0 and 2.4 percentage points of coverage, and accepting any of the six
 alternatives per subsample adds at most another point. The gap is not a choice-of-normaliser
-problem: it is Vannmiljø, which supplies **52 649 of the 99 700** target rows, all
+problem: it is Vannmiljø, which supplies **52 593 of the 99 644** target rows, all
 bulk, with aluminium on 1.6% of them and **no normaliser of any kind on 96.7%** of its
 target subsamples. 4Demon measured no alternative at all.
 
