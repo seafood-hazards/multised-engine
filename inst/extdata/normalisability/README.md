@@ -19,7 +19,12 @@ penalises the fraction that had the better control all along.
 
 That is not a hypothetical: the sieved fractions carry `normalisable = NA` here now,
 but they were `FALSE` until 2026-08-27, and that `FALSE` was what withheld a verdict
-from 27 971 sieved measurements of cobalt, copper, zinc and manganese.
+from 27 971 sieved measurements of cobalt, copper, zinc and manganese. That count
+still holds, and it is the sum of `n_classifiable` over those four elements' sieved
+rows in `refined_pristine_summary.csv`, not a plain row count. The refined
+`measurement` table holds 28 196 sieved rows for those four, and the 225 difference
+is **166** rows in the `<37um`, `<90um` and `<500um` sieve classes, which the frozen
+table does not score, plus **59** the merged stage had already flagged as outliers.
 
 The sieved `r2` and `rho` stay in the table because they remain a **diagnostic**, and a
 useful one: they are the direct evidence that the sieve has already removed the texture
