@@ -554,7 +554,7 @@ pilot_extract_mareano <- function(raw_dir = multised_raw_dir(), verbose = TRUE) 
 
   p250_df <- readxl::read_excel(file.path(data_path,
                        "P2501_surfacesamples_GISprepared_ICP_coulter_POPs.xlsx")) %>%
-    mutate(cruise_id = "MA-2023-250",
+    mutate(cruise_id = "MA-2025-250",
            Naftalen = NA,
            Fenantren = NA,
            Antracen = NA,
@@ -629,10 +629,13 @@ pilot_extract_mareano <- function(raw_dir = multised_raw_dir(), verbose = TRUE) 
                   #`Sum 7 PFAS` = `7 PFAS`
                   )
 
+  # Neither workbook carries a cruise date, so `start` / `start_year` stay NA
+  # and the sampling year is stated on `year` alone. Slim step 1 falls back to
+  # it when building the event table.
   cruise_info_p230_p250 <- tibble::tribble(
     ~cruise_id,    ~source,   ~cruise_type,             ~year, ~cruise_no, ~start, ~end,  ~start_year, ~start_month, ~start_day, ~end_year, ~end_month, ~end_day, ~area,      ~cruise_no2,
     "MA-2023-230", "Mareano", "Marine Basecamp Cruise", 2023,  "230",      NA,     NA,    NA,          NA,           NA,         NA,        NA,         NA,       "Vestland", NA,
-    "MA-2023-250", "Mareano", "Marine Basecamp Cruise", 2025,  "250",      NA,     NA,    NA,          NA,           NA,         NA,        NA,         NA,       "Vestland", NA,
+    "MA-2025-250", "Mareano", "Marine Basecamp Cruise", 2025,  "250",      NA,     NA,    NA,          NA,           NA,         NA,        NA,         NA,       "Vestland", NA,
   )
 
   p230_p250_df <- bind_rows(p230_df, p250_df)

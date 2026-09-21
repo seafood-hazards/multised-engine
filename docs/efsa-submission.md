@@ -93,13 +93,13 @@ later pilot refresh cannot reintroduce the duplication unnoticed.
 
 ### Expected result in the refined database
 
-`measurement.method_id` is populated for **100%** of all 115,811 target
+`measurement.method_id` is populated for **100%** of all 115,755 target
 measurements in every source, so extraction attaches wherever it is recorded:
 
 | Outcome | Rows | Share |
 |---|---|---|
 | From a source that records the digestion (ICES-DOME + MUDAB + Mareano) | 59,666 | **51.5%** |
-| Class 3 by default (Vannmiljø + 4Demon) | 56,145 | 48.5% |
+| Class 3 by default (Vannmiljø + 4Demon) | 56,089 | 48.5% |
 
 Two figures get quoted and they measure different things. **51.5%** is the share of
 rows *from a source that records the digestion*. **51.3%** (59,372 rows) is the share
@@ -238,7 +238,7 @@ selection of **pristine** rows, chosen when the submission itself is prepared.
 This is why `export_data("refined", format = "efsa")` is not a submission file and
 is not carried on any release. Its job is to be the *pool* that selection is made
 from, which is why it is a superset and why every row keeps its verdict columns.
-Anyone reading the 115,811-row TSV as "the submission" has it backwards.
+Anyone reading the 115,755-row TSV as "the submission" has it backwards.
 
 ## 8. Phases
 

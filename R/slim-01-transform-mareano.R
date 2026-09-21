@@ -76,9 +76,16 @@ slim_transform_mareano <- function(con_src) {
               by = c("lat_r" = "latitude", "lon_r" = "longitude", "depth"))
 
   # ── 6. Build event table (one row per core, not per depth interval) ────────
+  # `start_year` is parsed from the cruise start date, which six cruises do not
+  # have: MA-2004-mar, the three 2021 cruises, and the two surface-sample
+  # workbooks (2023, 2025), whose year is stated on the cruise rather than
+  # derived from a date. Fall back to `cruise.year` so those events keep a year
+  # instead of dropping off every year axis downstream. `start_year` still wins
+  # where both exist, because the two disagree for MA-2021-2005, a cruise
+  # labelled 2021 that started in 2020.
   df_event_keys <- df_slim %>%
     distinct(cruise_id, core_id, dataset_id, site_id, sampling_tool,
-             start, start_year) %>%
+             start, start_year, year) %>%
     mutate(event_id = row_number())
 
   df_slim <- df_slim %>%
@@ -86,8 +93,8 @@ slim_transform_mareano <- function(con_src) {
                by = c("cruise_id", "core_id"))
 
   df_event <- df_event_keys %>%
-    select(event_id, dataset_id, site_id, sampling_tool,
-           year = start_year, date = start)
+    mutate(year = coalesce(start_year, year)) %>%
+    select(event_id, dataset_id, site_id, sampling_tool, year, date = start)
 
   # ── 7. Build method table ──────────────────────────────────────────────────
   # Mareano states the digestion in prose rather than a code, in `method2`: every

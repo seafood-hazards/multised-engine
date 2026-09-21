@@ -32,15 +32,15 @@ The reshaping is the point, so it is worth stating plainly. The merged
 `measurement` table holds every measurand as a row. Refined splits them by role:
 
 ```
-merged measurement            190,844
-  ├─ 7 target elements        115,820  → measurement
-  ├─ FE / AL / CORG            62,698  → normaliser (reshaped, one row per subsample)
+merged measurement            190,771
+  ├─ 7 target elements        115,755  → measurement
+  ├─ FE / AL / CORG            62,690  → normaliser (reshaped, one row per subsample)
   └─ TOC63                     12,326  → dropped
 ```
 
 TOC63 goes because it is fines-normalised organic carbon, not whole-sample
 CORG, so it is not comparable with the CORG the ratios use. The three numbers
-add back to 190,844 exactly, which is what `refined_reconciliation.csv` records
+add back to 190,771 exactly, which is what `refined_reconciliation.csv` records
 — nothing vanishes unaccounted for.
 
 `measurement` then carries `ratio_fe`, `ratio_al` and `ratio_corg` already
@@ -48,12 +48,12 @@ divided, and `element` shrinks to the 7 targets.
 
 | Table | Rows |
 |---|--:|
-| `measurement` | 115,820 |
-| `normaliser` | 38,145 |
+| `measurement` | 115,755 |
+| `normaliser` | 38,191 |
 | `subsample` | 53,143 |
 | `event` | 46,091 |
 | `site` | 26,849 |
-| `method` | 949 |
+| `method` | 979 |
 | `dataset` | 78 |
 | `element` | **7** |
 | `aquaculture` | 3,743 |
