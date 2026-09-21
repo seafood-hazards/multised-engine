@@ -368,8 +368,12 @@ is **5.2 km** against 0.046 km across all five sources, which is the proportiona
 error showing itself: Mareano is the offshore-heavy source. The wrapper's output
 matches a direct CLI run byte for byte, 26,849 of 26,849 sites.
 
-Adopting this changes the published multised-clean and multised-merged pages
-(1,838 municipality reassignments are the visible part). Reversing it is one flag.
+Adopting it changed the published multised-clean and multised-merged pages, and
+1,838 municipality reassignments were the visible part. That count, and every
+comparison in this section, was measured once on 2026-08-25 against the pre-0.16
+stored values. It is **not recoverable from the current databases**, which hold the
+partitioned values alone, so read these as the record of a decision rather than as
+current statistics. Reversing the flag is still one flag.
 
 ---
 
