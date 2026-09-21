@@ -126,7 +126,9 @@ Written to `data/analysis/summary/`, all listed in the site's
 | `summary_source_elements.csv` | per source x target element: what the archive carries and what it does not, as the full 5 x 7 grid |
 | `summary_source_flow.csv` | per source x stage: the same funnel, one archive at a time, target elements only |
 | `summary_source_removals.csv` | per source: why the measurements that leave at the clean stage leave |
-| `summary_source_map.csv` | per source x 0.1 degree cell: where each archive sampled, and how much |
+| `summary_source_fractions.csv` | per source x fraction: bulk, sieved <63 um, sieved <20 um, and the sieve sizes this study does not pool with them |
+| `summary_source_extras.csv` | per source: aluminium, iron and organic carbon, and how much of what the site reports pairs with one |
+| `summary_source_map.csv` | per source x 0.1 degree cell: where each archive sampled, how much, and in which fraction |
 | `summary_meta.csv` | provenance: which database, built when, under which rules |
 
 ### Why the map is gridded
@@ -325,14 +327,17 @@ depending on the layer it is standing in for.
 Five pages plus an overview, built the way the element pages are: one shared body
 (`_source-body.qmd`) and five one-line pages that set `SRC`. Edit the body.
 
-They answer three questions per archive, and the third is the reason the section
-exists: what it carries, how much of it survives, and **why the rest does not**.
+They answer four questions per archive, and the last two are the reason the
+section exists: what it carries (elements, fractions, and the three parameters
+that make a measurement readable), how much of it survives, and **why the rest
+does not**.
 
 ### Counted over the seven targets, and only them
 
-Every number in this section is restricted to the target elements. The
-normalisers, organic carbon and the grain-size parameters travel through the same
-pipeline and are not counted.
+Every number in this section is restricted to the target elements, with one
+deliberate exception described below (`summary_source_extras.csv`). The
+grain-size parameters travel through the same pipeline and are not counted
+anywhere here.
 
 That is not a simplification, it is what makes the funnel honest. Counted over
 every parameter an archive publishes, Mareano falls from 144 040 rows to 41 789
@@ -379,11 +384,68 @@ reported more than once for one occasion and one method, averaged into a single
 row. The page says so in those words, because "27.5% removed" invites the wrong
 conclusion.
 
+### Fractions are coverage, and the counting is a partition
+
+`summary_source_fractions.csv` counts bulk, sieved <63 um and sieved <20 um per
+archive, plus a fourth row for the sieve sizes this study does not pool with them
+(166 rows in two archives). The four rows are a partition of every target
+measurement that reached the refined database with a positive value and no outlier
+flag, so the shares add to 100 and the fourth row explains part of the gap between
+the refined and analysed rungs of the funnel instead of leaving it unexplained.
+That is why the module keeps `ext_all` beside `ext`: `ext` is the three standard
+fractions, which is what the rest of the site reports.
+
+The site column is not summable: a site sampled in two fractions is one site
+counted in both rows. The page says so under the table.
+
+The check to re-run after touching any of it: each archive's three standard rows
+sum to its `analysed` rung in `summary_source_flow.csv`, and the three
+per-fraction columns of `summary_source_map.csv` sum to that cell's `n`. Both hold
+for all five archives.
+
+This is coverage only, by instruction and by design. What a fraction means for a
+verdict (which offshore reference it has, whether its grain size is controlled by
+aluminium or by the sieve) is settled on the element pages and in
+`summary_reference.csv`, and nothing in the source section restates it.
+
+### The three extra parameters: coverage, and the pairing is the point
+
+`summary_source_extras.csv` is the one place in the section that counts something
+other than a target element: aluminium, iron and organic carbon. They are not
+measurands of this study, they are what makes a measurement readable, and an
+archive's coverage of them is a ceiling on what can ever be said about its metals.
+
+Two columns, and only the second is load-bearing:
+
+- `n_slim` / `n_sites`: what the archive publishes, read from the five slim
+  databases. Organic carbon is named differently in each (`CORG`, `TOC`, `TOC63`)
+  and Mareano writes its normalisers in title case, so the role is resolved from
+  the category slim step 3 assigned, in SQL, rather than from the symbol.
+- `n_paired` / `pct_paired`: how many of the target measurements **this site
+  reports** have one beside them, on the same subsample and the same fraction,
+  read from the `ratio_al` / `ratio_fe` / `ratio_corg` flags on the refined
+  measurement table.
+
+The two are not the same count and the second is not a subset of the first: one
+aluminium measurement can serve all seven targets taken from the same sample, so
+`n_paired` can exceed `n_slim`. The page states that rather than letting a reader
+find it.
+
+The pairing column is where the archives differ most, and it is the number to
+reach for when the classifiable share comes up: Mareano pairs 99.6% of what it
+reports with an aluminium, Vannmiljø 2.1%. Vannmiljø is also the archive that
+carries the fish-farm monitoring, and 99.8% of the measurements within 1 km of a
+farm come from it, of which 0.6% have an aluminium. That is the mechanism behind
+the coverage gap the background module reports; the overview page states the link
+in words, without printing the three numbers, because no CSV on the site holds
+them.
+
 ### The source map colours by effort and never by concentration
 
 `summary_source_map.csv` carries site counts, measurement counts, elements
-measured, years and a median depth. It carries no concentration, and it must not
-start to.
+measured, years, a median depth and, since the fraction work, the per-fraction
+measurement counts in the cell with the name of the largest of them (`frac_top`,
+ties to the coarser). It carries no concentration, and it must not start to.
 
 Two reasons, both load-bearing. The element pages own the concentration scales,
 and a second set on the source pages would compete with them over the same
@@ -603,9 +665,10 @@ copy of the file list and 404'd on files that were sitting on the release.
 ## Status
 
 Published and live at <https://seafood-hazards.github.io/multised-summary/>.
-The asset set has grown twice since the first release: 13 files at `v0.1.0`, 15
-once the reference and sea-spread tables were added, and 19 with the four
-`summary_source_*.csv` files behind the Sources section. `latest` resolves to
+The asset set has grown three times since the first release: 13 files at
+`v0.1.0`, 15 once the reference and sea-spread tables were added, 19 with the four
+`summary_source_*.csv` files behind the Sources section, and 21 with the fraction
+and normaliser-coverage tables added to it. `latest` resolves to
 whichever release last carried the whole set, which is why a release that adds a
 file has to carry the older ones too.
 
