@@ -27,6 +27,10 @@
 #   summary_controls.csv    the four independent near-vs-far controls, side by side
 #   summary_sources.csv     per source: what each of the five contributes
 #   summary_flow.csv        per stage: the pilot -> refined funnel
+#   summary_source_elements.csv  per source x target element: what it carries
+#   summary_source_flow.csv      per source x stage: the same funnel, one archive at a time
+#   summary_source_removals.csv  per source: why the rows that leave at the clean stage leave
+#   summary_source_map.csv       per source x 0.1 degree cell: where it sampled
 #   summary_map_sites.csv   per site x element x fraction: the full-resolution layer
 #   summary_map_grid.csv    the same on a 0.1 degree grid: what the site draws
 #   summary_meta.csv        one-row provenance
@@ -319,8 +323,12 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   # showed two different totals.
   src_names <- as_tibble(dbGetQuery(con,
     "SELECT dataset_id, source FROM dataset")) |> rename(src = source)
-  sources <- ext |>
-    left_join(src_names, by = "dataset_id") |>
+  # One join, read by this table and by the per-source section below. A second
+  # copy would be a second place for the two to disagree about which rows belong
+  # to which archive, and disagreeing totals is the bug this section already had
+  # once.
+  ext_src <- ext |> left_join(src_names, by = "dataset_id")
+  sources <- ext_src |>
     group_by(source = src) |>
     summarise(n = n(),
               n_sites    = n_distinct(site_id),
@@ -366,7 +374,238 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
       stage == "refined" ~ "The mart for this work: target elements, normalisers, ratios",
       stage == "analysed" ~ "What this site reports: positive values, no outliers, bulk or a standard sieved fraction"))
 
-  # ── 9. summary_map_sites: one point per site x element x fraction ────────────
+  # ── 9. The per-source pages: coverage, funnel, removals, map ─────────────────
+  # Everything in this section counts the SEVEN TARGET ELEMENTS and nothing else.
+  # The normalisers, organic carbon and the grain-size parameters travel through
+  # the same pipeline and are not counted here, because these pages answer what
+  # happened to the measurements this study is about.
+  #
+  # That restriction is what makes the funnel readable rather than alarming.
+  # Counted over every parameter an archive publishes, Mareano falls from 144 040
+  # rows to 41 789 between pilot and slim, which reads as a rejection and is a
+  # selection: the pilot database holds the whole archive and slim keeps what this
+  # study measures. Counted over the targets the same two rungs are 18 941 and
+  # 18 941, and every later drop is a decision the pipeline took and can name.
+  SRC_KEYS  <- multised_sources()
+  SRC_LABEL <- stats::setNames(source_display(SRC_KEYS), SRC_KEYS)
+  SRC_KEY   <- stats::setNames(SRC_KEYS, SRC_LABEL)
+  TARGET_NAMES <- c("Cobalt", "Copper", "Iodine", "Manganese",
+                    "Molybdenum", "Selenium", "Zinc")
+  SRC_STAGES <- c("pilot", "slim", "clean", "merged", "refined", "analysed")
+  stage_what <- c(
+    pilot    = "The archive parsed as it is published, in its own layout",
+    slim     = "Reshaped into the shared 7-table schema, with the quality flags added",
+    clean    = "The flags applied: failed rows removed, repeats of one sample averaged",
+    merged   = "Unioned with the other four, and cross-source duplicates removed",
+    refined  = "Cut into the mart this work reads: every target row is kept",
+    analysed = "What this site reports: positive values, no outliers, bulk or a standard sieved fraction")
+
+  quoted <- function(x) paste0("'", x, "'", collapse = ", ")
+  no_rows <- tibble(n = NA_integer_, n_sites = NA_integer_)
+
+  # The pilot databases are per-source parses with no shared schema, so a target
+  # row count needs each archive's own parameter table and its own code column.
+  # This repeats the filter slim step 1 applies (R/slim-01-transform-*.R): four
+  # sources key on the element symbol, Mareano on the full element name. Sites are
+  # not counted here at all, because the pilot stage has no shared site table and
+  # Mareano has no site table of any kind: the column starts at slim, and the page
+  # shows the gap rather than inventing a number for it.
+  pilot_join <- c(mareano = "parameter", vannmiljo = "param_id",
+                  "ices-dome" = "param", mudab = "parameter",
+                  "4demon" = "parameter")
+  pilot_col  <- c(mareano = "element", vannmiljo = "param_id",
+                  "ices-dome" = "param", mudab = "parameter",
+                  "4demon" = "parameter")
+
+  count_pilot <- function(key) {
+    p <- pilot_db_path(key, db_dir)
+    if (!file.exists(p)) return(no_rows)
+    cn <- dbConnect(SQLite(), p); on.exit(dbDisconnect(cn), add = TRUE)
+    codes <- if (pilot_col[[key]] == "element") TARGET_NAMES else elem_levels
+    q <- sprintf(paste("SELECT COUNT(*) AS n FROM sediment s",
+                       "JOIN parameter p ON p.%s = s.%s WHERE p.%s IN (%s)"),
+                 pilot_join[[key]], pilot_join[[key]], pilot_col[[key]],
+                 quoted(codes))
+    tibble(n = dbGetQuery(cn, q)$n, n_sites = NA_integer_)
+  }
+
+  # Slim, clean, merged and refined share the 7-table schema, so one query covers
+  # all four. Sites are counted as the sites carrying a target measurement, the
+  # same definition at every rung, so the column is a funnel and not a table size.
+  stage_sql <- function(where = "") sprintf(paste(
+    "SELECT COUNT(*) AS n, COUNT(DISTINCT ev.site_id) AS n_sites",
+    "FROM measurement m",
+    "JOIN element el ON el.symbol = m.symbol",
+    "JOIN subsample s ON s.subsample_id = m.subsample_id",
+    "JOIN event ev ON ev.event_id = s.event_id",
+    "WHERE el.category = 'target'%s"), where)
+
+  count_src_stage <- function(key, gen) {
+    if (gen == "pilot") return(count_pilot(key))
+    cross <- gen %in% c("merged", "refined")
+    p <- if (gen == "merged") file.path(db_dir, "multised_merged.sqlite")
+         else if (gen == "refined") db_path
+         else file.path(db_dir, paste0(source_stem(key), "_", gen, ".sqlite"))
+    if (!file.exists(p)) return(no_rows)
+    cn <- dbConnect(SQLite(), p); on.exit(dbDisconnect(cn), add = TRUE)
+    where <- if (cross) sprintf(" AND m.source = '%s'", SRC_LABEL[[key]]) else ""
+    as_tibble(dbGetQuery(cn, stage_sql(where)))
+  }
+
+  analysed_src <- ext_src |>
+    group_by(source = src) |>
+    summarise(n = n(), n_sites = n_distinct(site_id), .groups = "drop")
+
+  source_flow <- lapply(SRC_KEYS, function(k) {
+    rows <- lapply(setdiff(SRC_STAGES, "analysed"), function(g)
+      count_src_stage(k, g) |> mutate(stage = g, .before = 1))
+    an <- analysed_src |> filter(source == SRC_LABEL[[k]])
+    rows[[length(rows) + 1L]] <- tibble(
+      stage   = "analysed",
+      n       = if (nrow(an)) an$n else 0L,
+      n_sites = if (nrow(an)) an$n_sites else 0L)
+    bind_rows(rows) |> mutate(key = k, .before = 1)
+  }) |>
+    bind_rows() |>
+    group_by(key) |>
+    mutate(pct_of_prev  = round(100 * n / dplyr::lag(n), 1),
+           pct_of_pilot = round(100 * n / dplyr::first(n), 1)) |>
+    ungroup() |>
+    mutate(source = factor(unname(SRC_LABEL[key]), levels = unname(SRC_LABEL)),
+           stage  = factor(stage, levels = SRC_STAGES),
+           what   = unname(stage_what[as.character(stage)])) |>
+    arrange(source, stage) |>
+    select(source, key, stage, n, n_sites, pct_of_prev, pct_of_pilot, what)
+
+  # Why the rows that leave at the clean stage leave. Read from the slim flags with
+  # the predicate clean step 2 applies, in the order it applies it
+  # (R/clean-02-clean.R), so a row carrying two flags is attributed to the first.
+  #
+  # Everything that leaves WITHOUT carrying a flag is the replicate collapse, and
+  # it is carried as the residual rather than re-derived here. That it is only the
+  # collapse was checked rather than assumed: MUDAB's 25 054 surviving slim rows
+  # group into exactly the 17 889 the clean database holds, and ICES-DOME's 56 165
+  # into exactly 38 492. The residual therefore reconciles by construction, which
+  # is also what makes it a check: a future step that drops rows for a new reason
+  # surfaces as a jump in this one column rather than as a silent gap.
+  REASONS <- c("outside_europe", "out_of_range", "invalid", "below_loq",
+               "wet_weight", "source_qc", "combined")
+  reason_what <- c(
+    outside_europe = "The site fell outside the European area this study covers",
+    out_of_range   = "The value fell outside the plausible range for the element",
+    invalid        = "The archive's own record marked the measurement unusable",
+    below_loq      = "The value fell below the laboratory's limit of quantification",
+    wet_weight     = "Reported on a wet-weight basis, which cannot be compared with the rest",
+    source_qc      = "The archive's own quality flag rejected it",
+    combined       = "Not rejected: the same sample reported more than once for one occasion and method, averaged into a single row")
+
+  flagged <- function(df, col, test) {
+    if (!col %in% names(df)) return(rep(FALSE, nrow(df)))
+    out <- test(df[[col]])
+    out[is.na(out)] <- FALSE
+    out
+  }
+
+  source_removals <- lapply(SRC_KEYS, function(k) {
+    lab <- SRC_LABEL[[k]]
+    p <- file.path(db_dir, paste0(source_stem(k), "_slim.sqlite"))
+    if (!file.exists(p))
+      return(tibble(key = k, reason = REASONS, n = NA_integer_,
+                    pct_of_slim = NA_real_))
+    cn <- dbConnect(SQLite(), p); on.exit(dbDisconnect(cn), add = TRUE)
+    sf <- as_tibble(dbGetQuery(cn, paste(
+      "SELECT m.*, si.area_flag FROM measurement m",
+      "JOIN element el ON el.symbol = m.symbol",
+      "JOIN subsample s ON s.subsample_id = m.subsample_id",
+      "JOIN event ev ON ev.event_id = s.event_id",
+      "JOIN site si ON si.site_id = ev.site_id",
+      "WHERE el.category = 'target'")))
+    reason <- case_when(
+      flagged(sf, "area_flag",    function(x) !is.na(x))    ~ "outside_europe",
+      flagged(sf, "range_flag",   function(x) !is.na(x))    ~ "out_of_range",
+      flagged(sf, "invalid_flag", function(x) !is.na(x))    ~ "invalid",
+      flagged(sf, "below_loq",     function(x) x == 1L) |
+        flagged(sf, "below_loq_num", function(x) x == 1L)   ~ "below_loq",
+      flagged(sf, "weight_basis", function(x) x == "wet")   ~ "wet_weight",
+      flagged(sf, "src_flag",     function(x) !is.na(x))    ~ "source_qc",
+      TRUE                                                  ~ NA_character_)
+    n_clean <- source_flow$n[source_flow$key == k & source_flow$stage == "clean"]
+    counts <- table(factor(reason, levels = setdiff(REASONS, "combined")))
+    counts <- stats::setNames(as.integer(counts), names(counts))
+    counts["combined"] <- nrow(sf) - sum(counts) - n_clean
+    tibble(key = k, reason = REASONS, n = unname(counts[REASONS]),
+           pct_of_slim = round(100 * unname(counts[REASONS]) / nrow(sf), 1))
+  }) |>
+    bind_rows() |>
+    mutate(source = factor(unname(SRC_LABEL[key]), levels = unname(SRC_LABEL)),
+           reason = factor(reason, levels = REASONS),
+           what   = unname(reason_what[as.character(reason)])) |>
+    arrange(source, reason) |>
+    select(source, key, reason, n, pct_of_slim, what)
+
+  # What each archive carries, and what it does not. The full 5 x 7 grid is
+  # written, so an element a source has none of is a row saying zero rather than a
+  # row that is not there: a page cannot read an absence out of a missing row
+  # without deciding something, and deciding is what this module does not do.
+  # `n_slim` comes from the censoring table, which already counts slim rows per
+  # source and element, rather than from a second pass over the five databases.
+  analysed_elem <- ext_src |>
+    group_by(source = src, symbol) |>
+    summarise(n_analysed = n(),
+              n_sites  = n_distinct(site_id),
+              year_min = suppressWarnings(min(year, na.rm = TRUE)),
+              year_max = suppressWarnings(max(year, na.rm = TRUE)),
+              .groups = "drop") |>
+    mutate(across(c(year_min, year_max), ~ ifelse(is.finite(.x), .x, NA_integer_)))
+
+  source_elements <- expand_grid(key = SRC_KEYS, symbol = elem_levels) |>
+    mutate(source = unname(SRC_LABEL[key])) |>
+    left_join(censoring |> transmute(key = source, symbol = as.character(symbol),
+                                     n_slim, pct_censored),
+              by = c("key", "symbol")) |>
+    left_join(analysed_elem, by = c("source", "symbol")) |>
+    left_join(elem_names, by = "symbol") |>
+    mutate(across(c(n_slim, n_analysed, n_sites), ~ coalesce(.x, 0L)),
+           in_archive = n_slim > 0,
+           withheld   = symbol %in% withheld,
+           source     = factor(source, levels = unname(SRC_LABEL)),
+           symbol     = factor(symbol, levels = elem_levels)) |>
+    arrange(source, symbol) |>
+    select(source, key, symbol, name, in_archive, n_slim, n_analysed, n_sites,
+           year_min, year_max, pct_censored, withheld)
+
+  # Where each archive sampled, on the same 0.1 degree grid as the element maps so
+  # the two are registered against each other.
+  #
+  # Colour on this map is sampling effort and never concentration. That is a
+  # decision rather than an omission: the element pages own the concentration
+  # scales, and a second set here would compete with them for the same reader. It
+  # also keeps the withholding rules out of this file entirely, because there is no
+  # level in it that molybdenum or selenium could leak a number into.
+  site_xy <- as_tibble(dbGetQuery(con,
+    "SELECT site_id, latitude, longitude, depth FROM site"))
+
+  source_map <- ext_src |>
+    left_join(site_xy, by = "site_id") |>
+    filter(!is.na(latitude), !is.na(longitude)) |>
+    mutate(lat = round(latitude, 1), lon = round(longitude, 1)) |>
+    group_by(source = src, lat, lon) |>
+    summarise(n_sites  = n_distinct(site_id),
+              n        = n(),
+              n_elements = n_distinct(symbol),
+              year_min = suppressWarnings(min(year, na.rm = TRUE)),
+              year_max = suppressWarnings(max(year, na.rm = TRUE)),
+              depth_p50 = round(median(depth, na.rm = TRUE)),
+              .groups = "drop") |>
+    mutate(across(c(year_min, year_max), ~ ifelse(is.finite(.x), .x, NA_integer_)),
+           depth_p50 = ifelse(is.finite(depth_p50), depth_p50, NA_real_),
+           key = unname(SRC_KEY[source]),
+           source = factor(source, levels = unname(SRC_LABEL))) |>
+    arrange(source, lat, lon) |>
+    select(source, key, lat, lon, n_sites, n, n_elements,
+           year_min, year_max, depth_p50)
+
+  # ── 10. summary_map_sites: one point per site x element x fraction ───────────
   # The site is the unit here, not the measurement, because a map draws points. A
   # site whose measurements straddle a threshold lands on one side of it once
   # averaged, so these flags are a coarser classifier than the per-measurement ones
@@ -514,7 +753,7 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
            symbol = factor(symbol, levels = elem_levels)) |>
     arrange(symbol, match(cat, CATS), lat, lon)
 
-  # ── 10. Provenance ───────────────────────────────────────────────────────────
+  # ── 11. Provenance ───────────────────────────────────────────────────────────
   meta <- tibble(
     generated     = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
     refined_db    = basename(db_path),
@@ -529,7 +768,7 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
     withheld      = paste(withheld, collapse = " "),
     source_module = "background")
 
-  # ── 11. Write ────────────────────────────────────────────────────────────────
+  # ── 12. Write ────────────────────────────────────────────────────────────────
   wr <- function(x, f) { write_csv(x, file.path(adir, f), na = ""); invisible(x) }
   # What each fraction's offshore reference actually is, and which grain-size control
   # holds a background steady across seas. Both travel to the summary layer because the
@@ -555,6 +794,10 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
   wr(controls,   "summary_controls.csv")
   wr(sources,    "summary_sources.csv")
   wr(flow,       "summary_flow.csv")
+  wr(source_elements, "summary_source_elements.csv")
+  wr(source_flow,     "summary_source_flow.csv")
+  wr(source_removals, "summary_source_removals.csv")
+  wr(source_map,      "summary_source_map.csv")
   wr(map_sites,  "summary_map_sites.csv")
   wr(map_grid,   "summary_map_grid.csv")
   wr(meta,       "summary_meta.csv")
@@ -570,6 +813,8 @@ analysis_refined_summary <- function(db_dir = multised_db_dir(),
           elements$has_background & !elements$has_verdict]), collapse = ", "), "\n")
     cat("withheld:", paste(withheld, collapse = ", "), "\n")
     cat("map points:", nrow(map_sites), "sites,", nrow(map_grid), "grid cells\n")
+    cat("per source:", nrow(source_flow), "funnel rows,",
+        nrow(source_removals), "removal rows,", nrow(source_map), "map cells\n")
     cat("written to:", adir, "\n")
   }
 

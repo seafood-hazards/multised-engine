@@ -109,12 +109,14 @@ why the token exists rather than the module name alone.
 | `background` | `analysis_refined_regression()`          | regression normalisation as a check on the ratio, and whether Al predicts each metal |
 | `background` | `analysis_refined_method_changes()`      | pre/post comparison for the Method Revisions page |
 | `background` | `analysis_refined_background_igeo()`     | geo-accumulation index: a background-ratio classifier that needs no normaliser |
-| `summary`    | `analysis_refined_summary()`             | assembles the `background` outputs, plus extent counts and map layers, into the tables the multised-summary site draws |
+| `summary`    | `analysis_refined_summary()`             | assembles the `background` outputs, plus extent counts, the per-source tables and the map layers, into the tables the multised-summary site draws |
 
 `summary` is the only module in the project that depends on another. It derives
 no background, no enrichment factor and no verdict: it reshapes what `background`
 wrote, and adds only the things no background CSV holds (per-element and
-per-source extent, the pipeline funnel, and the site and grid map layers). It
+per-source extent, the pipeline funnel both pooled and per archive, why the rows
+that leave at the clean stage leave, and the site, grid and per-source map
+layers). It
 errors rather than reading a stale directory if `background` has not run, and a
 full `analyze_data("refined")` reaches it in the right order because it is listed
 after `background` in the registry. Full spec:

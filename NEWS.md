@@ -1,3 +1,87 @@
+# multised.engine 0.5.0
+
+The summary module gains a per-source section: four new CSVs behind a new Sources
+section on the multised-summary site, one page per archive.
+
+## What each archive brought, and what happened to it
+
+`analysis_refined_summary()` already counted what the five sources contribute
+(`summary_sources.csv`). What it could not answer was the question a reader asks
+next: which elements an archive carries and which it has none of, how much of its
+data survives each stage, and why the rest does not. Four files now answer it.
+
+- `summary_source_elements.csv` is the full 5 x 7 grid, so an element a source has
+  none of is a row saying zero rather than a row that is not there. A page cannot
+  read an absence out of a missing row without deciding something.
+- `summary_source_flow.csv` is the pipeline funnel one archive at a time, over six
+  rungs from the pilot parse to what the site reports.
+- `summary_source_removals.csv` names why the measurements that leave at the clean
+  stage leave, read from the slim flags with the predicate `clean-02-clean.R`
+  applies and in the order it applies it.
+- `summary_source_map.csv` is a 0.1 degree grid per source, on the same grid as
+  the element maps.
+
+## Counted over the targets, which is what makes the funnel honest
+
+Everything in the new section counts the seven target elements and nothing else.
+That restriction was a scoping decision and turned out to be load-bearing.
+
+Counted over every parameter an archive publishes, Mareano falls from 144 040 rows
+to 41 789 between the pilot parse and the harmonised schema: a reader sees seven
+rows in ten thrown away. Nothing was thrown away. The pilot database holds the
+whole archive and the harmonised one keeps what this study measures. Counted over
+the targets the same two rungs read 18 941 and 18 941, and across all five sources
+the parse rung loses 155 rows out of 168 699. Every drop below it is then a
+decision the pipeline took and can name, which is what the pages are for.
+
+The funnel reconciles at both ends against files that already existed: the
+per-source `analysed` rows sum to the 115 231 in `summary_meta.csv`, and the
+per-source `refined` rows to the 115 811 that `refined_reconciliation.csv` calls
+`targets`.
+
+## Removals are attributed rather than differenced
+
+A row carrying two flags is counted once, against the first rule that applied, so
+the reasons add up instead of overlapping. Everything that leaves without carrying
+a flag is the replicate collapse, carried as the residual.
+
+That it is only the collapse was checked rather than assumed: MUDAB's 25 054
+surviving slim rows group into exactly the 17 889 the clean database holds, and
+ICES-DOME's 56 165 into exactly 38 492. The residual therefore reconciles by
+construction, which is also what makes it a check: a step that later drops rows
+for a new reason surfaces as a jump in that one column rather than as a silent
+gap.
+
+It is also the result the pages are built around. For three of the five archives
+most of what leaves the clean stage is not a rejection at all, but the same sample
+reported more than once for one occasion and one method, averaged into a single
+row. "27.5% removed" invites the opposite conclusion, so the pages say which it
+is.
+
+## The source map has no concentration in it, and must not gain one
+
+`summary_source_map.csv` carries site counts, measurement counts, elements
+measured, years and a median depth. Colour on the source pages is sampling effort.
+
+Two reasons. The element pages own the concentration scales, and a second set
+would compete with them over the same sediment. And a file with no level in it
+cannot leak a withheld one: the molybdenum and selenium problem that bit the
+element map three times cannot arise here, because there is nothing for it to
+arise in.
+
+## Also
+
+- `source_display()` in `R/config.R`: the source key to display label mapping that
+  the merge stage writes and the sites print. It was copied into six
+  `analysis-clean-*.R` files before it lived anywhere; they can move onto it as
+  they are next touched.
+- `ext_src` is joined once and read by both `summary_sources.csv` and the new
+  per-source section, rather than twice. Two joins is two places for the totals to
+  disagree, which this module has done once already.
+- `docs/websites.md` gained the correction that landed on `develop` after 0.4.1:
+  all five generation sites resolve `latest` at pre-render, and the rule that a
+  release object must carry the full asset set is about release objects, not tags.
+
 # multised.engine 0.4.1
 
 A documentation release. The summary layer shipped in 0.4.0 without the project's

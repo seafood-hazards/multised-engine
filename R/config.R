@@ -71,6 +71,26 @@ source_stem <- function(source) {
   gsub("-", "_", source, fixed = TRUE)
 }
 
+# Source key -> the label the merge stage writes into `source`, and the one the
+# websites print. The merged and refined databases carry these strings, so
+# anything joining a per-source count back to them has to use this spelling and
+# not invent its own. The vector was copied into six analysis scripts before it
+# lived here; they can be moved onto it as they are next touched.
+source_display <- function(source = multised_sources()) {
+  labels <- c("mareano"   = "Mareano",
+              "vannmiljo" = "Vannmilj\u00f8",
+              "ices-dome" = "ICES-DOME",
+              "mudab"     = "MUDAB",
+              "4demon"    = "4Demon")
+  unknown <- setdiff(source, names(labels))
+  if (length(unknown)) {
+    stop("Unknown source ", paste(sQuote(unknown), collapse = ", "),
+         ". Valid sources: ", paste(multised_sources(), collapse = ", "),
+         call. = FALSE)
+  }
+  unname(labels[source])
+}
+
 # Validate a source key, with a message that lists the valid ones.
 check_source <- function(source) {
   if (is.null(source) || length(source) != 1L || !is.character(source)) {
@@ -200,4 +220,14 @@ utils::globalVariables(c(
   "vessel_code", "vessel_name", "vflag", "water", "Water Depth",
   "water_body_category", "water_col", "water_type", "weight_basis",
   "winner_source", "wss", "x", "Y", "y", "Zn", "Zr"
+))
+
+# Column names the per-source section of the summary module uses unquoted
+# (section 9 of R/analysis-refined-summary.R). Kept as a second call rather than
+# merged into the sorted list above, which is regenerated wholesale from check
+# output: reflowing 580 names to add eighteen buries the change.
+utils::globalVariables(c(
+  "depth_p50", "in_archive", "key", "n_analysed", "n_elements", "n_slim",
+  "pct_censored", "pct_of_pilot", "pct_of_prev", "pct_of_slim", "reason",
+  "source", "src", "stage", "withheld", "year", "year_max", "year_min"
 ))
